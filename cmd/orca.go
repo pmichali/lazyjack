@@ -56,7 +56,8 @@ func validateCommand(command string) string {
 func validateHost(host string, config *orca.Config) *orca.Node {
 	nodeInfo, ok := config.Topology[host]
 	if !ok {
-		glog.Fatalf("Unable to find info for host %q in config file", host)
+		fmt.Printf("ERROR: Unable to find info for host %q in config file\n", host)
+		os.Exit(1)
 	}
 	return &nodeInfo
 }
@@ -66,13 +67,15 @@ func validateAndLoadConfig(configFile string) *orca.Config {
 
 	cf, err := os.Open(configFile)
 	if err != nil {
-		glog.Fatalf("Unable to open config file %q: %s", configFile, err.Error())
+		fmt.Printf("ERROR: Unable to open config file %q: %s\n", configFile, err.Error())
+		os.Exit(1)
 	}
 	defer cf.Close()
 
 	config, err := orca.ParseConfig(cf)
 	if err != nil {
-		glog.Fatal(err)
+		fmt.Printf("ERROR: Unable to parse config file %q: %s\n", configFile, err.Error())
+		os.Exit(1)
 	}
 
 	return config
