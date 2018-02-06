@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
-	"os"
 )
 
 type SupportNetwork struct {
@@ -53,7 +53,7 @@ type Config struct {
 	DNS64    DNS64Config       `yaml:"dns64"`
 }
 
-func parseConfig(configReader io.Reader) (*Config, error) {
+func ParseConfig(configReader io.Reader) (*Config, error) {
 	var config Config
 
 	if configReader == nil {
@@ -67,6 +67,6 @@ func parseConfig(configReader io.Reader) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse config: %s", err.Error())
 	}
-	glog.Infof("Configuration read %+v", config)
-	return &config
+	glog.V(4).Infof("Configuration read %+v", config)
+	return &config, nil
 }

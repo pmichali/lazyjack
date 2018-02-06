@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"log"
+	"orca"
 	"os"
 	"path/filepath"
 )
@@ -45,6 +46,18 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Printf("Have %s\n", *configFile)
-	glog.Info("Done")
+	glog.V(1).Infof("Using config %q", *configFile)
+
+	cf, err := os.Open(*configFile)
+	if err != nil {
+		glog.Fatalf("Unable to open config file %q: %s", *configFile, err.Error())
+	}
+	defer cf.Close()
+
+	config, err := orca.ParseConfig(cf)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	fmt.Printf("Configuration is %+v\n", config)
+	glog.V(4).Info("Done")
 }
