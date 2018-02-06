@@ -1,0 +1,25 @@
+plugin: bridge
+topology:
+    bxb-c2-77:
+        interface: "enp10s0"
+        opmodes: "master dns64 nat64"
+        id: 2
+    bxb-c2-79:
+        interface: "enp10s0"
+        opmodes: "minion"
+        id: 3
+support_net:
+    subnet: "fd00:10::"
+    size: 64
+mgmt_net:
+    subnet: "fd00:20::"
+    size: 64
+nat64:
+    v4_cidr: "172.18.0.128/25"
+    v4_ip: "172.18.0.200"
+    ip: "fd00:10::200"
+dns64:
+    remote_server: "64.102.6.247"
+    prefix: "fd00:10:64:ff9b::"
+    prefix_size: 96
+    ip: "fd00:10::100"
