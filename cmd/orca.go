@@ -54,11 +54,16 @@ func main() {
 
 	command, err := orca.ValidateCommand(flag.Arg(0))
 	if err != nil {
-		fmt.Printf("ERROR: %s\n", err.Error())
+		fmt.Printf("ERROR: %s\n\n", err.Error())
 		flag.Usage()
 		os.Exit(1)
 	}
-	config, err := orca.ValidateAndLoadConfig(*configFile)
+	cf, err := orca.ValidateConfigFile(*configFile)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+		os.Exit(1)
+	}
+	config, err := orca.LoadConfig(cf)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)

@@ -29,7 +29,9 @@ func ValidateHost(host string, config *Config) (*Node, error) {
 	return &nodeInfo, nil
 }
 
-func LoadConfig(cf io.Reader) (*Config, error) {
+func LoadConfig(cf io.ReadCloser) (*Config, error) {
+	defer cf.Close()
+
 	config, err := ParseConfig(cf)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse config file %q: %s", cf, err.Error())
@@ -38,13 +40,12 @@ func LoadConfig(cf io.Reader) (*Config, error) {
 	return config, nil
 }
 
-func ValidateAndLoadConfig(configFile string) (*Config, error) {
+func ValidateConfigFile(configFile string) (io.ReadCloser, error) {
 	glog.V(1).Infof("Using config %q", configFile)
 
 	cf, err := os.Open(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to open config file %q: %s", configFile, err.Error())
 	}
-	defer cf.Close()
-	return LoadConfig(cf)
+	return cf, nil
 }

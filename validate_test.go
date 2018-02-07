@@ -52,20 +52,23 @@ func TestValidateCommand(t *testing.T) {
 	}
 }
 
-func TestLoadConfig(t *testing.T) {
-	config, err := orca.ValidateAndLoadConfig("")
-	if config != nil {
+func TestValidateConfig(t *testing.T) {
+	cf, err := orca.ValidateConfigFile("")
+	if cf != nil {
 		t.Errorf("Did not expect to have config, with empty filename")
 	}
 	if err.Error() != "Unable to open config file \"\": open : no such file or directory" {
 		t.Errorf("Expected error message, when trying to open empty filename")
 	}
 
-	config, err = orca.ValidateAndLoadConfig("non-existing-file")
-	if config != nil {
+	cf, err = orca.ValidateConfigFile("non-existing-file")
+	if cf != nil {
 		t.Errorf("Did not expect to have config, with non-existing filename")
 	}
 	if err.Error() != "Unable to open config file \"non-existing-file\": open non-existing-file: no such file or directory" {
 		t.Errorf("Expected error message, when trying to open non-existing filename")
 	}
 }
+
+
+// TODO TEST BAD CONTENT IN CONFIG FILE
