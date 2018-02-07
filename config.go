@@ -70,3 +70,7 @@ func ParseConfig(configReader io.Reader) (*Config, error) {
 	glog.V(4).Infof("Configuration read %+v", config)
 	return &config, nil
 }
+
+func (n *Node) IsMaster() bool {
+	return true
+}

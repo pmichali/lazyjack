@@ -3,6 +3,7 @@ package orca_test
 import (
 	"bytes"
 	"orca"
+	"strings"
 	"testing"
 )
 
@@ -174,5 +175,106 @@ dns64:
 		config.DNS64.PrefixSize != 96 ||
 		config.DNS64.ServerIP != "fd00:10::100" {
 		t.Errorf("DNS64 config parse failure (%+v)", config.DNS64)
+	}
+}
+
+func TestUniqueIDs(t *testing.T) {
+	// Create bare minimum to test IDs
+	c := orca.Config{
+		Topology: map[string]orca.Node{
+			"master": {
+				ID: 10,
+			},
+			"minion1": {
+				ID: 20,
+			},
+			"minion2": {
+				ID: 10,
+			},
+		},
+	}
+	err := orca.ValidateUniqueIDs(&c)
+	if err == nil {
+		t.Errorf("Expected failure with duplicate IDs")
+	}
+	// Order of node names is not guaranteed, so just check first part of msg
+	if !strings.HasPrefix(err.Error(), "Duplicate node ID 10 seen for node") {
+		t.Errorf("Error message is not correct (%s)", err.Error())
+	}
+}
+
+func TestOperatingModesOnNode(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		opMode      string
+		expectedStr string
+	}{
+		{
+			name:        "Master only",
+			opMode:      "master",
+			expectedStr: "",
+		},
+		{
+			name:        "Minion only",
+			opMode:      "minion",
+			expectedStr: "",
+		},
+		{
+			name:        "Master with DNS and NAT",
+			opMode:      "master Dns64 NAT64",
+			expectedStr: "",
+		},
+		{
+			name:        "DNS/NAT and Master",
+			opMode:      "dns64 nat64 Master",
+			expectedStr: "",
+		},
+		{
+			name:        "DNS and NAT only",
+			opMode:      "nat64 dns64",
+			expectedStr: "",
+		},
+		{
+			name:        "Missing mode",
+			opMode:      "",
+			expectedStr: "Missing operating mode for \"test-node\"",
+		},
+		{
+			name:        "Unknown mode",
+			opMode:      "monster",
+			expectedStr: "Invalid operating mode \"monster\" for \"test-node\"",
+		},
+		{
+			name:        "Master and minion",
+			opMode:      "minion master",
+			expectedStr: "Invalid combination of modes for \"test-node\"",
+		},
+		// Don't currently support just DNS or just NAT
+		// TODO: Decide if should allow DNS only/NAT only
+		{
+			name:        "Missing DNS64",
+			opMode:      "nat64",
+			expectedStr: "Missing \"dns64\" mode for \"test-node\"",
+		},
+		{
+			name:        "Missing NAT64",
+			opMode:      "dns64",
+			expectedStr: "Missing \"nat64\" mode for \"test-node\"",
+		},
+	}
+
+	for _, tc := range testCases {
+		err := orca.ValidateNodeOpModes(tc.opMode, "test-node")
+		if tc.expectedStr == "" {
+			if err != nil {
+				t.Errorf("FAILED: [%s] Expected test to pass - see error: %s", tc.name, err.Error())
+			}
+		} else {
+			if err == nil {
+				t.Errorf("FAILED: [%s] Expected test to fail", tc.name)
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("FAILED: [%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
+			}
+		}
 	}
 }

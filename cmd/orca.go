@@ -68,6 +68,11 @@ func main() {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
+	err = ValidateConfigContents(config)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+		os.Exit(1)
+	}
 	hostInfo, err := orca.ValidateHost(*host, config)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
