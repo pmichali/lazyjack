@@ -8,7 +8,6 @@ import (
 	"orca"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func init() {
@@ -35,52 +34,6 @@ func FlushLogs() {
 	glog.Flush()
 }
 
-func validateCommand(command string) string {
-	if command == "" {
-		fmt.Printf("ERROR: Missing command.\n\n")
-		flag.Usage()
-		os.Exit(1)
-	}
-	validCommands := []string{"prepare", "up", "down", "clean"}
-	for _, c := range validCommands {
-		if strings.EqualFold(c, command) {
-			return c
-		}
-	}
-	fmt.Printf("ERROR: Unknown command %q.\n\n", command)
-	flag.Usage()
-	os.Exit(1)
-	return ""
-}
-
-func validateHost(host string, config *orca.Config) *orca.Node {
-	nodeInfo, ok := config.Topology[host]
-	if !ok {
-		fmt.Printf("ERROR: Unable to find info for host %q in config file\n", host)
-		os.Exit(1)
-	}
-	return &nodeInfo
-}
-
-func validateAndLoadConfig(configFile string) *orca.Config {
-	glog.V(1).Infof("Using config %q", configFile)
-
-	cf, err := os.Open(configFile)
-	if err != nil {
-		fmt.Printf("ERROR: Unable to open config file %q: %s\n", configFile, err.Error())
-		os.Exit(1)
-	}
-	defer cf.Close()
-
-	config, err := orca.ParseConfig(cf)
-	if err != nil {
-		fmt.Printf("ERROR: Unable to parse config file %q: %s\n", configFile, err.Error())
-		os.Exit(1)
-	}
-
-	return config
-}
-
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] {prepare|up|down|clean}\n", filepath.Base(os.Args[0]))
@@ -99,14 +52,27 @@ func main() {
 
 	flag.Parse()
 
-	command := validateCommand(flag.Arg(0))
-	config := validateAndLoadConfig(*configFile)
-	hostInfo := validateHost(*host, config)
+	command, err := orca.ValidateCommand(flag.Arg(0))
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+		flag.Usage()
+		os.Exit(1)
+	}
+	config, err := orca.ValidateAndLoadConfig(*configFile)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+		os.Exit(1)
+	}
+	hostInfo, err := orca.ValidateHost(*host, config)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+		os.Exit(1)
+	}
 
 	glog.V(1).Infof("Command %q on host %q", command, *host)
 
 	fmt.Printf("Host info %+v\n", hostInfo)
-	
+
 	switch command {
 	case "prepare":
 		fmt.Printf("TODO %q on %q\n", command, *host)
