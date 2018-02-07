@@ -34,7 +34,7 @@ func LoadConfig(cf io.ReadCloser) (*Config, error) {
 
 	config, err := ParseConfig(cf)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse config file %q: %s", cf, err.Error())
+		return nil, err
 	}
 
 	return config, nil
