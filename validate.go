@@ -2,10 +2,11 @@ package orca
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 func ValidateCommand(command string) (string, error) {
@@ -21,12 +22,12 @@ func ValidateCommand(command string) (string, error) {
 	return "", fmt.Errorf("Unknown command %q", command)
 }
 
-func ValidateHost(host string, config *Config) (*Node, error) {
-	nodeInfo, ok := config.Topology[host]
+func ValidateHost(host string, config *Config) error {
+	_, ok := config.Topology[host]
 	if !ok {
-		return nil, fmt.Errorf("Unable to find info for host %q in config file\n", host)
+		return fmt.Errorf("Unable to find info for host %q in config file\n", host)
 	}
-	return &nodeInfo, nil
+	return nil
 }
 
 func contains(ids []int, id int) bool {
@@ -46,54 +47,86 @@ func ValidateUniqueIDs(c *Config) error {
 			return fmt.Errorf("Duplicate node ID %d seen for node %q and %q", node.ID, first, name)
 		}
 		IDs[node.ID] = name
+		glog.V(4).Infof("Node %q has ID %d", name, node.ID)
 	}
 	return nil
 }
 
-func ValidateNodeOpModes(opModes, node string) error {
-	if opModes == "" {
-		return fmt.Errorf("Missing operating mode for %q", node)
-	}
+// NOTE: Side effect of saving the operating modes as flags, for easier use.
+func ValidateNodeOpModes(node *Node) error {
 	validModes := []string{"master", "minion", "dns64", "nat64"}
-	modesSeen := map[string]bool{"master": false, "minion": false, "dns64": false, "nat64": false}
-	
-	ops := strings.Split(opModes, " ")
+
+	ops := strings.Split(node.OperatingModes, " ")
+	anyModes := false
 	for _, op := range ops {
+		if op == "" {
+			continue
+		}
+		anyModes = true
 		found := false
 		for _, m := range validModes {
 			if strings.EqualFold(m, op) {
 				found = true
-				modesSeen[m] = true
+				switch m {
+				case "master":
+					glog.V(4).Infof("Node %q configured as master", node.Name)
+					node.IsMaster = true
+				case "dns64":
+					glog.V(4).Infof("Node %q configured as DNS64 server", node.Name)
+					node.IsDNS64Server = true
+				case "nat64":
+					glog.V(4).Infof("Node %q configured as NAT64 server", node.Name)
+					node.IsNAT64Server = true
+				default:
+					glog.V(4).Infof("Node %q configured as minion", node.Name)
+					node.IsMinion = true
+				}
 			}
 		}
-		if ! found {
-			return fmt.Errorf("Invalid operating mode %q for %q", op, node)
+		if !found {
+			return fmt.Errorf("Invalid operating mode %q for %q", op, node.Name)
 		}
 	}
-	if modesSeen["minion"] && modesSeen["master"] {
-		return fmt.Errorf("Invalid combination of modes for %q", node)
+	if !anyModes {
+		return fmt.Errorf("Missing operating mode for %q", node.Name)
 	}
-	if modesSeen["dns64"] && !modesSeen["nat64"] {
-		return fmt.Errorf("Missing %q mode for %q", "nat64", node)
+	if node.IsMaster && node.IsMinion {
+		return fmt.Errorf("Invalid combination of modes for %q", node.Name)
 	}
-	if ! modesSeen["dns64"] && modesSeen["nat64"] {
-		return fmt.Errorf("Missing %q mode for %q", "dns64", node)
+	if node.IsDNS64Server && !node.IsNAT64Server {
+		return fmt.Errorf("Missing %q mode for %q", "nat64", node.Name)
+	}
+	if !node.IsDNS64Server && node.IsNAT64Server {
+		return fmt.Errorf("Missing %q mode for %q", "dns64", node.Name)
 	}
 	return nil
 }
 
-// TODO: test duplicate masters, determine if allow duplicate DNS/NAT nodes, missing DNS/NAT node
-// TODO: Store mode flags as side effect?
+// TODO: determine if allow duplicate DNS/NAT nodes
+// TODO: test missing DNS/NAT node
+// Note: Side effect is storing node name in node struct for ease of access
 func ValidateOpModesForAllNodes(c *Config) error {
+	numMasters := 0
 	for name, node := range c.Topology {
-		err := ValidateNodeOpModes(node.OperatingModes, name)
+		node.Name = name
+		err := ValidateNodeOpModes(&node)
 		if err != nil {
 			return err
 		}
+		if node.IsMaster {
+			numMasters++
+		}
+		if numMasters > 1 {
+			return fmt.Errorf("Found multiple nodes with \"master\" operating mode")
+		}
+		c.Topology[name] = node // Update the map with new value
 	}
+
+	glog.V(4).Info("All nodes have valid operating modes")
 	return nil
 }
 
+// TODO: Validate IPs are valid
 func ValidateConfigContents(c *Config) error {
 	if c == nil {
 		return fmt.Errorf("No configuration loaded")
@@ -106,8 +139,9 @@ func ValidateConfigContents(c *Config) error {
 	if err != nil {
 		return err
 	}
-	
-	// FUTURE: Check no overlapping management/support/pod networks
+
+	// FUTURE: Check no overlapping management/support/pod networks, validate IPs
+	glog.V(1).Info("Configuration is valid")
 	return nil
 }
 
@@ -119,11 +153,12 @@ func LoadConfig(cf io.ReadCloser) (*Config, error) {
 		return nil, err
 	}
 
+	glog.V(1).Info("Configuration loaded")
 	return config, nil
 }
 
 func ValidateConfigFile(configFile string) (io.ReadCloser, error) {
-	glog.V(1).Infof("Using config %q", configFile)
+	glog.V(1).Infof("Reading configuration file %q", configFile)
 
 	cf, err := os.Open(configFile)
 	if err != nil {

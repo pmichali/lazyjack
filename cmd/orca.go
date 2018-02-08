@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"log"
 	"orca"
 	"os"
 	"path/filepath"
+
+	"github.com/golang/glog"
 )
 
 func init() {
@@ -68,12 +69,12 @@ func main() {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
-	err = ValidateConfigContents(config)
+	err = orca.ValidateConfigContents(config)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
-	hostInfo, err := orca.ValidateHost(*host, config)
+	err = orca.ValidateHost(*host, config)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
@@ -81,17 +82,15 @@ func main() {
 
 	glog.V(1).Infof("Command %q on host %q", command, *host)
 
-	fmt.Printf("Host info %+v\n", hostInfo)
-
 	switch command {
 	case "prepare":
-		fmt.Printf("TODO %q on %q\n", command, *host)
+		orca.Prepare(*host, config)
 	case "up":
 		fmt.Printf("TODO %q on %q\n", command, *host)
 	case "down":
 		fmt.Printf("TODO %q on %q\n", command, *host)
 	case "clean":
-		fmt.Printf("TODO %q on %q\n", command, *host)
+		orca.Cleanup(*host, config)
 	default:
 		fmt.Printf("Unknown command %q\n", command)
 		os.Exit(1)

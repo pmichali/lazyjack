@@ -180,7 +180,7 @@ dns64:
 
 func TestUniqueIDs(t *testing.T) {
 	// Create bare minimum to test IDs
-	c := orca.Config{
+	c := &orca.Config{
 		Topology: map[string]orca.Node{
 			"master": {
 				ID: 10,
@@ -193,7 +193,7 @@ func TestUniqueIDs(t *testing.T) {
 			},
 		},
 	}
-	err := orca.ValidateUniqueIDs(&c)
+	err := orca.ValidateUniqueIDs(c)
 	if err == nil {
 		t.Errorf("Expected failure with duplicate IDs")
 	}
@@ -220,6 +220,11 @@ func TestOperatingModesOnNode(t *testing.T) {
 			expectedStr: "",
 		},
 		{
+			name:        "Duplicates OK",
+			opMode:      "nat64 minion dns64 minion",
+			expectedStr: "",
+		},
+		{
 			name:        "Master with DNS and NAT",
 			opMode:      "master Dns64 NAT64",
 			expectedStr: "",
@@ -235,8 +240,13 @@ func TestOperatingModesOnNode(t *testing.T) {
 			expectedStr: "",
 		},
 		{
-			name:        "Missing mode",
+			name:        "No modes specified",
 			opMode:      "",
+			expectedStr: "Missing operating mode for \"test-node\"",
+		},
+		{
+			name:        "No modes specified",
+			opMode:      "   ",
 			expectedStr: "Missing operating mode for \"test-node\"",
 		},
 		{
@@ -264,7 +274,8 @@ func TestOperatingModesOnNode(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := orca.ValidateNodeOpModes(tc.opMode, "test-node")
+		node := &orca.Node{Name: "test-node", OperatingModes: tc.opMode}
+		err := orca.ValidateNodeOpModes(node)
 		if tc.expectedStr == "" {
 			if err != nil {
 				t.Errorf("FAILED: [%s] Expected test to pass - see error: %s", tc.name, err.Error())
@@ -276,5 +287,29 @@ func TestOperatingModesOnNode(t *testing.T) {
 				t.Errorf("FAILED: [%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
 			}
 		}
+	}
+}
+
+func TestDuplicateMasters(t *testing.T) {
+	// Create minimum to test operating modes
+	c := &orca.Config{
+		Topology: map[string]orca.Node{
+			"node1": {
+				OperatingModes: "master dns64 nat64",
+			},
+			"node2": {
+				OperatingModes: "minion",
+			},
+			"node3": {
+				OperatingModes: "master",
+			},
+		},
+	}
+
+	err := orca.ValidateOpModesForAllNodes(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to see error, when configuration has duplicate master nodes")
+	} else if err.Error() != "Found multiple nodes with \"master\" operating mode" {
+		t.Errorf("FAILED: Duplicate master mode error message wrong (%s)", err.Error())
 	}
 }

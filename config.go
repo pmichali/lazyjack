@@ -2,10 +2,11 @@ package orca
 
 import (
 	"fmt"
-	"github.com/golang/glog"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+
+	"github.com/golang/glog"
+	"gopkg.in/yaml.v2"
 )
 
 type SupportNetwork struct {
@@ -31,17 +32,15 @@ type NAT64Config struct {
 	ServerIP      string `yaml:"ip"`
 }
 
-const (
-	MasterMode = "master"
-	MinionMode = "minion"
-	DNS64Mode  = "dns64"
-	NAT64Mode  = "nat64"
-)
-
 type Node struct {
 	Interface      string `yaml:"interface"`
 	ID             int    `yaml:"id"`
 	OperatingModes string `yaml:"opmodes"`
+	Name           string
+	IsMaster       bool
+	IsMinion       bool
+	IsDNS64Server  bool
+	IsNAT64Server  bool
 }
 
 type Config struct {
@@ -52,6 +51,11 @@ type Config struct {
 	NAT64    NAT64Config       `yaml:"nat64"`
 	DNS64    DNS64Config       `yaml:"dns64"`
 }
+
+const (
+	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
+	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
+)
 
 func ParseConfig(configReader io.Reader) (*Config, error) {
 	var config Config
@@ -69,8 +73,4 @@ func ParseConfig(configReader io.Reader) (*Config, error) {
 	}
 	glog.V(4).Infof("Configuration read %+v", config)
 	return &config, nil
-}
-
-func (n *Node) IsMaster() bool {
-	return true
 }
