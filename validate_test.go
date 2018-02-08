@@ -291,7 +291,7 @@ func TestOperatingModesOnNode(t *testing.T) {
 }
 
 func TestDuplicateMasters(t *testing.T) {
-	// Create minimum to test operating modes
+	// Create minimum to test node entries
 	c := &orca.Config{
 		Topology: map[string]orca.Node{
 			"node1": {
@@ -310,6 +310,27 @@ func TestDuplicateMasters(t *testing.T) {
 	if err == nil {
 		t.Errorf("FAILED: Expected to see error, when configuration has duplicate master nodes")
 	} else if err.Error() != "Found multiple nodes with \"master\" operating mode" {
-		t.Errorf("FAILED: Duplicate master mode error message wrong (%s)", err.Error())
+		t.Errorf("FAILED: Duplicate master nodes error message wrong (%s)", err.Error())
+	}
+}
+
+func TestNoMasterNode(t *testing.T) {
+	// Create minimum to test node entries
+	c := &orca.Config{
+		Topology: map[string]orca.Node{
+			"node1": {
+				OperatingModes: "dns64 nat64",
+			},
+			"node2": {
+				OperatingModes: "minion",
+			},
+		},
+	}
+
+	err := orca.ValidateOpModesForAllNodes(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to see error, when configuration has no master node entry")
+	} else if err.Error() != "No master node configuration" {
+		t.Errorf("FAILED: No master node error message wrong (%s)", err.Error())
 	}
 }

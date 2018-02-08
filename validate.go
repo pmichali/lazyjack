@@ -121,6 +121,9 @@ func ValidateOpModesForAllNodes(c *Config) error {
 		}
 		c.Topology[name] = node // Update the map with new value
 	}
+	if numMasters == 0 {
+		return fmt.Errorf("No master node configuration")
+	}
 
 	glog.V(4).Info("All nodes have valid operating modes")
 	return nil
