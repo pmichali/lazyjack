@@ -53,11 +53,15 @@ func RemoveDNS64Container() error {
 	return nil
 }
 
-func BuildCreateNetArgsForSupportNet(subnet string, subnetSize int, v4Subnet string) []string {
+func BuildCreateNetArgsForSupportNet(subnet string, subnetSize int, v4cidr string) []string {
 	args := []string{"network", "create", "--ipv6"}
 	subnetOption := fmt.Sprintf("--subnet=\"%s/%d\"", subnet, subnetSize)
-	v4SubnetOption := fmt.Sprintf("--subnet=%s", v4Subnet)
+	v4SubnetOption := fmt.Sprintf("--subnet=%s", v4cidr)
 	gw := fmt.Sprintf("--gateway=\"%s1\"", subnet)
 	args = append(args, subnetOption, v4SubnetOption, gw, SupportNetName)
 	return args
+}
+
+func BuildDeleteNetArgsForSupportNet() []string {
+	return []string{"network", "rm", "-f", SupportNetName}
 }

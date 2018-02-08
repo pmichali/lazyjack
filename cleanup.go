@@ -53,7 +53,13 @@ func CleanupNAT64Server(node *Node, c *Config) {
 }
 
 func CleanupSupportNetwork() {
-	// Remove network...
+	args := BuildDeleteNetArgsForSupportNet()
+	_, err := DoCommand("SupportNetName", args)
+	if err != nil {
+		glog.Warning("Unable to remove support network")
+	} else {
+		glog.V(1).Info("Removed support network")
+	}
 }
 
 func CleanupPlugin(node *Node, c *Config) {
