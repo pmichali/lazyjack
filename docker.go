@@ -63,5 +63,5 @@ func BuildCreateNetArgsForSupportNet(subnet string, subnetSize int, v4cidr strin
 }
 
 func BuildDeleteNetArgsForSupportNet() []string {
-	return []string{"network", "rm", "-f", SupportNetName}
+	return []string{"network", "rm", SupportNetName}
 }

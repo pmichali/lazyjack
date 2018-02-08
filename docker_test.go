@@ -31,7 +31,7 @@ func TestBuildCreateSupportNetArgs(t *testing.T) {
 func TestBuildDeleteSupportNetArgs(t *testing.T) {
 	list := orca.BuildDeleteNetArgsForSupportNet()
 	actual := strings.Join(list, " ")
-	expected := "network rm -f support_net"
+	expected := "network rm support_net"
 	if actual != expected {
 		t.Errorf("FAILED: Building support net delete args. Expected %q, got %q", expected, actual)
 	}
