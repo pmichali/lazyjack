@@ -50,8 +50,35 @@ func PrepareClusterNode(node *Node, c *Config) {
 	}
 }
 
+func CreateNamedConfContents(c *Config) *bytes.Buffer {
+	header := `options {
+    directory "/var/bind";
+    allow-query { any; };
+    forwarders {
+`
+	middle := `    };
+    auth-nxdomain no;    # conform to RFC1035
+    listen-on-v6 { any; };
+`
+	trailer := `        exclude { any; };
+    };
+};
+`
+	contents := bytes.NewBufferString(header)
+	fmt.Fprintf(contents, "        %s%s;\n", c.DNS64.Prefix, c.DNS64.RemoteV4Server)
+	fmt.Fprintf(contents, middle)
+	fmt.Fprintf(contents, "    dns64 %s/%d {\n", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	fmt.Fprintf(contents, trailer)
+	return contents
+}
+
 func PrepareDNS64Server(node *Node, c *Config) {
 	glog.Infof("Preparing DNS64 on %q", node.Name)
+	// See if already exists
+	if ContainerExists("bind9") {
+		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists")
+		return
+	}
 	// Create config file
 	// Start container
 	//    Pull IPv4 address
@@ -61,6 +88,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 
 func PrepareNAT64Server(node *Node, c *Config) {
 	glog.Infof("Preparing NAT64 on %q", node.Name)
+	// See if already exists
 	// Create container
 	// Add route to V4 subnet in container
 	// Add V6 route to NAT server
