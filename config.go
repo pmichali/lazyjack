@@ -12,6 +12,7 @@ import (
 type SupportNetwork struct {
 	Subnet string `yaml:"subnet"`
 	Size   int    `yaml:"size"`
+	V4CIDR string `yaml:"v4cidr"`
 }
 
 type ManagementNetwork struct {
@@ -53,6 +54,13 @@ type Config struct {
 }
 
 const (
+	SupportNetName = "support_net"
+
+        DNS64BaseArea = "/tmp/bind9"
+	DNS64ConfArea = "/tmp/bind9/conf"
+	DNS64CacheArea = "/tmp/bind9/cache"
+	DNS64NamedConf = "/tmp/bind9/conf/named.conf"
+	
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
 )

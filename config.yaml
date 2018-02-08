@@ -10,6 +10,7 @@ topology:
         id: 3
 support_net:
     subnet: "fd00:10::"
+    v4cidr: "172.18.0.0/16"
     size: 64
 mgmt_net:
     subnet: "fd00:20::"

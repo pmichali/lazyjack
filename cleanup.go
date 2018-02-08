@@ -11,13 +11,16 @@ func CleanupClusterNode(node *Node, c *Config) {
 	err := os.Remove(KubeletDropInFile)
 	if err != nil {
 		glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", KubeletDropInFile, err.Error())
+	} else {
+		glog.V(1).Info("Removed kubelet drop-in file")
 	}
-	glog.V(1).Info("Removed kubelet drop-in file")
 
 	mgmtIP := BuildCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
 	err = RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Warning("Unable to remove IP from management interface: %s", err.Error())
+	} else {
+		glog.V(1).Info("Removed IP address from management interface")
 	}
 
 	// Will leave /etc/hosts and /etc/resolv.conf alone
@@ -25,7 +28,19 @@ func CleanupClusterNode(node *Node, c *Config) {
 
 func CleanupDNS64Server(node *Node, c *Config) {
 	glog.Infof("Cleaning DNS64 on %q", node.Name)
-	// Remove Container
+	err := RemoveDNS64Container()
+	if err != nil {
+		glog.Warning("Unable to remove DNS64 container")
+	} else {
+		glog.V(1).Info("Removed DNS64 container")
+	}
+
+	err = os.RemoveAll(DNS64BaseArea)
+	if err != nil {
+		glog.Warning("Unable to remove DNS64 file structure")
+	} else {
+		glog.V(1).Info("Removed DNS64 file structure")
+	}
 	// Will leave V4 default route
 }
 
@@ -35,6 +50,10 @@ func CleanupNAT64Server(node *Node, c *Config) {
 	// Delete V6 route to NAT server
 	// Delete container
 	// Will leave default V4 route
+}
+
+func CleanupSupportNetwork() {
+	// Remove network...
 }
 
 func CleanupPlugin(node *Node, c *Config) {
@@ -54,5 +73,8 @@ func Cleanup(name string, c *Config) {
 	}
 	if node.IsNAT64Server {
 		CleanupNAT64Server(&node, c)
+	}
+	if node.IsDNS64Server || node.IsNAT64Server {
+		CleanupSupportNetwork()
 	}
 }

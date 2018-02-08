@@ -130,6 +130,7 @@ func ValidateOpModesForAllNodes(c *Config) error {
 }
 
 // TODO: Validate IPs are valid
+// TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config) error {
 	if c == nil {
 		return fmt.Errorf("No configuration loaded")

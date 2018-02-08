@@ -72,15 +72,78 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 	return contents
 }
 
+func CreateSupportNetwork(c *Config) {
+	if ResourceExists(SupportNetName) {
+		glog.V(1).Infof("Skipping - support network already exists")
+		return
+	}
+
+	args := BuildCreateNetArgsForSupportNet(c.Support.Subnet, c.Support.Size, c.Support.V4CIDR)
+	_, err := DoCommand(SupportNetName, args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(1).Info("Created support network")
+	}
+}
+
+func BuildFileStructureForDNS() error {
+	err := os.RemoveAll(DNS64BaseArea)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(DNS64ConfArea, 0755)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(DNS64CacheArea, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateConfigForDNS64(c *Config) error {
+	err := BuildFileStructureForDNS()
+	if err != nil {
+		return fmt.Errorf("Unable to create directory structure for DNS64: %s", err.Error())
+	}
+
+	contents := CreateNamedConfContents(c)
+	err = ioutil.WriteFile(DNS64NamedConf, contents.Bytes(), 0755)
+	if err != nil {
+		return fmt.Errorf("Unable to create named.conf for DNS64: %s", err.Error())
+	}
+
+	glog.V(1).Infof("Created DNS64 config file")
+	return nil
+}
+
+// NOTE: Will use existing container, if running
 func PrepareDNS64Server(node *Node, c *Config) {
 	glog.Infof("Preparing DNS64 on %q", node.Name)
-	// See if already exists
-	if ContainerExists("bind9") {
+
+	if ResourceExists("bind9") {
 		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists")
 		return
 	}
-	// Create config file
-	// Start container
+
+	err := CreateConfigForDNS64(c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	}
+
+	args := BuildRunArgsForDNS64(c)
+	_, err = DoCommand("bind9", args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(1).Info("DNS64 container (bind9) started")
+	}
+
 	//    Pull IPv4 address
 	//    Add V6 route
 	// Ensure default V4 route
@@ -106,6 +169,9 @@ func Prepare(name string, c *Config) {
 	if node.IsMaster || node.IsMinion {
 		PrepareClusterNode(&node, c)
 		PreparePlugin(&node, c)
+	}
+	if node.IsDNS64Server || node.IsNAT64Server {
+		CreateSupportNetwork(c)
 	}
 	if node.IsDNS64Server {
 		PrepareDNS64Server(&node, c)
