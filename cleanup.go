@@ -10,7 +10,11 @@ func CleanupClusterNode(node *Node, c *Config) {
 	glog.Infof("Cleaning cluster node %q", node.Name)
 	err := os.Remove(KubeletDropInFile)
 	if err != nil {
-		glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", KubeletDropInFile, err.Error())
+		if os.IsNotExist(err) {
+			glog.V(1).Info("No kubelet drop-in file to remove")
+		} else {
+			glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", KubeletDropInFile, err.Error())
+		}
 	} else {
 		glog.V(1).Info("Removed kubelet drop-in file")
 	}
@@ -53,6 +57,11 @@ func CleanupNAT64Server(node *Node, c *Config) {
 }
 
 func CleanupSupportNetwork() {
+	if !ResourceExists(SupportNetName) {
+		glog.V(1).Infof("Skipping - support network does not exists")
+		return
+	}
+
 	args := BuildDeleteNetArgsForSupportNet()
 	_, err := DoCommand("SupportNetName", args)
 	if err != nil {
