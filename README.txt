@@ -1,8 +1,11 @@
 
 
-FUTURE:
-- Setup /etc/hosts and /etc/resolv.conf
-- Prepare/Clean: NAT64, CNI plugin
+TODOS/FUTURES (in no particular order):
+- Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
+- Setup /etc/hosts and /etc/resolv.conf.
+- See if way to use netlink to create/delete routes easily (without going through contortions to modify an existing route).
+- Could do "ip route" and then regexp for route to delete, as a qualifier on route delete operation (or check for error=2 and ignore error).
+- Prepare/Clean: CNI plugin
 - Up & Down implementation.
 - Packaging and pushing coe up to github.com.
 - Validation of docker version. Kubernetes? Any other tools required?
@@ -18,3 +21,6 @@ FUTURE:
 - Add function documentation.
 - Check coverage, gofmt.
 - Vendoring? of dependencies?
+- Add version command
+- Refactor
+- Blog: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.

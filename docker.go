@@ -32,14 +32,14 @@ func DoCommand(name string, args []string) (string, error) {
 }
 
 func BuildRunArgsForDNS64(c *Config) []string {
+	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", DNS64NamedConf)
 	cmdList := []string{
-		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "orcha", "--privileged=true",
+		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "orca",
+		"--privileged=true", "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
 		"--sysctl", "net.ipv6.conf.all.forwarding=1",
+		"-v", volumeMap, "--net", SupportNetName, "resystit/bind9:latest",
 	}
-	cmdList = append(cmdList, "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP)
-	cmdList = append(cmdList, "-v", fmt.Sprintf("%s:/etc/bind/named.conf", DNS64NamedConf))
-	cmdList = append(cmdList, "--net", SupportNetName, "resystit/bind9:latest")
 	return cmdList
 }
 
@@ -64,7 +64,30 @@ func RemoveDNS64Container() error {
 		_, err := DoCommand("bind9", args)
 		return err
 	}
+	return nil
+}
 
+func BuildRunArgsForNAT64(c *Config) []string {
+	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
+	cmdList := []string{
+		"run", "-d", "--name", "tayga", "--hostname", "tayga", "--label", "orca",
+		"--privileged=true", "--ip", c.NAT64.V4MappingIP, "--ip6", c.NAT64.ServerIP,
+		"--dns", c.DNS64.RemoteV4Server, "--dns", c.DNS64.ServerIP,
+		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
+		"--sysctl", "net.ipv6.conf.all.forwarding=1",
+		"-e", confPrefix, "-e", confV4Addr,
+		"--net", SupportNetName, "danehans/tayga:latest",
+	}
+	return cmdList
+}
+
+func RemoveNAT64Container() error {
+	if ResourceExists("tayga") {
+		args := []string{"rm", "-f", "tayga"}
+		_, err := DoCommand("tayga", args)
+		return err
+	}
 	return nil
 }
 

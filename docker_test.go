@@ -13,9 +13,9 @@ func TestBuildDockerArgsForDNS64(t *testing.T) {
 
 	list := orca.BuildRunArgsForDNS64(c)
 	actual := strings.Join(list, " ")
-	expected := "run -d --name bind9 --hostname bind9 --label orcha --privileged=true --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 --ip6 2001:db8::100 --dns 2001:db8::100 -v /tmp/bind9/conf/named.conf:/etc/bind/named.conf --net support_net resystit/bind9:latest"
+	expected := "run -d --name bind9 --hostname bind9 --label orca --privileged=true --ip6 2001:db8::100 --dns 2001:db8::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -v /tmp/bind9/conf/named.conf:/etc/bind/named.conf --net support_net resystit/bind9:latest"
 	if actual != expected {
-		t.Errorf("FAILED: Building docker run args for DNS64. Expected %q, got %q", expected, actual)
+		t.Errorf("FAILED: Building docker run args for DNS64.\nExpected: %q\n  Actual: %q", expected, actual)
 	}
 }
 
@@ -71,5 +71,27 @@ func TestBuildAddRouteForDNS64Args(t *testing.T) {
 	expected := "exec bind9 ip -6 route add fd00:10:64:ff9b::/96 via fd00:10::200"
 	if actual != expected {
 		t.Errorf("FAILED: Building add route args. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildDockerArgsForNAT64(t *testing.T) {
+	c := &orca.Config{
+		DNS64: orca.DNS64Config{
+			Prefix:         "fd00:10:64:ff9b::",
+			PrefixSize:     96,
+			ServerIP:       "fd00:10::100",
+			RemoteV4Server: "8.8.8.8",
+		},
+		NAT64: orca.NAT64Config{
+			ServerIP:    "fd00:10::200",
+			V4MappingIP: "172.18.0.200",
+		},
+	}
+
+	list := orca.BuildRunArgsForNAT64(c)
+	actual := strings.Join(list, " ")
+	expected := "run -d --name tayga --hostname tayga --label orca --privileged=true --ip 172.18.0.200 --ip6 fd00:10::200 --dns 8.8.8.8 --dns fd00:10::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -e TAYGA_CONF_PREFIX=fd00:10:64:ff9b::/96 -e TAYGA_CONF_IPV4_ADDR=172.18.0.200 --net support_net danehans/tayga:latest"
+	if actual != expected {
+		t.Errorf("FAILED: Building docker run args for NAT64.\nExpected: %q\n  Actual: %q", expected, actual)
 	}
 }

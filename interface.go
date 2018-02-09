@@ -2,6 +2,8 @@ package orca
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
@@ -61,5 +63,43 @@ func RemoveAddressFromLink(ip, intf string) error {
 		return fmt.Errorf("Unable to delete ip %q from interface %q", ip, intf)
 	}
 	glog.V(1).Infof("Removed ip %q from interface %q", ip, intf)
+	return nil
+}
+
+func BuildIpRouteAddArgs(network, gw string) []string {
+	return []string{"route", "add", network, "via", gw}
+}
+
+func AddV4RouteToNAT64Server(network, gw string) error {
+	// Not sure how to use netlink to define/get the Route to do a RouteAdd().
+	// It seems complicated to get route from support network and try to mangle it.
+	// Know dst, src?, and flags needs to have "G" flag set - how?
+	//
+	// For now, just exec command...
+	args := BuildIpRouteAddArgs(network, gw)
+	glog.V(4).Infof("Invoking: ip %s", strings.Join(args, " "))
+	c := exec.Command("ip", args...)
+	_, err := c.Output()
+	if err != nil {
+		return fmt.Errorf("Unable to add route: %s", err.Error())
+	}
+	return nil
+}
+
+func BuildIpRouteDeleteArgs(network, gw string) []string {
+	return []string{"route", "del", network, "via", gw}
+}
+
+func RemoveIPv4RouteToNAT64(network, gw string) error {
+	// Not sure how to do this using the netlink library. Cannot figure out
+	// out to check if route present (other than route list with regexp search).
+	// For now, will just get a warning, if already deleted.
+	args := BuildIpRouteDeleteArgs(network, gw)
+	glog.V(4).Infof("Invoking: ip %s", strings.Join(args, " "))
+	c := exec.Command("ip", args...)
+	_, err := c.Output()
+	if err != nil {
+		return fmt.Errorf("Unable to remove route: %s", err.Error())
+	}
 	return nil
 }

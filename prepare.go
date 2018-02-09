@@ -192,12 +192,32 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	glog.V(1).Info("DNS64 container configured")
 }
 
+// NOTE: Will use existing container, if running
 func PrepareNAT64Server(node *Node, c *Config) {
 	glog.Infof("Preparing NAT64 on %q", node.Name)
-	// See if already exists
-	// Create container
-	// Add route to V4 subnet in container
-	// Add V6 route to NAT server
+
+	if ResourceExists("tayga") {
+		glog.V(1).Infof("Skipping - NAT64 container (tayga) already exists")
+		return
+	}
+
+	// Run NAT64 (tayga) container
+	args := BuildRunArgsForNAT64(c)
+	_, err := DoCommand("NAT64 container", args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(1).Info("NAT64 container (tayga) started")
+	}
+
+	err = AddV4RouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(1).Info("IPv4 route added pointing to NAT64 container")
+	}
 }
 
 func PreparePlugin(node *Node, c *Config) {

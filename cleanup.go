@@ -50,9 +50,20 @@ func CleanupDNS64Server(node *Node, c *Config) {
 
 func CleanupNAT64Server(node *Node, c *Config) {
 	glog.Infof("Cleaning NAT64 on %q", node.Name)
-	// Delete route to V4 subnet in container
-	// Delete V6 route to NAT server
-	// Delete container
+
+	err := RemoveIPv4RouteToNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+	if err != nil {
+		glog.Warning(err)
+	} else {
+		glog.V(1).Info("Removed IPv4 route to NAT64 container")
+	}
+
+	err = RemoveNAT64Container()
+	if err != nil {
+		glog.Warning("Unable to remove NAT64 container")
+	} else {
+		glog.V(1).Info("Removed NAT64 container")
+	}
 	// Will leave default V4 route
 }
 
