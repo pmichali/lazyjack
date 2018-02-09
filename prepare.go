@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/golang/glog"
 )
@@ -120,6 +121,15 @@ func CreateConfigForDNS64(c *Config) error {
 	return nil
 }
 
+func ParseIPv4Address(ifConfig string) string {
+	re := regexp.MustCompile("(?m)^\\s+inet\\s+(\\d+[.]\\d+[.]\\d+[.]\\d+/\\d+)\\s")
+	m := re.FindStringSubmatch(ifConfig)
+	if len(m) == 2 {
+		return m[1] // Want just the CIDR
+	}
+	return ""
+}
+
 // NOTE: Will use existing container, if running
 func PrepareDNS64Server(node *Node, c *Config) {
 	glog.Infof("Preparing DNS64 on %q", node.Name)
@@ -135,8 +145,9 @@ func PrepareDNS64Server(node *Node, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
+	// Run DNS64 (bind9) container
 	args := BuildRunArgsForDNS64(c)
-	_, err = DoCommand("bind9", args)
+	_, err = DoCommand("DNS64 container", args)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
@@ -144,9 +155,41 @@ func PrepareDNS64Server(node *Node, c *Config) {
 		glog.V(1).Info("DNS64 container (bind9) started")
 	}
 
-	//    Pull IPv4 address
-	//    Add V6 route
-	// Ensure default V4 route
+	// Remove IPv4 address, so only an IPv6 address in DNS64 container
+	args = BuildGetInterfaceArgsForDNS64()
+	ifConfig, err := DoCommand("Get I/F config", args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(4).Info("Have eth0 info for DNS64 container")
+	}
+	v4Addr := ParseIPv4Address(ifConfig)
+	if v4Addr == "" {
+		glog.Fatal("Unable to find IPv4 address on eth0 of DNS64 container")
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(4).Infof("Have IPv4 address (%s) for DNS64 container", v4Addr)
+	}
+	args = BuildV4AddrDelArgsForDNS64(v4Addr)
+	_, err = DoCommand("Delete IPv4 addr", args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(4).Info("Deleted IPv4 address in DNS64 container")
+	}
+
+	// Create a route in container to NAT64 server, for synthesized IPv6 addresses
+	args = BuildAddRouteArgsForDNS64(c)
+	_, err = DoCommand("Add IPv6 route", args)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(4).Info("Have IPv6 route in DNS64 container")
+	}
+	glog.V(1).Info("DNS64 container configured")
 }
 
 func PrepareNAT64Server(node *Node, c *Config) {
@@ -155,7 +198,6 @@ func PrepareNAT64Server(node *Node, c *Config) {
 	// Create container
 	// Add route to V4 subnet in container
 	// Add V6 route to NAT server
-	// Ensure default V4 route
 }
 
 func PreparePlugin(node *Node, c *Config) {
@@ -166,11 +208,9 @@ func PreparePlugin(node *Node, c *Config) {
 func Prepare(name string, c *Config) {
 	node := c.Topology[name]
 	glog.V(4).Infof("Preparing %q -> %+v", name, node)
-	if node.IsMaster || node.IsMinion {
-		PrepareClusterNode(&node, c)
-		PreparePlugin(&node, c)
-	}
+	// TODO: Verify docker version OK (17.03, others?), else warn...
 	if node.IsDNS64Server || node.IsNAT64Server {
+		// TODO: Verify that node has default IPv4 route
 		CreateSupportNetwork(c)
 	}
 	if node.IsDNS64Server {
@@ -178,5 +218,9 @@ func Prepare(name string, c *Config) {
 	}
 	if node.IsNAT64Server {
 		PrepareNAT64Server(&node, c)
+	}
+	if node.IsMaster || node.IsMinion {
+		PrepareClusterNode(&node, c)
+		PreparePlugin(&node, c)
 	}
 }

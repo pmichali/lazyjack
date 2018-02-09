@@ -46,3 +46,40 @@ func TestNamedConfContents(t *testing.T) {
 		t.Errorf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
 	}
 }
+
+func TestParseIPv4AddressFromIfConfig(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		ifConfig string
+		expected string
+	}{
+		{
+			name: "v4 address found",
+			ifConfig: `39139: eth0@if39140: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
+    link/ether 02:42:ac:12:00:02 brd ff:ff:ff:ff:ff:ff
+    inet 172.18.0.2/16 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fd00:10::100/64 scope global flags 02
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:acff:fe12:2/64 scope link
+       valid_lft forever preferred_lft forever`,
+			expected: "172.18.0.2/16",
+		},
+		{
+			name: "no ipv4 address",
+			ifConfig: `39139: eth0@if39140: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
+    link/ether 02:42:ac:12:00:02 brd ff:ff:ff:ff:ff:ff
+    inet6 fd00:10::100/64 scope global flags 02
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:acff:fe12:2/64 scope link
+       valid_lft forever preferred_lft forever`,
+			expected: "",
+		},
+	}
+	for _, tc := range testCases {
+		actual := orca.ParseIPv4Address(tc.ifConfig)
+		if actual != tc.expected {
+			t.Errorf("FAILED: [%s]. Expected %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}

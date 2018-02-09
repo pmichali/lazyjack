@@ -43,6 +43,21 @@ func BuildRunArgsForDNS64(c *Config) []string {
 	return cmdList
 }
 
+func BuildGetInterfaceArgsForDNS64() []string {
+	return []string{"exec", "bind9", "ip", "addr", "list", "eth0"}
+}
+
+func BuildV4AddrDelArgsForDNS64(ip string) []string {
+	return []string{"exec", "bind9", "ip", "addr", "del", ip, "dev", "eth0"}
+}
+
+func BuildAddRouteArgsForDNS64(c *Config) []string {
+	prefixCIDR := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	return []string{
+		"exec", "bind9", "ip", "-6", "route", "add", prefixCIDR, "via", c.NAT64.ServerIP,
+	}
+}
+
 func RemoveDNS64Container() error {
 	if ResourceExists("bind9") {
 		args := []string{"rm", "-f", "bind9"}
