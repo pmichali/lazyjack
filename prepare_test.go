@@ -1,6 +1,7 @@
 package orca_test
 
 import (
+	"bytes"
 	"orca"
 	"testing"
 )
@@ -80,6 +81,102 @@ func TestParseIPv4AddressFromIfConfig(t *testing.T) {
 		actual := orca.ParseIPv4Address(tc.ifConfig)
 		if actual != tc.expected {
 			t.Errorf("FAILED: [%s]. Expected %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
+func TestBuildNodeInfo(t *testing.T) {
+	c := &orca.Config{
+		Topology: map[string]orca.Node{
+			"master": {
+				ID: 10,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		Mgmt: orca.ManagementNetwork{
+			Subnet: "fd00:100::",
+		},
+	}
+
+	ni := orca.BuildNodeInfo(c)
+	if len(ni) != 2 {
+		t.Errorf("FAILURE: Expected two nodes")
+	}
+	expectedMaster := orca.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
+	expectedMinion := orca.NodeInfo{Name: "minion", IP: "fd00:100::20", Seen: false}
+	var actualMaster orca.NodeInfo
+	var actualMinion orca.NodeInfo
+	// Map can be in any order, so list may be reversed
+	if ni[0].Name == "master" {
+		actualMaster = ni[0]
+		actualMinion = ni[1]
+	} else {
+		actualMaster = ni[1]
+		actualMinion = ni[0]
+	}
+	if actualMaster != expectedMaster {
+		t.Errorf("FAILED: Master node mismatch. Expected: %+v, got %+v", expectedMaster, actualMaster)
+	}
+	if actualMinion != expectedMinion {
+		t.Errorf("FAILED: Minion node mismatch. Expected: %+v, got %+v", expectedMinion, actualMinion)
+	}
+}
+
+func TestUpdateEtcHostsContents(t *testing.T) {
+	ni := []orca.NodeInfo{
+		{
+			Name: "master",
+			IP:   "fd00:20::10",
+		},
+		{
+			Name: "minion",
+			IP:   "fd00:20::20",
+		},
+	}
+
+	var testCases = []struct {
+		name     string
+		input    []byte
+		expected string
+	}{
+		/*
+			{
+				name:     "Comment existing, add new",
+				input:    bytes.NewBufferString("").Bytes(),
+				expected: "",
+			},
+		*/
+		/*
+			{
+				name:     "Ignore commented, add new",
+				input:    bytes.NewBufferString("").Bytes(),
+				expected: "",
+			},
+		*/
+		{
+			name:     "Add new, no existing",
+			input:    bytes.NewBufferString("127.0.0.1 localhost\n").Bytes(),
+			expected: "127.0.0.1 localhost\nfd00:20::10 master\nfd00:20::20 minion\n",
+		},
+		/*
+			{
+				name:     "Ignore add, already exists",
+				input:    bytes.NewBufferString("").Bytes(),
+				expected: "",
+			},
+			{
+				name:     "Multiple existing, add new",
+				input:    bytes.NewBufferString("").Bytes(),
+				expected: "",
+			},
+		*/
+	}
+	for _, tc := range testCases {
+		actual := orca.UpdateHostsInfo(tc.input, ni)
+		if string(actual) != tc.expected {
+			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
 	}
 }

@@ -3,7 +3,6 @@
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
 - Setup /etc/hosts and /etc/resolv.conf.
-- Prepare/Clean: CNI plugin (in progress)
 - Up & Down implementation.
 - Packaging and pushing coe up to github.com.
 - Validation of docker version. Kubernetes? Any other tools required?

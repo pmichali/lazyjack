@@ -32,6 +32,63 @@ func CreateKubeletDropInFile(c *Config) error {
 	return err
 }
 
+type NodeInfo struct {
+	Name string
+	IP   string
+	Seen bool
+}
+
+func BuildNodeInfo(c *Config) []NodeInfo {
+	n := make([]NodeInfo, len(c.Topology))
+	i := 0
+	for nodeName, node := range c.Topology {
+		ip := fmt.Sprintf("%s%d", c.Mgmt.Subnet, node.ID)
+		glog.V(4).Infof("Created node info for %s (%s)", nodeName, ip)
+		n[i] = NodeInfo{Name: nodeName, IP: ip, Seen: false}
+		i++
+	}
+	return n
+}
+
+func GetEtcHostsContents() ([]byte, error) {
+	return ioutil.ReadFile(EtcHostsFile)
+}
+
+func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
+	lines := bytes.Split(contents, []byte("\n"))
+	var output bytes.Buffer
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("#")) {
+			output.Read(line)
+		} else {
+
+		}
+	}
+	return []byte{}
+}
+
+func SaveEtcHostsContents(contents []byte) error {
+	return nil
+}
+
+func AddHostEntries(c *Config) error {
+	glog.V(1).Info("Preparing /etc/hosts file")
+	nodes := BuildNodeInfo(c)
+	contents, err := GetEtcHostsContents()
+	if err != nil {
+		return fmt.Errorf("Unable to get /etc/hosts contents: %s", err.Error())
+	}
+	glog.Infof("Hosts Before:\n%v\n", string(contents))
+	contents = UpdateHostsInfo(contents, nodes)
+	glog.Infof("Hosts After:\n%v\n", string(contents))
+	err = SaveEtcHostsContents(contents)
+	if err != nil {
+		return fmt.Errorf("Unable to save changes to /etc/hosts: %s", err.Error())
+	}
+	glog.Info("Prepared /etc/hosts file")
+	return nil
+}
+
 func PrepareClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Preparing general settings")
 
@@ -41,7 +98,13 @@ func PrepareClusterNode(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback
 	}
-	// hosts
+
+	err = AddHostEntries(c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback
+	}
+
 	// resolv.conf
 
 	err = CreateKubeletDropInFile(c)
