@@ -2,8 +2,7 @@ package orca
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
+	"net"
 
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
@@ -66,40 +65,59 @@ func RemoveAddressFromLink(ip, intf string) error {
 	return nil
 }
 
-func BuildIpRouteAddArgs(network, gw string) []string {
-	return []string{"route", "add", network, "via", gw}
-}
-
-func AddV4RouteToNAT64Server(network, gw string) error {
-	// Not sure how to use netlink to define/get the Route to do a RouteAdd().
-	// It seems complicated to get route from support network and try to mangle it.
-	// Know dst, src?, and flags needs to have "G" flag set - how?
-	//
-	// For now, just exec command...
-	args := BuildIpRouteAddArgs(network, gw)
-	glog.V(4).Infof("Invoking: ip %s", strings.Join(args, " "))
-	c := exec.Command("ip", args...)
-	_, err := c.Output()
+func FindLinkIndexForV4CIDR(v4CIDR string) (int, error) {
+	_, cidr, err := net.ParseCIDR(v4CIDR)
 	if err != nil {
-		return fmt.Errorf("Unable to add route: %s", err.Error())
+		return 0, fmt.Errorf("Unable to parse V4 CIDR %q: %s", v4CIDR, err.Error())
 	}
-	return nil
+	links, _ := netlink.LinkList()
+	for _, link := range links {
+		addrs, _ := netlink.AddrList(link, nl.FAMILY_V4)
+		glog.Infof("Addresses %+v", addrs)
+		for _, addr := range addrs {
+			if cidr.Contains(addr.IP) {
+				glog.V(4).Infof("Using interface %s (%d) for CIDR %q", link.Attrs().Name, link.Attrs().Index, v4CIDR)
+				return link.Attrs().Index, nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("Unable to find interface for V4 CIDR %q", v4CIDR)
 }
 
-func BuildIpRouteDeleteArgs(network, gw string) []string {
-	return []string{"route", "del", network, "via", gw}
-}
-
-func RemoveIPv4RouteToNAT64(network, gw string) error {
-	// Not sure how to do this using the netlink library. Cannot figure out
-	// out to check if route present (other than route list with regexp search).
-	// For now, will just get a warning, if already deleted.
-	args := BuildIpRouteDeleteArgs(network, gw)
-	glog.V(4).Infof("Invoking: ip %s", strings.Join(args, " "))
-	c := exec.Command("ip", args...)
-	_, err := c.Output()
+func BuildV4Route(destStr, gwStr string, index int) (*netlink.Route, error) {
+	_, cidr, err := net.ParseCIDR(destStr)
 	if err != nil {
-		return fmt.Errorf("Unable to remove route: %s", err.Error())
+		return nil, fmt.Errorf("Unable to parse destination CIDR %q: %s", destStr, err.Error())
 	}
+	gw := net.ParseIP(gwStr)
+	if gw == nil {
+		return nil, fmt.Errorf("Unable to parse gateway IP %q", gwStr)
+	}
+	route := &netlink.Route{Dst: cidr, Gw: gw, LinkIndex: index}
+	return route, nil
+}
+
+func AddLocalV4RouteToNAT64Server(dest, gw, v4supportCIDR string) error {
+	index, err := FindLinkIndexForV4CIDR(v4supportCIDR)
+	if err != nil {
+		return err
+	}
+	route, err := BuildV4Route(dest, gw, index)
+	if err != nil {
+		return err
+	}
+	return netlink.RouteAdd(route)
+}
+
+func RemoveLocalIPv4RouteFromNAT64(dest, gw, v4supportCIDR string) error {
+	index, err := FindLinkIndexForV4CIDR(v4supportCIDR)
+	if err != nil {
+		return err
+	}
+	route, err := BuildV4Route(dest, gw, index)
+	if err != nil {
+		return err
+	}
+	return netlink.RouteDel(route)
 	return nil
 }

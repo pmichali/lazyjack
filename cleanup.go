@@ -51,7 +51,7 @@ func CleanupDNS64Server(node *Node, c *Config) {
 func CleanupNAT64Server(node *Node, c *Config) {
 	glog.Infof("Cleaning NAT64 on %q", node.Name)
 
-	err := RemoveIPv4RouteToNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+	err := RemoveLocalIPv4RouteFromNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Warning(err)
 	} else {

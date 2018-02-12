@@ -211,12 +211,12 @@ func PrepareNAT64Server(node *Node, c *Config) {
 		glog.V(1).Info("NAT64 container (tayga) started")
 	}
 
-	err = AddV4RouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+	err = AddLocalV4RouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	} else {
-		glog.V(1).Info("IPv4 route added pointing to NAT64 container")
+		glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
 	}
 }
 
