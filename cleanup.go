@@ -7,7 +7,7 @@ import (
 )
 
 func CleanupClusterNode(node *Node, c *Config) {
-	glog.Infof("Cleaning cluster node %q", node.Name)
+	glog.V(1).Info("Cleaning general settings")
 	err := os.Remove(KubeletDropInFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -28,10 +28,11 @@ func CleanupClusterNode(node *Node, c *Config) {
 	}
 
 	// Will leave /etc/hosts and /etc/resolv.conf alone
+	glog.Info("Cleaned general settings")
 }
 
 func CleanupDNS64Server(node *Node, c *Config) {
-	glog.Infof("Cleaning DNS64 on %q", node.Name)
+	glog.V(1).Info("Cleaning DNS64")
 	err := RemoveDNS64Container()
 	if err != nil {
 		glog.Warning("Unable to remove DNS64 container")
@@ -46,10 +47,11 @@ func CleanupDNS64Server(node *Node, c *Config) {
 		glog.V(1).Info("Removed DNS64 file structure")
 	}
 	// Will leave V4 default route
+	glog.Info("Cleaned DNS64")
 }
 
 func CleanupNAT64Server(node *Node, c *Config) {
-	glog.Infof("Cleaning NAT64 on %q", node.Name)
+	glog.V(1).Info("Cleaning NAT64")
 
 	err := RemoveLocalRouteFromNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
@@ -65,6 +67,7 @@ func CleanupNAT64Server(node *Node, c *Config) {
 		glog.V(1).Info("Removed NAT64 container")
 	}
 	// Will leave default V4 route
+	glog.Info("Cleaned NAT64")
 }
 
 func CleanupSupportNetwork() {
@@ -80,10 +83,11 @@ func CleanupSupportNetwork() {
 	} else {
 		glog.V(1).Info("Removed support network")
 	}
+	glog.Info("Cleaned support network")
 }
 
 func CleanupPlugin(node *Node, c *Config) {
-	glog.V(1).Infof("Cleaning plugin on %s", node.Name)
+	glog.V(1).Info("Cleaning plugin")
 
 	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
@@ -99,11 +103,12 @@ func CleanupPlugin(node *Node, c *Config) {
 	} else {
 		glog.V(1).Info("Removed CNI config file and area")
 	}
+	glog.Info("Cleaned plugin")
 }
 
 func Cleanup(name string, c *Config) {
 	node := c.Topology[name]
-	glog.V(4).Infof("Cleaning %q -> %+v", name, node)
+	glog.Infof("Cleaning %q", name)
 	if node.IsMaster || node.IsMinion {
 		CleanupClusterNode(&node, c)
 		CleanupPlugin(&node, c)

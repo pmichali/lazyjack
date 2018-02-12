@@ -33,7 +33,7 @@ func CreateKubeletDropInFile(c *Config) error {
 }
 
 func PrepareClusterNode(node *Node, c *Config) {
-	glog.Infof("Preparing node %q", node.Name)
+	glog.V(1).Info("Preparing general settings")
 
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
 	err := AddAddressToLink(mgmtIP, node.Interface)
@@ -49,7 +49,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback
 	}
-	glog.Infof("Prepared node %s", node.Name)
+	glog.Info("Prepared general settings")
 }
 
 func CreateNamedConfContents(c *Config) *bytes.Buffer {
@@ -86,7 +86,7 @@ func CreateSupportNetwork(c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	} else {
-		glog.Info("Created support network")
+		glog.Info("Prepared support network")
 	}
 }
 
@@ -133,7 +133,7 @@ func ParseIPv4Address(ifConfig string) string {
 
 // NOTE: Will use existing container, if running
 func PrepareDNS64Server(node *Node, c *Config) {
-	glog.Infof("Preparing DNS64 on %q", node.Name)
+	glog.V(1).Info("Preparing DNS64")
 
 	if ResourceExists("bind9") {
 		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists on %s", node.Name)
@@ -190,12 +190,12 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	} else {
 		glog.V(4).Info("Have IPv6 route in DNS64 container")
 	}
-	glog.Info("DNS64 container configured on %s", node.Name)
+	glog.Info("Prepared DNS64 container")
 }
 
 // NOTE: Will use existing container, if running
 func PrepareNAT64Server(node *Node, c *Config) {
-	glog.V(1).Infof("Preparing NAT64 on %q", node.Name)
+	glog.V(1).Info("Preparing NAT64")
 
 	if ResourceExists("tayga") {
 		glog.V(1).Infof("Skipping - NAT64 container (tayga) already exists")
@@ -219,7 +219,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 	} else {
 		glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
 	}
-	glog.Infof("Prepared NAT64 server on %q", node.Name)
+	glog.Info("Prepared NAT64 server")
 }
 
 func EnsureCNIAreaExists() error {
@@ -235,7 +235,7 @@ func EnsureCNIAreaExists() error {
 }
 
 func PreparePlugin(node *Node, c *Config) {
-	glog.V(1).Infof("Preparing %s plugin on %q", c.Plugin, node.Name)
+	glog.V(1).Infof("Preparing %s plugin", c.Plugin)
 	err := EnsureCNIAreaExists()
 	if err != nil {
 		glog.Fatal(err)
@@ -254,12 +254,12 @@ func PreparePlugin(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	}
-	glog.Infof("Prepared for %s plugin", c.Plugin)
+	glog.Infof("Prepared %s plugin", c.Plugin)
 }
 
 func Prepare(name string, c *Config) {
 	node := c.Topology[name]
-	glog.V(4).Infof("Preparing %q -> %+v", name, node)
+	glog.Infof("Preparing %q", name)
 	// TODO: Verify docker version OK (17.03, others?), else warn...
 	if node.IsDNS64Server || node.IsNAT64Server {
 		// TODO: Verify that node has default IPv4 route

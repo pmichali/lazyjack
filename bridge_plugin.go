@@ -50,8 +50,7 @@ func CreateBridgeCNIConfigFile(node *Node, c *Config) error {
 	return nil
 }
 
-func CreateRoutesForPodNetwork(node *Node, c *Config) error {
-	glog.V(4).Info("Creating routes for pod network")
+func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 	if node.IsMaster || node.IsMinion {
 		myID := node.ID
 		for _, n := range c.Topology {
@@ -61,37 +60,36 @@ func CreateRoutesForPodNetwork(node *Node, c *Config) error {
 			if n.IsMaster || n.IsMinion {
 				dest := BuildDestCIDR(c.Pod.Prefix, n.ID, c.Pod.Size)
 				gw := BuildGWIP(c.Mgmt.Subnet, n.ID)
-				err := AddRouteForPodNetwork(dest, gw, n.Interface, n.ID)
-				if err != nil {
-					return fmt.Errorf("Unable to add pod network route for %s to %s: %s", dest, n.Name, err.Error())
+				var err error
+				if op == "add" {
+					err = AddRouteForPodNetwork(dest, gw, n.Interface, n.ID)
+				} else {
+					err = DeleteRouteForPodNetwork(dest, gw, n.Interface, n.ID)
 				}
-				glog.V(4).Infof("Added pod network route for %s to %s", dest, n.Name)
+				if err != nil {
+					return fmt.Errorf("Unable to %s pod network route for %s to %s: %s", op, dest, n.Name, err.Error())
+				}
+				glog.V(4).Infof("Did pod network %s route for %s to %s", op, dest, n.Name)
 			}
 		}
 	}
-	glog.V(1).Info("Pod network routes created for bridge plugin")
 	return nil
+}
+
+func CreateRoutesForPodNetwork(node *Node, c *Config) error {
+	glog.V(4).Info("Creating routes for pod network")
+	err := DoRouteOpsOnNodes(node, c, "add")
+	if err == nil {
+		glog.V(1).Info("Pod network routes created for bridge plugin")
+	}
+	return err
 }
 
 func RemoveRoutesForPodNetwork(node *Node, c *Config) error {
 	glog.V(4).Info("Deleting routes for pod network")
-	if node.IsMaster || node.IsMinion {
-		myID := node.ID
-		for _, n := range c.Topology {
-			if n.ID == myID {
-				continue
-			}
-			if n.IsMaster || n.IsMinion {
-				dest := BuildDestCIDR(c.Pod.Prefix, n.ID, c.Pod.Size)
-				gw := BuildGWIP(c.Mgmt.Subnet, n.ID)
-				err := DeleteRouteForPodNetwork(dest, gw, n.Interface, n.ID)
-				if err != nil {
-					return fmt.Errorf("Unable to delete pod network route for %s to %s: %s", dest, n.Name, err.Error())
-				}
-				glog.V(4).Infof("Deleted pod network route for %s to %s", dest, n.Name)
-			}
-		}
+	err := DoRouteOpsOnNodes(node, c, "delete")
+	if err == nil {
+		glog.V(1).Info("Pod network routes deleted for bridge plugin")
 	}
-	glog.V(1).Info("Pod network routes deleted for bridge plugin")
-	return nil
+	return err
 }
