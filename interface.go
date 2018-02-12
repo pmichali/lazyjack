@@ -9,7 +9,7 @@ import (
 	"github.com/vishvananda/netlink/nl"
 )
 
-func BuildCIDR(subnet string, node, prefix int) string {
+func BuildNodeCIDR(subnet string, node, prefix int) string {
 	return fmt.Sprintf("%s%d/%d", subnet, node, prefix)
 }
 
@@ -65,25 +65,25 @@ func RemoveAddressFromLink(ip, intf string) error {
 	return nil
 }
 
-func FindLinkIndexForV4CIDR(v4CIDR string) (int, error) {
-	_, cidr, err := net.ParseCIDR(v4CIDR)
+func FindLinkIndexForCIDR(cidr string) (int, error) {
+	_, c, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return 0, fmt.Errorf("Unable to parse V4 CIDR %q: %s", v4CIDR, err.Error())
+		return 0, fmt.Errorf("Unable to parse CIDR %q: %s", cidr, err.Error())
 	}
 	links, _ := netlink.LinkList()
 	for _, link := range links {
 		addrs, _ := netlink.AddrList(link, nl.FAMILY_V4)
 		for _, addr := range addrs {
-			if cidr.Contains(addr.IP) {
-				glog.V(4).Infof("Using interface %s (%d) for CIDR %q", link.Attrs().Name, link.Attrs().Index, v4CIDR)
+			if c.Contains(addr.IP) {
+				glog.V(4).Infof("Using interface %s (%d) for CIDR %q", link.Attrs().Name, link.Attrs().Index, cidr)
 				return link.Attrs().Index, nil
 			}
 		}
 	}
-	return 0, fmt.Errorf("Unable to find interface for V4 CIDR %q", v4CIDR)
+	return 0, fmt.Errorf("Unable to find interface for CIDR %q", cidr)
 }
 
-func BuildV4Route(destStr, gwStr string, index int) (*netlink.Route, error) {
+func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	_, cidr, err := net.ParseCIDR(destStr)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse destination CIDR %q: %s", destStr, err.Error())
@@ -96,27 +96,60 @@ func BuildV4Route(destStr, gwStr string, index int) (*netlink.Route, error) {
 	return route, nil
 }
 
-func AddLocalV4RouteToNAT64Server(dest, gw, v4supportCIDR string) error {
-	index, err := FindLinkIndexForV4CIDR(v4supportCIDR)
+func AddLocalRouteToNAT64Server(dest, gw, supportNetCIDR string) error {
+	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
 	}
-	route, err := BuildV4Route(dest, gw, index)
+	route, err := BuildRoute(dest, gw, index)
 	if err != nil {
 		return err
 	}
 	return netlink.RouteAdd(route)
 }
 
-func RemoveLocalIPv4RouteFromNAT64(dest, gw, v4supportCIDR string) error {
-	index, err := FindLinkIndexForV4CIDR(v4supportCIDR)
+func RemoveLocalRouteFromNAT64(dest, gw, supportNetCIDR string) error {
+	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
 	}
-	route, err := BuildV4Route(dest, gw, index)
+	route, err := BuildRoute(dest, gw, index)
 	if err != nil {
 		return err
 	}
 	return netlink.RouteDel(route)
-	return nil
+}
+
+func BuildDestCIDR(prefix string, node, size int) string {
+	return fmt.Sprintf("%s:%d::/%d", prefix, node, size)
+}
+
+func BuildGWIP(prefix string, intfPart int) string {
+	return fmt.Sprintf("%s%d", prefix, intfPart)
+}
+
+func AddRouteForPodNetwork(dest, gw, intf string, node int) error {
+	link, err := netlink.LinkByName(intf)
+	if err != nil {
+		return fmt.Errorf("Unable to find interface %q", intf)
+	}
+	index := link.Attrs().Index
+	route, err := BuildRoute(dest, gw, index)
+	if err != nil {
+		return err
+	}
+	return netlink.RouteAdd(route)
+}
+
+func DeleteRouteForPodNetwork(dest, gw, intf string, node int) error {
+	link, err := netlink.LinkByName(intf)
+	if err != nil {
+		return fmt.Errorf("Unable to find interface %q", intf)
+	}
+	index := link.Attrs().Index
+	route, err := BuildRoute(dest, gw, index)
+	if err != nil {
+		return err
+	}
+	return netlink.RouteDel(route)
 }

@@ -35,7 +35,7 @@ func CreateKubeletDropInFile(c *Config) error {
 func PrepareClusterNode(node *Node, c *Config) {
 	glog.Infof("Preparing node %q", node.Name)
 
-	mgmtIP := BuildCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
 	err := AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Fatal(err)
@@ -212,7 +212,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 		glog.V(1).Info("NAT64 container (tayga) started")
 	}
 
-	err = AddLocalV4RouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err = AddLocalRouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
@@ -248,7 +248,13 @@ func PreparePlugin(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	}
-	glog.Info("Prepared for %s plugin", c.Plugin)
+
+	err = CreateRoutesForPodNetwork(node, c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	}
+	glog.Infof("Prepared for %s plugin", c.Plugin)
 }
 
 func Prepare(name string, c *Config) {

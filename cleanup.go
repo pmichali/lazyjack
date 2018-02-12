@@ -19,10 +19,10 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(1).Info("Removed kubelet drop-in file")
 	}
 
-	mgmtIP := BuildCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
 	err = RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
-		glog.Warning("Unable to remove IP from management interface: %s", err.Error())
+		glog.Warningf("Unable to remove IP from management interface: %s", err.Error())
 	} else {
 		glog.V(1).Info("Removed IP address from management interface")
 	}
@@ -51,7 +51,7 @@ func CleanupDNS64Server(node *Node, c *Config) {
 func CleanupNAT64Server(node *Node, c *Config) {
 	glog.Infof("Cleaning NAT64 on %q", node.Name)
 
-	err := RemoveLocalIPv4RouteFromNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err := RemoveLocalRouteFromNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Warning(err)
 	} else {
@@ -85,10 +85,17 @@ func CleanupSupportNetwork() {
 func CleanupPlugin(node *Node, c *Config) {
 	glog.V(1).Infof("Cleaning plugin on %s", node.Name)
 
-	// Note: CNI config file will be removed, when "kubeadm reset" performed
-	err := os.RemoveAll(CNIConfArea)
+	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
-		glog.Warning("Unable to remove CNI config file and area: %s", err.Error())
+		glog.Warningf("Unable to remove routes for %s plugin: %s", c.Plugin, err.Error())
+	} else {
+		glog.V(1).Infof("Removed routes for %s plugin", c.Plugin)
+	}
+
+	// Note: CNI config file will be removed, when "kubeadm reset" performed
+	err = os.RemoveAll(CNIConfArea)
+	if err != nil {
+		glog.Warningf("Unable to remove CNI config file and area: %s", err.Error())
 	} else {
 		glog.V(1).Info("Removed CNI config file and area")
 	}
