@@ -15,6 +15,9 @@ support_net:
 mgmt_net:
     subnet: "fd00:20::"
     size: 64
+pod_net:
+    prefix: "fd00:40:0:0"
+    size: 80
 nat64:
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"

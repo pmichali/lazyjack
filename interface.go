@@ -73,7 +73,6 @@ func FindLinkIndexForV4CIDR(v4CIDR string) (int, error) {
 	links, _ := netlink.LinkList()
 	for _, link := range links {
 		addrs, _ := netlink.AddrList(link, nl.FAMILY_V4)
-		glog.Infof("Addresses %+v", addrs)
 		for _, addr := range addrs {
 			if cidr.Contains(addr.IP) {
 				glog.V(4).Infof("Using interface %s (%d) for CIDR %q", link.Attrs().Name, link.Attrs().Index, v4CIDR)

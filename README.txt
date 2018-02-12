@@ -3,16 +3,17 @@
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
 - Setup /etc/hosts and /etc/resolv.conf.
-- See if way to use netlink to create/delete routes easily (without going through contortions to modify an existing route).
-- Could do "ip route" and then regexp for route to delete, as a qualifier on route delete operation (or check for error=2 and ignore error).
-- Prepare/Clean: CNI plugin
+- Prepare/Clean: CNI plugin (in progress)
 - Up & Down implementation.
 - Packaging and pushing coe up to github.com.
 - Validation of docker version. Kubernetes? Any other tools required?
 - If needed/desired, see if can run DNS64 and NAT64 on separate hosts. Are routes correct?
 - Check IP addresses, subnets, CIDRs in config to see if they are valid.
+- Check pod net prefix and mask compatible (former should specify size - 16 bits).
+- Ensure no overlap on pod, support, mgmt subnets.
 - Check that NAT IP within NAT subnet, and that NAT subnet withing support subnet.
 - Mocking of netlink library and docker for better code coverage.
+- Check that node ID > 0? 1?
 - Try this with IPv4 settings? Useful?
 - Figure out how to do join on minions - need token.
 - Support Calico plugin vs Bridge. Cillium? Others?

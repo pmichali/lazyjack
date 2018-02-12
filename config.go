@@ -20,6 +20,11 @@ type ManagementNetwork struct {
 	Size   int    `yaml:"size"`
 }
 
+type PodNetwork struct {
+	Prefix string `yaml:"prefix"`
+	Size   int    `yaml:"size"`
+}
+
 type DNS64Config struct {
 	RemoteV4Server string `yaml:"remote_server"`
 	Prefix         string `yaml:"prefix"`
@@ -49,6 +54,7 @@ type Config struct {
 	Topology map[string]Node
 	Support  SupportNetwork    `yaml:"support_net"`
 	Mgmt     ManagementNetwork `yaml:"mgmt_net"`
+	Pod      PodNetwork        `yaml:"pod_net"`
 	NAT64    NAT64Config       `yaml:"nat64"`
 	DNS64    DNS64Config       `yaml:"dns64"`
 }
@@ -63,6 +69,8 @@ const (
 
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
+
+	CNIConfArea = "/etc/cni/net.d"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {

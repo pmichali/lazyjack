@@ -49,6 +49,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback
 	}
+	glog.Infof("Prepared node %s", node.Name)
 }
 
 func CreateNamedConfContents(c *Config) *bytes.Buffer {
@@ -85,7 +86,7 @@ func CreateSupportNetwork(c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	} else {
-		glog.V(1).Info("Created support network")
+		glog.Info("Created support network")
 	}
 }
 
@@ -135,7 +136,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	glog.Infof("Preparing DNS64 on %q", node.Name)
 
 	if ResourceExists("bind9") {
-		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists")
+		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists on %s", node.Name)
 		return
 	}
 
@@ -189,12 +190,12 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	} else {
 		glog.V(4).Info("Have IPv6 route in DNS64 container")
 	}
-	glog.V(1).Info("DNS64 container configured")
+	glog.Info("DNS64 container configured on %s", node.Name)
 }
 
 // NOTE: Will use existing container, if running
 func PrepareNAT64Server(node *Node, c *Config) {
-	glog.Infof("Preparing NAT64 on %q", node.Name)
+	glog.V(1).Infof("Preparing NAT64 on %q", node.Name)
 
 	if ResourceExists("tayga") {
 		glog.V(1).Infof("Skipping - NAT64 container (tayga) already exists")
@@ -218,11 +219,36 @@ func PrepareNAT64Server(node *Node, c *Config) {
 	} else {
 		glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
 	}
+	glog.Infof("Prepared NAT64 server on %q", node.Name)
+}
+
+func EnsureCNIAreaExists() error {
+	err := os.RemoveAll(CNIConfArea)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(CNIConfArea, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func PreparePlugin(node *Node, c *Config) {
-	glog.Infof("Preparing bridge plugin on %q", node.Name)
-	// For bridge plugin create CNI config file
+	glog.V(1).Infof("Preparing %s plugin on %q", c.Plugin, node.Name)
+	err := EnsureCNIAreaExists()
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(4).Info("Created area for CNI config file")
+	}
+	err = CreateBridgeCNIConfigFile(node, c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	}
+	glog.Info("Prepared for %s plugin", c.Plugin)
 }
 
 func Prepare(name string, c *Config) {

@@ -83,8 +83,15 @@ func CleanupSupportNetwork() {
 }
 
 func CleanupPlugin(node *Node, c *Config) {
-	glog.Infof("Cleaning bridge plugin on %q", node.Name)
-	// For bridge plugin remove CNI config file (should be deleted when "kubeadm reset")
+	glog.V(1).Infof("Cleaning plugin on %s", node.Name)
+
+	// Note: CNI config file will be removed, when "kubeadm reset" performed
+	err := os.RemoveAll(CNIConfArea)
+	if err != nil {
+		glog.Warning("Unable to remove CNI config file and area: %s", err.Error())
+	} else {
+		glog.V(1).Info("Removed CNI config file and area")
+	}
 }
 
 func Cleanup(name string, c *Config) {
