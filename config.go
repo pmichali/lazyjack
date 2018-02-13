@@ -71,8 +71,11 @@ const (
 	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
 
 	CNIConfArea = "/etc/cni/net.d"
+	
 	EtcHostsFile = "/etc/hosts"
         EtcHostsBackupFile = "/etc/hosts.bak"
+	EtcResolvConfFile = "/etc/resolv.conf"
+	EtcResolvConfBackupFile = "/etc/resolv.conf.bak"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {

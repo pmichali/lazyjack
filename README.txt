@@ -2,7 +2,6 @@
 
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
-- Clean /etc/hosts  (by restoring .bak file).
 - Prepare and restore for /etc/resolv.conf.
 - Move static routes to before or after kubeadm commands (not prepare, as nodes don't have mgmt IPs yet).
 - Up & Down implementation.

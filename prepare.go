@@ -56,9 +56,31 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 	return n
 }
 
-func GetEtcHostsContents() ([]byte, error) {
-	glog.V(4).Info("Reading /etc/hosts contents")
-	return ioutil.ReadFile(EtcHostsFile)
+func GetFileContents(file string) ([]byte, error) {
+	glog.V(4).Infof("Reading %s contents", file)
+	contents, err := ioutil.ReadFile(file)
+	if err != nil {
+		err = fmt.Errorf("Unable to read %s: %s", file, err.Error())
+	}
+	return contents, err
+}
+
+func SaveFileContents(contents []byte, file, backup string) error {
+	glog.V(4).Infof("Saving updated %s", file)
+	err := os.Rename(file, backup)
+	if err != nil {
+		return fmt.Errorf("Unable to save %s to %s", file, backup)
+	}
+	err = ioutil.WriteFile(file, contents, 0755)
+	if err != nil {
+		err2 := os.Rename(backup, file)
+		if err2 != nil {
+			return fmt.Errorf("Unable to save updated %s (%s) AND unable to restore backup file %s (%s)",
+				file, err.Error(), backup, err2.Error())
+		}
+		return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, err.Error())
+	}
+	return nil
 }
 
 func MatchingNodeIndex(line []byte, n []NodeInfo) int {
@@ -71,7 +93,7 @@ func MatchingNodeIndex(line []byte, n []NodeInfo) int {
 }
 
 func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
-	glog.V(4).Info("Updating /etc/hosts")
+	glog.V(4).Infof("Updating %s", EtcHostsFile)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	for _, line := range lines {
@@ -81,55 +103,75 @@ func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
 				if strings.Contains(string(line), n[i].IP) {
 					n[i].Seen = true
 				} else {
-					output.WriteString("#[X] ")
+					output.WriteString("#[-] ")
 				}
 			}
 		}
-		output.Write(line)
-		output.WriteString("\n")
+		output.WriteString(fmt.Sprintf("%s\n", line))
 	}
 	// Create any missing entries
 	for _, node := range n {
 		if !node.Seen {
-			output.WriteString(node.IP)
-			output.WriteString(" ")
-			output.WriteString(node.Name)
-			output.WriteString("\n")
+			output.WriteString(fmt.Sprintf("%s %s  #[+]\n", node.IP, node.Name))
 		}
 	}
 	return output.Bytes()
 }
 
-func SaveEtcHostsContents(contents []byte) error {
-	glog.V(4).Infof("Saving updated /etc/hosts")
-	err := os.Rename(EtcHostsFile, EtcHostsBackupFile)
+func AddHostEntries(c *Config) error {
+	glog.V(1).Infof("Preparing %s file", EtcHostsFile)
+	nodes := BuildNodeInfo(c)
+	contents, err := GetFileContents(EtcHostsFile)
 	if err != nil {
-		return fmt.Errorf("Unable to save /etc/hosts to /etc/hosts.bak")
+		return err
 	}
-	err = ioutil.WriteFile(EtcHostsFile, contents, 0755)
+	contents = UpdateHostsInfo(contents, nodes)
+	err = SaveFileContents(contents, EtcHostsFile, EtcHostsBackupFile)
 	if err != nil {
-		err2 := os.Rename(EtcHostsBackupFile, EtcHostsFile)
-		if err2 != nil {
-			return fmt.Errorf("Unable to save updated /etc/hosts (%s) AND unable to restore backup file (%s)", err.Error(), err2.Error())
-		}
-		return fmt.Errorf("Unabe to save updated /etc/hosts (%s), but restored backup", err.Error())
+		return err
 	}
+	glog.Info("Prepared %s file", EtcHostsFile)
 	return nil
 }
 
-func AddHostEntries(c *Config) error {
-	glog.V(1).Info("Preparing /etc/hosts file")
-	nodes := BuildNodeInfo(c)
-	contents, err := GetEtcHostsContents()
-	if err != nil {
-		return fmt.Errorf("Unable to get /etc/hosts contents: %s", err.Error())
+func UpdateResolvConfInfo(contents []byte, ns string) []byte {
+	glog.V(4).Infof("Updating %s", EtcResolvConfFile)
+	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
+
+	var output bytes.Buffer
+	first := true
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("nameserver")) {
+			matches := bytes.Contains(line, []byte(ns))
+			if first && !matches {
+				output.WriteString(fmt.Sprintf("nameserver %s  #[+]\n", ns))
+			} else if !first && matches {
+				output.WriteString("#[-] ")
+			} // else first and matches, or not first an not matches -> keep line
+			if first {
+				first = false
+			}
+		}
+		output.WriteString(fmt.Sprintf("%s\n", line))
 	}
-	contents = UpdateHostsInfo(contents, nodes)
-	err = SaveEtcHostsContents(contents)
-	if err != nil {
-		return fmt.Errorf("Unable to save changes to /etc/hosts: %s", err.Error())
+	if first {
+		output.WriteString(fmt.Sprintf("nameserver %s  #[+]\n", ns))
 	}
-	glog.Info("Prepared /etc/hosts file")
+	return output.Bytes()
+}
+
+func AddResolvConfEntry(c *Config) error {
+	glog.V(1).Infof("Preparing %s file", EtcResolvConfFile)
+	contents, err := GetFileContents(EtcResolvConfFile)
+	if err != nil {
+		return err
+	}
+	contents = UpdateResolvConfInfo(contents, c.DNS64.ServerIP)
+	err = SaveFileContents(contents, EtcResolvConfFile, EtcResolvConfBackupFile)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Prepared %s file", EtcResolvConfFile)
 	return nil
 }
 
@@ -140,16 +182,20 @@ func PrepareClusterNode(node *Node, c *Config) {
 	err := AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback
+		os.Exit(1) // TODO: Rollback?
 	}
 
 	err = AddHostEntries(c)
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback
+		os.Exit(1) // TODO: Rollback?
 	}
 
-	// resolv.conf
+	err = AddResolvConfEntry(c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	}
 
 	err = CreateKubeletDropInFile(c)
 	if err != nil {

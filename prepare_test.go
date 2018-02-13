@@ -121,7 +121,7 @@ func TestBuildNodeInfo(t *testing.T) {
 	}
 }
 
-func TestMatchingIndexs(t *testing.T) {
+func TestMatchingIndexes(t *testing.T) {
 	ni := []orca.NodeInfo{
 		{
 			Name: "master",
@@ -156,10 +156,10 @@ func TestUpdateEtcHostsContents(t *testing.T) {
 10.0.0.3 minion
 `).Bytes(),
 			expected: `# existing old
-#[X] 10.0.0.2 master
-#[X] 10.0.0.3 minion
-fd00:20::10 master
-fd00:20::20 minion
+#[-] 10.0.0.2 master
+#[-] 10.0.0.3 minion
+fd00:20::10 master  #[+]
+fd00:20::20 minion  #[+]
 `,
 		},
 		{
@@ -169,10 +169,10 @@ fd00:20::20 minion
 # 10.0.0.3 minion
 `).Bytes(),
 			expected: `# ignore commented
-#[X] 10.0.0.2 master
+#[-] 10.0.0.2 master
 # 10.0.0.3 minion
-fd00:20::10 master
-fd00:20::20 minion
+fd00:20::10 master  #[+]
+fd00:20::20 minion  #[+]
 `,
 		},
 		{
@@ -182,8 +182,8 @@ fd00:20::20 minion
 `).Bytes(),
 			expected: `# add new
 127.0.0.1 localhost
-fd00:20::10 master
-fd00:20::20 minion
+fd00:20::10 master  #[+]
+fd00:20::20 minion  #[+]
 `,
 		},
 		{
@@ -193,9 +193,9 @@ fd00:20::20 minion
 fd00:20::20 minion
 `).Bytes(),
 			expected: `# ignore existing
-#[X] 10.0.0.2 master
+#[-] 10.0.0.2 master
 fd00:20::20 minion
-fd00:20::10 master
+fd00:20::10 master  #[+]
 `,
 		},
 		{
@@ -207,12 +207,12 @@ fd00:20::10 master
 10.0.0.3 minion
 `).Bytes(),
 			expected: `# multiple existing
-#[X] 10.0.0.2 master
-#[X] 10.0.0.3 minion
-#[X] 10.0.0.2 master
-#[X] 10.0.0.3 minion
-fd00:20::10 master
-fd00:20::20 minion
+#[-] 10.0.0.2 master
+#[-] 10.0.0.3 minion
+#[-] 10.0.0.2 master
+#[-] 10.0.0.3 minion
+fd00:20::10 master  #[+]
+fd00:20::20 minion  #[+]
 `,
 		},
 	}
@@ -233,4 +233,74 @@ fd00:20::20 minion
 			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
 	}
+}
+
+func TestUpdateResolvConfContents(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		input    []byte
+		expected string
+	}{
+		{
+			name: "no nameservers",
+			input: bytes.NewBufferString(`# no nameservers
+search example.com
+`).Bytes(),
+			expected: `# no nameservers
+search example.com
+nameserver fd00:10::100  #[+]
+`,
+		},
+		{
+			name: "prepend to existing",
+			input: bytes.NewBufferString(`# prepend to existing
+search example.com
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+`).Bytes(),
+			expected: `# prepend to existing
+search example.com
+nameserver fd00:10::100  #[+]
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+`,
+		},
+		{
+			name: "not first entry",
+			input: bytes.NewBufferString(`# not first entry
+search example.com
+nameserver 8.8.8.8
+nameserver fd00:10::100
+nameserver 8.8.4.4
+`).Bytes(),
+			expected: `# not first entry
+search example.com
+nameserver fd00:10::100  #[+]
+nameserver 8.8.8.8
+#[-] nameserver fd00:10::100
+nameserver 8.8.4.4
+`,
+		},
+		{
+			name: "already have",
+			input: bytes.NewBufferString(`# already have
+search example.com
+nameserver fd00:10::100
+nameserver 8.8.8.8
+`).Bytes(),
+			expected: `# already have
+search example.com
+nameserver fd00:10::100
+nameserver 8.8.8.8
+`,
+		},
+	}
+
+	for _, tc := range testCases {
+		actual := orca.UpdateResolvConfInfo(tc.input, "fd00:10::100")
+		if string(actual) != tc.expected {
+			t.Errorf("FAILED: [%s] mismatch.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
+		}
+	}
+
 }
