@@ -6,17 +6,29 @@ import (
 	"github.com/golang/glog"
 )
 
+func RestoreEtcHostsFile() error {
+	glog.V(4).Infof("Restoring /etc/hosts")
+	if _, err := os.Stat(EtcHostsBackupFile); os.IsNotExist(err) {
+		return err
+	}
+	err := os.Rename(EtcHostsBackupFile, EtcHostsFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func CleanupClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Cleaning general settings")
 	err := os.Remove(KubeletDropInFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			glog.V(1).Info("No kubelet drop-in file to remove")
+			glog.V(4).Info("No kubelet drop-in file to remove")
 		} else {
 			glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", KubeletDropInFile, err.Error())
 		}
 	} else {
-		glog.V(1).Info("Removed kubelet drop-in file")
+		glog.V(4).Info("Removed kubelet drop-in file")
 	}
 
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
@@ -24,10 +36,18 @@ func CleanupClusterNode(node *Node, c *Config) {
 	if err != nil {
 		glog.Warningf("Unable to remove IP from management interface: %s", err.Error())
 	} else {
-		glog.V(1).Info("Removed IP address from management interface")
+		glog.V(4).Info("Removed IP address from management interface")
 	}
 
-	// Will leave /etc/hosts and /etc/resolv.conf alone
+	err = RestoreEtcHostsFile()
+	if err != nil {
+		glog.Warningf("Unable to restore /etc/hosts: %s", err.Error())
+	} else {
+		glog.V(4).Info("Restored /etc/hosts contents")
+	}
+
+	// Will leave /etc/resolv.conf alone?
+
 	glog.Info("Cleaned general settings")
 }
 
