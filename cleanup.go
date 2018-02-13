@@ -55,15 +55,22 @@ func CleanupClusterNode(node *Node, c *Config) {
 	}
 
 	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	var gw string
 	if node.IsNAT64Server {
-		err = DeleteRouteUsingSupportNetInterface(dest, c.NAT64.ServerIP, c.Support.V4CIDR)
+		gw = c.NAT64.ServerIP
+		err = DeleteRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
-		err = DeleteRouteUsingInterfaceName(dest, c.NAT64.ServerIP, node.Interface)
+		gw, ok := FindHostIPForNAT64(c)
+		if !ok {
+			err = fmt.Errorf("Unable to find node with NAT64 server")
+		} else {
+			err = DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
+		}
 	}
 	if err != nil {
-		glog.Warningf("Unable to delete route to %s via %s", dest, c.NAT64.ServerIP)
+		glog.Warningf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
 	} else {
-		glog.V(4).Infof("Deleted route to %s via %s", dest, c.NAT64.ServerIP)
+		glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
 	}
 
 	glog.Info("Cleaned general settings")
