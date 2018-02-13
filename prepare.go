@@ -130,7 +130,7 @@ func AddHostEntries(c *Config) error {
 	if err != nil {
 		return err
 	}
-	glog.Info("Prepared %s file", EtcHostsFile)
+	glog.Infof("Prepared %s file", EtcHostsFile)
 	return nil
 }
 
@@ -402,11 +402,11 @@ func PreparePlugin(node *Node, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
-	err = CreateRoutesForPodNetwork(node, c)
-	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
-	}
+	//	err = CreateRoutesForPodNetwork(node, c)
+	//	if err != nil {
+	//		glog.Fatal(err)
+	//		os.Exit(1) // TODO: Rollback?
+	//	}
 	glog.Infof("Prepared %s plugin", c.Plugin)
 }
 

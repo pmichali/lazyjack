@@ -2,8 +2,7 @@
 
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
-- Prepare and restore for /etc/resolv.conf.
-- Move static routes to before or after kubeadm commands (not prepare, as nodes don't have mgmt IPs yet).
+- Re-enable static route creation/deletion to pods, during the up/down phase.
 - Up & Down implementation.
 - Packaging and pushing coe up to github.com.
 - Validation of docker version. Kubernetes? Any other tools required?

@@ -105,7 +105,11 @@ func AddLocalRouteToNAT64Server(dest, gw, supportNetCIDR string) error {
 	if err != nil {
 		return err
 	}
-	return netlink.RouteAdd(route)
+	err = netlink.RouteAdd(route)
+	if err == nil {
+		glog.V(4).Infof("Added local route %s via %s for NAT64", dest, gw)
+	}
+	return err
 }
 
 func RemoveLocalRouteFromNAT64(dest, gw, supportNetCIDR string) error {

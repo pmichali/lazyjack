@@ -6,12 +6,12 @@ import (
 	"github.com/golang/glog"
 )
 
-func RestoreEtcHostsFile() error {
-	glog.V(4).Infof("Restoring /etc/hosts")
-	if _, err := os.Stat(EtcHostsBackupFile); os.IsNotExist(err) {
+func RestoreFile(backup, file string) error {
+	glog.V(4).Infof("Restoring %s", file)
+	if _, err := os.Stat(backup); os.IsNotExist(err) {
 		return err
 	}
-	err := os.Rename(EtcHostsBackupFile, EtcHostsFile)
+	err := os.Rename(backup, file)
 	if err != nil {
 		return err
 	}
@@ -39,14 +39,19 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Info("Removed IP address from management interface")
 	}
 
-	err = RestoreEtcHostsFile()
+	err = RestoreFile(EtcHostsBackupFile, EtcHostsFile)
 	if err != nil {
-		glog.Warningf("Unable to restore /etc/hosts: %s", err.Error())
+		glog.Warningf("Unable to restore %s: %s", EtcHostsFile, err.Error())
 	} else {
-		glog.V(4).Info("Restored /etc/hosts contents")
+		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
 	}
 
-	// Will leave /etc/resolv.conf alone?
+	err = RestoreFile(EtcResolvConfBackupFile, EtcResolvConfFile)
+	if err != nil {
+		glog.Warningf("Unable to restore %s: %s", EtcResolvConfFile, err.Error())
+	} else {
+		glog.V(4).Infof("Restored %s contents", EtcResolvConfFile)
+	}
 
 	glog.Info("Cleaned general settings")
 }
@@ -109,15 +114,15 @@ func CleanupSupportNetwork() {
 func CleanupPlugin(node *Node, c *Config) {
 	glog.V(1).Info("Cleaning plugin")
 
-	err := RemoveRoutesForPodNetwork(node, c)
-	if err != nil {
-		glog.Warningf("Unable to remove routes for %s plugin: %s", c.Plugin, err.Error())
-	} else {
-		glog.V(1).Infof("Removed routes for %s plugin", c.Plugin)
-	}
+	//	err := RemoveRoutesForPodNetwork(node, c)
+	//	if err != nil {
+	//		glog.Warningf("Unable to remove routes for %s plugin: %s", c.Plugin, err.Error())
+	//	} else {
+	//		glog.V(1).Infof("Removed routes for %s plugin", c.Plugin)
+	//	}
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
-	err = os.RemoveAll(CNIConfArea)
+	err := os.RemoveAll(CNIConfArea)
 	if err != nil {
 		glog.Warningf("Unable to remove CNI config file and area: %s", err.Error())
 	} else {
