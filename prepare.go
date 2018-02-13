@@ -57,6 +57,7 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 }
 
 func GetEtcHostsContents() ([]byte, error) {
+	glog.V(4).Info("Reading /etc/hosts contents")
 	return ioutil.ReadFile(EtcHostsFile)
 }
 
@@ -70,6 +71,7 @@ func MatchingNodeIndex(line []byte, n []NodeInfo) int {
 }
 
 func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
+	glog.V(4).Info("Updating /etc/hosts")
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	for _, line := range lines {
@@ -99,7 +101,19 @@ func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
 }
 
 func SaveEtcHostsContents(contents []byte) error {
-	glog.Infof("Output: %q\n", string(contents))
+	glog.V(4).Infof("Saving updated /etc/hosts")
+	err := os.Rename(EtcHostsFile, EtcHostsBackupFile)
+	if err != nil {
+		return fmt.Errorf("Unable to save /etc/hosts to /etc/hosts.bak")
+	}
+	err = ioutil.WriteFile(EtcHostsFile, contents, 0755)
+	if err != nil {
+		err2 := os.Rename(EtcHostsBackupFile, EtcHostsFile)
+		if err2 != nil {
+			return fmt.Errorf("Unable to save updated /etc/hosts (%s) AND unable to restore backup file (%s)", err.Error(), err2.Error())
+		}
+		return fmt.Errorf("Unabe to save updated /etc/hosts (%s), but restored backup", err.Error())
+	}
 	return nil
 }
 
@@ -110,9 +124,7 @@ func AddHostEntries(c *Config) error {
 	if err != nil {
 		return fmt.Errorf("Unable to get /etc/hosts contents: %s", err.Error())
 	}
-	glog.Infof("Hosts Before:\n%v\n", string(contents))
 	contents = UpdateHostsInfo(contents, nodes)
-	glog.Infof("Hosts After:\n%v\n", string(contents))
 	err = SaveEtcHostsContents(contents)
 	if err != nil {
 		return fmt.Errorf("Unable to save changes to /etc/hosts: %s", err.Error())

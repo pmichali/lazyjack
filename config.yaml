@@ -8,6 +8,10 @@ topology:
         interface: "enp10s0"
         opmodes: "minion"
         id: 3
+#     bxb-c2-78:
+#         interface: "enp9s0"
+#         opmodes: "minion"
+#         id: 4
 support_net:
     subnet: "fd00:10::"
     v4cidr: "172.18.0.0/16"

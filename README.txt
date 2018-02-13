@@ -2,7 +2,9 @@
 
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
-- Setup /etc/hosts and /etc/resolv.conf.
+- Clean /etc/hosts  (by restoring .bak file).
+- Prepare and restore for /etc/resolv.conf.
+- Move static routes to before or after kubeadm commands (not prepare, as nodes don't have mgmt IPs yet).
 - Up & Down implementation.
 - Packaging and pushing coe up to github.com.
 - Validation of docker version. Kubernetes? Any other tools required?
