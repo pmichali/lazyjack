@@ -2,8 +2,9 @@ package orca_test
 
 import (
 	"bytes"
-	"github.com/pmichali/orca"
 	"testing"
+
+	"github.com/pmichali/orca"
 )
 
 func TestKubeletDropInContents(t *testing.T) {
@@ -301,6 +302,51 @@ nameserver 8.8.8.8
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
+	}
+
+}
+
+func TestFindHostIPForNAT64(t *testing.T) {
+	c := &orca.Config{
+		Topology: map[string]orca.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: true,
+			},
+			"minion2": {
+				ID:            30,
+				IsNAT64Server: false,
+			},
+		},
+		Mgmt: orca.ManagementNetwork{
+			Subnet: "fd00:100::",
+		},
+	}
+	gw, ok := orca.FindHostIPForNAT64(c)
+	if !ok {
+		t.Errorf("Expected to find node with NAT64 server")
+	}
+	if gw != "fd00:100::20" {
+		t.Errorf("Incorrect GW IP from node with NAT64 server")
+	}
+	bad := &orca.Config{
+		Topology: map[string]orca.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+			},
+		},
+		Mgmt: orca.ManagementNetwork{
+			Subnet: "fd00:100::",
+		},
+	}
+	gw, ok = orca.FindHostIPForNAT64(bad)
+	if ok {
+		t.Errorf("Expected no NAT64 server to be found")
 	}
 
 }

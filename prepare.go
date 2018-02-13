@@ -175,6 +175,15 @@ func AddResolvConfEntry(c *Config) error {
 	return nil
 }
 
+func FindHostIPForNAT64(c *Config) (string, bool) {
+	for _, node := range c.Topology {
+		if node.IsNAT64Server {
+			return fmt.Sprintf("%s%d", c.Mgmt.Subnet, node.ID), true
+		}
+	}
+	return "", false
+}
+
 func PrepareClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Preparing general settings")
 
@@ -206,7 +215,12 @@ func PrepareClusterNode(node *Node, c *Config) {
 	if node.IsNAT64Server {
 		err = AddRouteUsingSupportNetInterface(dest, c.NAT64.ServerIP, c.Support.V4CIDR)
 	} else {
-		err = AddRouteUsingInterfaceName(dest, c.NAT64.ServerIP, node.Interface)
+		gw, ok := FindHostIPForNAT64(c)
+		if !ok {
+			glog.Fatal("Unable to find node with NAT64 server configured")
+			os.Exit(1) // TODO: Rollback?
+		}
+		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
 	}
 	if err != nil {
 		glog.Fatal(err)
