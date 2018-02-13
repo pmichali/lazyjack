@@ -211,6 +211,8 @@ func PrepareClusterNode(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	}
+
+	// Route to NAT64 server from other nodes for DNS64 prefix subnet
 	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
 	var gw string
 	if node.IsNAT64Server {
@@ -229,6 +231,23 @@ func PrepareClusterNode(node *Node, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(1).Infof("Added route to %s via %s", dest, gw)
+	}
+
+	// Route to support network, from other nodes
+	if !node.IsNAT64Server && !node.IsDNS64Server {
+		dest = fmt.Sprintf("%s/%d", c.Support.Subnet, c.Support.Size)
+		gw, ok := FindHostIPForNAT64(c)
+		if !ok {
+			glog.Fatal("Unable to find node with NAT64 server configured")
+			os.Exit(1) // TODO: Rollback?
+		}
+		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
+		if err != nil {
+			glog.Fatal(err)
+			os.Exit(1) // TODO: Rollback?
+		} else {
+			glog.V(1).Infof("Added route to %s via %s", dest, gw)
+		}
 	}
 	glog.Info("Prepared general settings")
 }
