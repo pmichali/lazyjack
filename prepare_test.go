@@ -2,7 +2,7 @@ package orca_test
 
 import (
 	"bytes"
-	"orca"
+	"github.com/pmichali/orca"
 	"testing"
 )
 

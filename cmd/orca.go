@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/pmichali/orca"
 	"log"
-	"orca"
 	"os"
 	"path/filepath"
 

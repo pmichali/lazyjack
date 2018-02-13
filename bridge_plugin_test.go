@@ -1,7 +1,7 @@
 package orca_test
 
 import (
-	"orca"
+	"github.com/pmichali/orca"
 	"testing"
 )
 
