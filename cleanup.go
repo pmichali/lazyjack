@@ -56,11 +56,12 @@ func CleanupClusterNode(node *Node, c *Config) {
 
 	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
 	var gw string
+	var ok bool
 	if node.IsNAT64Server {
 		gw = c.NAT64.ServerIP
 		err = DeleteRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
-		gw, ok := FindHostIPForNAT64(c)
+		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			err = fmt.Errorf("Unable to find node with NAT64 server")
 		} else {
@@ -75,7 +76,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 
 	if !node.IsNAT64Server && !node.IsDNS64Server {
 		dest = fmt.Sprintf("%s/%d", c.Support.Subnet, c.Support.Size)
-		gw, ok := FindHostIPForNAT64(c)
+		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			err = fmt.Errorf("Unable to find node with NAT64 server configured")
 		} else {

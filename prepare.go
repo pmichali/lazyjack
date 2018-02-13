@@ -215,11 +215,12 @@ func PrepareClusterNode(node *Node, c *Config) {
 	// Route to NAT64 server from other nodes for DNS64 prefix subnet
 	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
 	var gw string
+	var ok bool
 	if node.IsNAT64Server {
 		gw = c.NAT64.ServerIP
 		err = AddRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
-		gw, ok := FindHostIPForNAT64(c)
+		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			glog.Fatal("Unable to find node with NAT64 server configured")
 			os.Exit(1) // TODO: Rollback?
@@ -236,7 +237,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 	// Route to support network, from other nodes
 	if !node.IsNAT64Server && !node.IsDNS64Server {
 		dest = fmt.Sprintf("%s/%d", c.Support.Subnet, c.Support.Size)
-		gw, ok := FindHostIPForNAT64(c)
+		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			glog.Fatal("Unable to find node with NAT64 server configured")
 			os.Exit(1) // TODO: Rollback?
