@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -47,6 +49,10 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 		n[i] = NodeInfo{Name: nodeName, IP: ip, Seen: false}
 		i++
 	}
+	// Since it is a map of nodes, sort, so output is predictable
+	sort.Slice(n, func(i, j int) bool {
+		return n[i].Name < n[j].Name
+	})
 	return n
 }
 
@@ -54,20 +60,46 @@ func GetEtcHostsContents() ([]byte, error) {
 	return ioutil.ReadFile(EtcHostsFile)
 }
 
-func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
-	lines := bytes.Split(contents, []byte("\n"))
-	var output bytes.Buffer
-	for _, line := range lines {
-		if bytes.HasPrefix(line, []byte("#")) {
-			output.Read(line)
-		} else {
-
+func MatchingNodeIndex(line []byte, n []NodeInfo) int {
+	for i, node := range n {
+		if strings.Contains(string(line), node.Name) {
+			return i
 		}
 	}
-	return []byte{}
+	return -1
+}
+
+func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
+	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
+	var output bytes.Buffer
+	for _, line := range lines {
+		if !bytes.HasPrefix(line, []byte("#")) {
+			i := MatchingNodeIndex(line, n)
+			if i >= 0 {
+				if strings.Contains(string(line), n[i].IP) {
+					n[i].Seen = true
+				} else {
+					output.WriteString("#[X] ")
+				}
+			}
+		}
+		output.Write(line)
+		output.WriteString("\n")
+	}
+	// Create any missing entries
+	for _, node := range n {
+		if !node.Seen {
+			output.WriteString(node.IP)
+			output.WriteString(" ")
+			output.WriteString(node.Name)
+			output.WriteString("\n")
+		}
+	}
+	return output.Bytes()
 }
 
 func SaveEtcHostsContents(contents []byte) error {
+	glog.Infof("Output: %q\n", string(contents))
 	return nil
 }
 

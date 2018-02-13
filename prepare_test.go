@@ -94,6 +94,9 @@ func TestBuildNodeInfo(t *testing.T) {
 			"minion": {
 				ID: 20,
 			},
+			"alpha": {
+				ID: 30,
+			},
 		},
 		Mgmt: orca.ManagementNetwork{
 			Subnet: "fd00:100::",
@@ -101,79 +104,130 @@ func TestBuildNodeInfo(t *testing.T) {
 	}
 
 	ni := orca.BuildNodeInfo(c)
-	if len(ni) != 2 {
-		t.Errorf("FAILURE: Expected two nodes")
+	if len(ni) != 3 {
+		t.Errorf("FAILURE: Expected three nodes")
 	}
-	expectedMaster := orca.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
-	expectedMinion := orca.NodeInfo{Name: "minion", IP: "fd00:100::20", Seen: false}
-	var actualMaster orca.NodeInfo
-	var actualMinion orca.NodeInfo
-	// Map can be in any order, so list may be reversed
-	if ni[0].Name == "master" {
-		actualMaster = ni[0]
-		actualMinion = ni[1]
-	} else {
-		actualMaster = ni[1]
-		actualMinion = ni[0]
+	expected1st := orca.NodeInfo{Name: "alpha", IP: "fd00:100::30", Seen: false}
+	expected2nd := orca.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
+	expected3rd := orca.NodeInfo{Name: "minion", IP: "fd00:100::20", Seen: false}
+	if ni[0] != expected1st {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected1st, ni[0])
 	}
-	if actualMaster != expectedMaster {
-		t.Errorf("FAILED: Master node mismatch. Expected: %+v, got %+v", expectedMaster, actualMaster)
+	if ni[1] != expected2nd {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected2nd, ni[1])
 	}
-	if actualMinion != expectedMinion {
-		t.Errorf("FAILED: Minion node mismatch. Expected: %+v, got %+v", expectedMinion, actualMinion)
+	if ni[2] != expected3rd {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected3rd, ni[2])
+	}
+}
+
+func TestMatchingIndexs(t *testing.T) {
+	ni := []orca.NodeInfo{
+		{
+			Name: "master",
+		},
+		{
+			Name: "minionA",
+		},
+		{
+			Name: "minionB",
+		},
+	}
+	idx := orca.MatchingNodeIndex([]byte("10.20.30.40 minionA"), ni)
+	if idx != 1 {
+		t.Errorf("FAILED: Should have been able to find node 'minionA'")
+	}
+	idx = orca.MatchingNodeIndex([]byte("10.20.30.40 minionC"), ni)
+	if idx != -1 {
+		t.Errorf("FAILED: Should not have been able to find node 'minionC'")
 	}
 }
 
 func TestUpdateEtcHostsContents(t *testing.T) {
-	ni := []orca.NodeInfo{
-		{
-			Name: "master",
-			IP:   "fd00:20::10",
-		},
-		{
-			Name: "minion",
-			IP:   "fd00:20::20",
-		},
-	}
-
 	var testCases = []struct {
 		name     string
 		input    []byte
 		expected string
 	}{
-		/*
-			{
-				name:     "Comment existing, add new",
-				input:    bytes.NewBufferString("").Bytes(),
-				expected: "",
-			},
-		*/
-		/*
-			{
-				name:     "Ignore commented, add new",
-				input:    bytes.NewBufferString("").Bytes(),
-				expected: "",
-			},
-		*/
 		{
-			name:     "Add new, no existing",
-			input:    bytes.NewBufferString("127.0.0.1 localhost\n").Bytes(),
-			expected: "127.0.0.1 localhost\nfd00:20::10 master\nfd00:20::20 minion\n",
+			name: "Comment existing, add new",
+			input: bytes.NewBufferString(`# existing old
+10.0.0.2 master
+10.0.0.3 minion
+`).Bytes(),
+			expected: `# existing old
+#[X] 10.0.0.2 master
+#[X] 10.0.0.3 minion
+fd00:20::10 master
+fd00:20::20 minion
+`,
 		},
-		/*
-			{
-				name:     "Ignore add, already exists",
-				input:    bytes.NewBufferString("").Bytes(),
-				expected: "",
-			},
-			{
-				name:     "Multiple existing, add new",
-				input:    bytes.NewBufferString("").Bytes(),
-				expected: "",
-			},
-		*/
+		{
+			name: "Ignore commented, add new",
+			input: bytes.NewBufferString(`# ignore commented
+10.0.0.2 master
+# 10.0.0.3 minion
+`).Bytes(),
+			expected: `# ignore commented
+#[X] 10.0.0.2 master
+# 10.0.0.3 minion
+fd00:20::10 master
+fd00:20::20 minion
+`,
+		},
+		{
+			name: "Add new, no existing",
+			input: bytes.NewBufferString(`# add new
+127.0.0.1 localhost
+`).Bytes(),
+			expected: `# add new
+127.0.0.1 localhost
+fd00:20::10 master
+fd00:20::20 minion
+`,
+		},
+		{
+			name: "Ignore add, already exists",
+			input: bytes.NewBufferString(`# ignore existing
+10.0.0.2 master
+fd00:20::20 minion
+`).Bytes(),
+			expected: `# ignore existing
+#[X] 10.0.0.2 master
+fd00:20::20 minion
+fd00:20::10 master
+`,
+		},
+		{
+			name: "Multiple existing, add new",
+			input: bytes.NewBufferString(`# multiple existing
+10.0.0.2 master
+10.0.0.3 minion
+10.0.0.2 master
+10.0.0.3 minion
+`).Bytes(),
+			expected: `# multiple existing
+#[X] 10.0.0.2 master
+#[X] 10.0.0.3 minion
+#[X] 10.0.0.2 master
+#[X] 10.0.0.3 minion
+fd00:20::10 master
+fd00:20::20 minion
+`,
+		},
 	}
 	for _, tc := range testCases {
+		ni := []orca.NodeInfo{
+			{
+				Name: "master",
+				IP:   "fd00:20::10",
+			},
+			{
+				Name: "minion",
+				IP:   "fd00:20::20",
+			},
+		}
+
 		actual := orca.UpdateHostsInfo(tc.input, ni)
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))

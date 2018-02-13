@@ -72,6 +72,7 @@ const (
 
 	CNIConfArea = "/etc/cni/net.d"
 	EtcHostsFile = "/etc/hosts"
+        EtcHostsBackupFile = "/etc/hosts.bak"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {
