@@ -23,4 +23,5 @@ TODOS/FUTURES (in no particular order):
 - Vendoring? of dependencies?
 - Add version command
 - Refactor
+- Create makefile for building/installing
 - Blog: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.
