@@ -212,8 +212,10 @@ func PrepareClusterNode(node *Node, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	var gw string
 	if node.IsNAT64Server {
-		err = AddRouteUsingSupportNetInterface(dest, c.NAT64.ServerIP, c.Support.V4CIDR)
+		gw = c.NAT64.ServerIP
+		err = AddRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
 		gw, ok := FindHostIPForNAT64(c)
 		if !ok {
@@ -226,7 +228,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
 	} else {
-		glog.V(1).Infof("Added route to %s via %s", dest, c.NAT64.ServerIP)
+		glog.V(1).Infof("Added route to %s via %s", dest, gw)
 	}
 	glog.Info("Prepared general settings")
 }
