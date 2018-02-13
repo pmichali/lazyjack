@@ -1,6 +1,7 @@
 package orca
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/golang/glog"
@@ -53,6 +54,18 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Infof("Restored %s contents", EtcResolvConfFile)
 	}
 
+	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	if node.IsNAT64Server {
+		err = DeleteRouteUsingSupportNetInterface(dest, c.NAT64.ServerIP, c.Support.V4CIDR)
+	} else {
+		err = DeleteRouteUsingInterfaceName(dest, c.NAT64.ServerIP, node.Interface)
+	}
+	if err != nil {
+		glog.Warningf("Unable to delete route to %s via %s", dest, c.NAT64.ServerIP)
+	} else {
+		glog.V(4).Infof("Deleted route to %s via %s", dest, c.NAT64.ServerIP)
+	}
+
 	glog.Info("Cleaned general settings")
 }
 
@@ -78,11 +91,11 @@ func CleanupDNS64Server(node *Node, c *Config) {
 func CleanupNAT64Server(node *Node, c *Config) {
 	glog.V(1).Info("Cleaning NAT64")
 
-	err := RemoveLocalRouteFromNAT64(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err := DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Warning(err)
 	} else {
-		glog.V(1).Info("Removed IPv4 route to NAT64 container")
+		glog.V(1).Info("Removed local IPv4 route to NAT64 container")
 	}
 
 	err = RemoveNAT64Container()

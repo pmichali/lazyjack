@@ -96,7 +96,7 @@ func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	return route, nil
 }
 
-func AddLocalRouteToNAT64Server(dest, gw, supportNetCIDR string) error {
+func AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
@@ -105,14 +105,10 @@ func AddLocalRouteToNAT64Server(dest, gw, supportNetCIDR string) error {
 	if err != nil {
 		return err
 	}
-	err = netlink.RouteAdd(route)
-	if err == nil {
-		glog.V(4).Infof("Added local route %s via %s for NAT64", dest, gw)
-	}
-	return err
+	return netlink.RouteAdd(route)
 }
 
-func RemoveLocalRouteFromNAT64(dest, gw, supportNetCIDR string) error {
+func DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
@@ -132,7 +128,7 @@ func BuildGWIP(prefix string, intfPart int) string {
 	return fmt.Sprintf("%s%d", prefix, intfPart)
 }
 
-func AddRouteForPodNetwork(dest, gw, intf string, node int) error {
+func AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	link, err := netlink.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", intf)
@@ -145,7 +141,7 @@ func AddRouteForPodNetwork(dest, gw, intf string, node int) error {
 	return netlink.RouteAdd(route)
 }
 
-func DeleteRouteForPodNetwork(dest, gw, intf string, node int) error {
+func DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	link, err := netlink.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", intf)

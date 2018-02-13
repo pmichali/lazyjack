@@ -200,7 +200,19 @@ func PrepareClusterNode(node *Node, c *Config) {
 	err = CreateKubeletDropInFile(c)
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback
+		os.Exit(1) // TODO: Rollback?
+	}
+	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	if node.IsNAT64Server {
+		err = AddRouteUsingSupportNetInterface(dest, c.NAT64.ServerIP, c.Support.V4CIDR)
+	} else {
+		err = AddRouteUsingInterfaceName(dest, c.NAT64.ServerIP, node.Interface)
+	}
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	} else {
+		glog.V(1).Infof("Added route to %s via %s", dest, c.NAT64.ServerIP)
 	}
 	glog.Info("Prepared general settings")
 }
@@ -365,7 +377,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 		glog.V(1).Info("NAT64 container (tayga) started")
 	}
 
-	err = AddLocalRouteToNAT64Server(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err = AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?

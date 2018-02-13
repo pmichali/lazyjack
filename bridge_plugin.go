@@ -62,9 +62,9 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				gw := BuildGWIP(c.Mgmt.Subnet, n.ID)
 				var err error
 				if op == "add" {
-					err = AddRouteForPodNetwork(dest, gw, n.Interface, n.ID)
+					err = AddRouteUsingInterfaceName(dest, gw, n.Interface)
 				} else {
-					err = DeleteRouteForPodNetwork(dest, gw, n.Interface, n.ID)
+					err = DeleteRouteUsingInterfaceName(dest, gw, n.Interface)
 				}
 				if err != nil {
 					return fmt.Errorf("Unable to %s pod network route for %s to %s: %s", op, dest, n.Name, err.Error())
