@@ -4,24 +4,28 @@ TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
 - Up & Down implementation.
 - Re-enable static route creation/deletion to pods, during the up/down phase.
+- Move bridge plugin CNI config to up/down phase, as file gets wiped when "kubeadm reset" run.
 - Do we need to restart kubelet before kubeadm init? Need to reload daemon.
 - Validation of docker version. Kubernetes? Kubeadm, kubelet, kubectl. Go version. Any other tools required?
-- If needed/desired, see if can run DNS64 and NAT64 on separate hosts. Are routes correct?
 - Check IP addresses, subnets, CIDRs in config to see if they are valid.
 - Check pod net prefix and mask compatible (former should specify size - 16 bits).
+- Check that node ID > 0? 1?
 - Ensure no overlap on pod, support, mgmt subnets.
 - Check that NAT IP within NAT subnet, and that NAT subnet withing support subnet.
 - Mocking of netlink library and docker for better code coverage.
-- Check that node ID > 0? 1?
-- Try this with IPv4 settings? Useful?
 - Figure out how to do join on minions - need token.
 - Support Calico plugin vs Bridge. Cillium? Others?
 - Do Istio startup. Useful?  Metal LB startup?
+- If needed/desired, see if can run DNS64 and NAT64 on separate hosts. Are routes correct?
+- Try this with IPv4 settings? Useful?
 - Should we support hypervisors other than Docker (have separated out the code)?
 - Add per function documentation.
 - Check coverage, gofmt, refactor.
 - Add version command
 - Create makefile for building/installing. Build executable for immediate use?
-- Blog: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.
+- Blog on tool: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.
 - Try modifying DNS64/NAT64 to use IPv6 addresses for sites that support it, rather than using synthesized IPv4 address.
-
+- Allow configuration file to be specified as URL?
+- In config file use CIDRs for subnets and split them out to use the parts in the app, instead of having the user specify a subnet and a size separately.
+- Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).
+- Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
