@@ -2,10 +2,10 @@
 
 TODOS/FUTURES (in no particular order):
 - Decide how to handle failures on prepare. Exit? Rollback or rely on clean?
-- Re-enable static route creation/deletion to pods, during the up/down phase.
 - Up & Down implementation.
-- Packaging and pushing coe up to github.com.
-- Validation of docker version. Kubernetes? Any other tools required?
+- Re-enable static route creation/deletion to pods, during the up/down phase.
+- Do we need to restart kubelet before kubeadm init? Need to reload daemon.
+- Validation of docker version. Kubernetes? Kubeadm, kubelet, kubectl. Go version. Any other tools required?
 - If needed/desired, see if can run DNS64 and NAT64 on separate hosts. Are routes correct?
 - Check IP addresses, subnets, CIDRs in config to see if they are valid.
 - Check pod net prefix and mask compatible (former should specify size - 16 bits).
@@ -20,8 +20,8 @@ TODOS/FUTURES (in no particular order):
 - Should we support hypervisors other than Docker (have separated out the code)?
 - Add function documentation.
 - Check coverage, gofmt.
-- Vendoring? of dependencies?
 - Add version command
 - Refactor
-- Create makefile for building/installing
+- Create makefile for building/installing. Build executable for immediate use?
 - Blog: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.
+- Try modifying DNS64/NAT64 to use IPv6 addresses for sites that support it, rather than using synthesized IPv4 address.
