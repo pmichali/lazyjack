@@ -313,6 +313,7 @@ Here are the actions that Orca does for the `clean` command:
 * How to join on the minion nodes, as need token.
 * Create makefile for building/installing. Build executable for immediate use?
 * Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
+*  Multipe successive runs of `prepare` will overwrite backup files. Instead of restoring /etc/hosts and /etc/resolv.conf from .bak files, reverse the changes made during `prepare`.
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?
