@@ -23,7 +23,7 @@ be employed via containers, rather than relying on external H/W or S/W.
 
 
 ## How does this all work?
-Once the bare-metals systems have met the *prerequisites* shown below, you can
+Once the bare-metals systems have met the **prerequisites** shown below, you can
 create a configuration file for your topology, and then run Orca commands on
 each node to prepare them for running Kubernetes (and in the future, to bring
 up a cluster, I hope!)
@@ -113,25 +113,25 @@ other plugins.
 This is where you specify each of the systems to be provisioned. Each entry is referred
 to by the hostname, and contains three items.
 
-First, the name of the *interface* to be used for the management of the cluster during
+First, the name of the **interface** to be used for the management of the cluster during
 operation. I used the second interface on my systems (the first being used to access
 the systems for provisioning), and had them on the same VLAN, connected to the same
 switch in the lab.
 ```
     interface: "eth1"
 ```
-Second, an arbitrary ID (*id*) is assigned to each node. Use 2+ as the ID, as this
+Second, an arbitrary ID (**id**) is assigned to each node. Use 2+ as the ID, as this
 will be used in IPs and subnets (the app doesn't validate this - yet).
 ```
     id: 100
 ```
-Third, the operational mode (*opmode*) of the system. This string can have the value
-*master* or *minion* (only specify one master per cluster). It can also have the
-values *dns64* and *nat64* (again only specify these once).
+Third, the operational mode (**opmode**) of the system. This string can have the value
+**master** or **minion** (only specify one master per cluster). It can also have the
+values **dns64** and **nat64** (again only specify these once).
 ```
     opmodes: "master dns64 nat64"
 ```
-Currently, the *dns64* and *nat64* settings must be on the same system (will see if
+Currently, the **dns64** and **nat64** settings must be on the same system (will see if
 it makes sense to allow them on separate nodes). They can accompany a master or
 minion, or can be on a node by themselves.
 
@@ -174,17 +174,17 @@ is combined with Docker's NAT44 capabilities) to translate between external
 IPv4 addresses and internal IPv6 addresses. To do this, it needs IPv4 access
 to the Internet, and uses NAT44 via Docker to translate from it's IPv4 address
 to the public IPv4 address for the host. Tayga (http://www.litech.org/tayga/)
-is used for this role and runs as a container on the node with *nat64* specified
-as an *opmode*.
+is used for this role and runs as a container on the node with **nat64** specified
+as an **opmode**.
 
 Tayga uses a pool of local IPv4 addresses that are mapped to IPv6 address. As
 such, the IPv4 pool and IPv4 address of Tayga must be specified. Make sure that
-this pool is inside of the *support_net* subnet, mentioned above.
+this pool is inside of the **support_net** subnet, mentioned above.
 ```
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"
 ```
-Also, specify the IPv6 address of Tayga on the *support_net* IPv6 subnet.
+Also, specify the IPv6 address of Tayga on the **support_net** IPv6 subnet.
 ```
 ip: "fd00:10::200"
 ```
@@ -205,7 +205,7 @@ also specified.
 ```
     remote_server: "64.102.6.247"
 ```
-Lastly, the *support_net* IPv6 address of the bind9 server needs to be specified.
+Lastly, the **support_net** IPv6 address of the bind9 server needs to be specified.
 ```
 ip: "fd00:10::100"
 ```
@@ -255,7 +255,7 @@ The default hostname is the name of the system you are on.
 
 
 ## Under The Covers
-Here are the configuration steps that Orca does for the *prepare* command:
+Here are the configuration steps that Orca does for the `prepare` command:
 * Creates support network with IPv6 and IPv4.
 * Starts DNS64 container, with config file, removes IPv4 address, and adds route to NAT64 server.
 * Starts NAT64 container.
@@ -267,7 +267,7 @@ Here are the configuration steps that Orca does for the *prepare* command:
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
 * Creates CNI config file for bridge plugin (move to "up" step later).
 
-Here are the actions that Orca does for the *clean* command:
+Here are the actions that Orca does for the `clean` command:
 * Removes drop-in file for kubelet.
 * Removes IP from management interface.
 * Removes route for DNS64 synthesized network.
