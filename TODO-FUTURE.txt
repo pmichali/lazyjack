@@ -18,10 +18,10 @@ TODOS/FUTURES (in no particular order):
 - Support Calico plugin vs Bridge. Cillium? Others?
 - Do Istio startup. Useful?  Metal LB startup?
 - Should we support hypervisors other than Docker (have separated out the code)?
-- Add function documentation.
-- Check coverage, gofmt.
+- Add per function documentation.
+- Check coverage, gofmt, refactor.
 - Add version command
-- Refactor
 - Create makefile for building/installing. Build executable for immediate use?
 - Blog: prerequisites, dependencies (tayga/bind9, go packages, versions) how to create config file, usage, TODOs/Futures.
 - Try modifying DNS64/NAT64 to use IPv6 addresses for sites that support it, rather than using synthesized IPv4 address.
+
