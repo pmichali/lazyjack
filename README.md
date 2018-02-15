@@ -286,6 +286,20 @@ Here are the actions that Orca does for the `clean` command:
 * Relies on the tayga and bind6 containers (as provided by other developers).
 
 
+## Troubleshooting
+This section has some notes on issues seen and resolutions (if any).
+
+Tip: If for some reason the `prepare` fails after updating /etc/resolv.conf or /etc/hosts, you can
+recover the originals from the .bak files created. However, the tool is designed to allow multiple
+invocations, so this should not be required.
+
+I did have one case where kube-dns was not coming up, and kube-proxy log was showing iptables restore
+errors saying "iptables-restore v1.6.0: invalid mask `128' specified". This should be using the
+ip6tables-restore operation. Was unable to find root cause, but did KubeAdm reset, `clean` command,
+flush iptables rules, and rebooted, and problem was cleared. May have been corruption of iptables
+rules.
+
+
 ## TODOs/Futures
 ### Implementation
 * Implement `up` and `down` commands. Consider others for Istio.
@@ -314,7 +328,6 @@ Here are the actions that Orca does for the `clean` command:
 * How to join on the minion nodes, as need token. (can use "kubeadm generate token" and put in config.yaml)
 * Create makefile for building/installing. Build executable for immediate use?
 * Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
-* Multipe successive runs of `prepare` will overwrite backup files. Instead of restoring /etc/hosts and /etc/resolv.conf from .bak files, reverse the changes made during `prepare`.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 
 ### Enhancements to consider
