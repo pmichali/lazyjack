@@ -207,8 +207,12 @@ func PrepareClusterNode(node *Node, c *Config) {
 		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
 	}
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		if err.Error() == "file exists" {
+			glog.V(1).Infof("Skipping - add route to %s via %s as already exists", dest, gw)
+		} else {
+			glog.Fatal(err)
+			os.Exit(1) // TODO: Rollback?
+		}
 	} else {
 		glog.V(1).Infof("Added route to %s via %s", dest, gw)
 	}
@@ -223,8 +227,12 @@ func PrepareClusterNode(node *Node, c *Config) {
 		}
 		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
 		if err != nil {
-			glog.Fatal(err)
-			os.Exit(1) // TODO: Rollback?
+			if err.Error() == "file exists" {
+				glog.V(1).Infof("Skipping - add route to %s via %s as already exists", dest, gw)
+			} else {
+				glog.Fatal(err)
+				os.Exit(1) // TODO: Rollback?
+			}
 		} else {
 			glog.V(1).Infof("Added route to %s via %s", dest, gw)
 		}
@@ -394,8 +402,12 @@ func PrepareNAT64Server(node *Node, c *Config) {
 
 	err = AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		if err.Error() == "file exists" {
+			glog.V(1).Infof("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+		} else {
+			glog.Fatal(err)
+			os.Exit(1) // TODO: Rollback?
+		}
 	} else {
 		glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
 	}
