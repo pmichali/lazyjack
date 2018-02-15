@@ -216,6 +216,18 @@ fd00:20::10 master  #[+]
 fd00:20::20 minion  #[+]
 `,
 		},
+		{
+			name: "relace previous",
+			input: bytes.NewBufferString(`# replace previous
+10.0.0.2 master
+fd00:bad::99 minion  #[+]
+`).Bytes(),
+			expected: `# replace previous
+#[-] 10.0.0.2 master
+fd00:20::10 master  #[+]
+fd00:20::20 minion  #[+]
+`,
+		},
 	}
 	for _, tc := range testCases {
 		ni := []orca.NodeInfo{

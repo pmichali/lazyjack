@@ -56,33 +56,6 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 	return n
 }
 
-func GetFileContents(file string) ([]byte, error) {
-	glog.V(4).Infof("Reading %s contents", file)
-	contents, err := ioutil.ReadFile(file)
-	if err != nil {
-		err = fmt.Errorf("Unable to read %s: %s", file, err.Error())
-	}
-	return contents, err
-}
-
-func SaveFileContents(contents []byte, file, backup string) error {
-	glog.V(4).Infof("Saving updated %s", file)
-	err := os.Rename(file, backup)
-	if err != nil {
-		return fmt.Errorf("Unable to save %s to %s", file, backup)
-	}
-	err = ioutil.WriteFile(file, contents, 0755)
-	if err != nil {
-		err2 := os.Rename(backup, file)
-		if err2 != nil {
-			return fmt.Errorf("Unable to save updated %s (%s) AND unable to restore backup file %s (%s)",
-				file, err.Error(), backup, err2.Error())
-		}
-		return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, err.Error())
-	}
-	return nil
-}
-
 func MatchingNodeIndex(line []byte, n []NodeInfo) int {
 	for i, node := range n {
 		if strings.Contains(string(line), node.Name) {
@@ -97,6 +70,9 @@ func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	for _, line := range lines {
+		if bytes.HasSuffix(line, []byte("  #[+]")) {
+			continue // prepare was previousy run
+		}
 		if !bytes.HasPrefix(line, []byte("#")) {
 			i := MatchingNodeIndex(line, n)
 			if i >= 0 {

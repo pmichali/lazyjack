@@ -1,21 +1,38 @@
 package orca
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
 	"github.com/golang/glog"
 )
 
-func RestoreFile(backup, file string) error {
-	glog.V(4).Infof("Restoring %s", file)
-	if _, err := os.Stat(backup); os.IsNotExist(err) {
-		return err
+func RevertConfigInfo(contents []byte) []byte {
+	glog.V(4).Infof("Reverting %s", EtcHostsFile)
+	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
+	var output bytes.Buffer
+	for _, line := range lines {
+		line = bytes.TrimPrefix(line, []byte("#[-] "))
+		if !bytes.HasSuffix(line, []byte("  #[+]")) {
+			output.WriteString(fmt.Sprintf("%s\n", line))
+		}
 	}
-	err := os.Rename(backup, file)
+	return output.Bytes()
+}
+
+func RevertHostEntries(c *Config) error {
+	glog.V(4).Infof("Cleaning %s file", EtcHostsFile)
+	contents, err := GetFileContents(EtcHostsFile)
 	if err != nil {
 		return err
 	}
+	contents = RevertConfigInfo(contents)
+	err = SaveFileContents(contents, EtcHostsFile, EtcHostsBackupFile)
+	if err != nil {
+		return err
+	}
+	glog.V(1).Infof("Cleaned %s file", EtcHostsFile)
 	return nil
 }
 
@@ -40,12 +57,18 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Info("Removed IP address from management interface")
 	}
 
-	err = RestoreFile(EtcHostsBackupFile, EtcHostsFile)
+	err = RevertHostEntries(c)
 	if err != nil {
-		glog.Warningf("Unable to restore %s: %s", EtcHostsFile, err.Error())
+		glog.Warning("Unable to revert %s: %s", EtcHostsFile, err.Error())
 	} else {
 		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
 	}
+	//	err = RestoreFile(EtcHostsBackupFile, EtcHostsFile)
+	//	if err != nil {
+	//		glog.Warningf("Unable to restore %s: %s", EtcHostsFile, err.Error())
+	//	} else {
+	//		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
+	//	}
 
 	err = RestoreFile(EtcResolvConfBackupFile, EtcResolvConfFile)
 	if err != nil {
