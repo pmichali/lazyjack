@@ -163,32 +163,11 @@ func CleanupSupportNetwork() {
 	glog.Info("Cleaned support network")
 }
 
-func CleanupPlugin(node *Node, c *Config) {
-	glog.V(1).Info("Cleaning plugin")
-
-	//	err := RemoveRoutesForPodNetwork(node, c)
-	//	if err != nil {
-	//		glog.Warningf("Unable to remove routes for %s plugin: %s", c.Plugin, err.Error())
-	//	} else {
-	//		glog.V(1).Infof("Removed routes for %s plugin", c.Plugin)
-	//	}
-
-	// Note: CNI config file will be removed, when "kubeadm reset" performed
-	err := os.RemoveAll(CNIConfArea)
-	if err != nil {
-		glog.Warningf("Unable to remove CNI config file and area: %s", err.Error())
-	} else {
-		glog.V(1).Info("Removed CNI config file and area")
-	}
-	glog.Info("Cleaned plugin")
-}
-
 func Cleanup(name string, c *Config) {
 	node := c.Topology[name]
 	glog.Infof("Cleaning %q", name)
 	if node.IsMaster || node.IsMinion {
 		CleanupClusterNode(&node, c)
-		CleanupPlugin(&node, c)
 	}
 	if node.IsDNS64Server {
 		CleanupDNS64Server(&node, c)

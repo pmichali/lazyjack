@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/pmichali/orca"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/pmichali/orca"
 
 	"github.com/golang/glog"
 )
@@ -86,9 +87,9 @@ func main() {
 	case "prepare":
 		orca.Prepare(*host, config)
 	case "up":
-		fmt.Printf("TODO %q on %q\n", command, *host)
+		orca.BringUp(*host, config)
 	case "down":
-		fmt.Printf("TODO %q on %q\n", command, *host)
+		orca.TearDown(*host, config)
 	case "clean":
 		orca.Cleanup(*host, config)
 	default:
