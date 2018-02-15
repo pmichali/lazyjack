@@ -1,4 +1,5 @@
 plugin: bridge
+token: "7aee33.05f81856d78346bd"
 topology:
     bxb-c2-77:
         interface: "enp10s0"

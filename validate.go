@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/golang/glog"
@@ -129,13 +130,29 @@ func ValidateOpModesForAllNodes(c *Config) error {
 	return nil
 }
 
-// TODO: Validate IPs are valid
+func ValidateToken(token string) error {
+	if token == "" {
+		return fmt.Errorf("Missing token in config file")
+	}
+	if len(token) != 23 {
+		return fmt.Errorf("Invalid token length (%d)", len(token))
+	}
+	tokenRE := regexp.MustCompile("^[a-z0-9]{6}\\.[a-z0-9]{16}$")
+	if tokenRE.MatchString(token) {
+		return nil
+	} else {
+		return fmt.Errorf("Token is invalid %q", token)
+	}
+}
+
+// TODO: Validate IPs, subnets, CIDRS are valid and no overlaps
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config) error {
 	if c == nil {
 		return fmt.Errorf("No configuration loaded")
 	}
-	err := ValidateUniqueIDs(c)
+	err := ValidateToken(c.Token)
+	err = ValidateUniqueIDs(c)
 	if err != nil {
 		return err
 	}

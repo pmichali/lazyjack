@@ -2,9 +2,10 @@ package orca_test
 
 import (
 	"bytes"
-	"github.com/pmichali/orca"
 	"strings"
 	"testing"
+
+	"github.com/pmichali/orca"
 )
 
 func TestValidateCommand(t *testing.T) {
@@ -332,5 +333,46 @@ func TestNoMasterNode(t *testing.T) {
 		t.Errorf("FAILED: Expected to see error, when configuration has no master node entry")
 	} else if err.Error() != "No master node configuration" {
 		t.Errorf("FAILED: No master node error message wrong (%s)", err.Error())
+	}
+}
+
+func TestBootstrapToken(t *testing.T) {
+	var testCases = []struct {
+		name      string
+		input     string
+		errString string
+	}{
+		{
+			name:      "Valid token",
+			input:     "7aee33.05f81856d78346bd",
+			errString: "",
+		},
+		{
+			name:      "Missing/empty token",
+			input:     "",
+			errString: "Missing token in config file",
+		},
+		{
+			name:      "Wrong length",
+			input:     "7aee33.05f81856d78346b",
+			errString: "Invalid token length (22)",
+		},
+		{
+			name:      "Invalid value",
+			input:     "ABCDEF.hasbadcharacters",
+			errString: "Token is invalid \"ABCDEF.hasbadcharacters\"",
+		},
+	}
+	for _, tc := range testCases {
+		err := orca.ValidateToken(tc.input)
+		if err == nil {
+			if tc.errString != "" {
+				t.Errorf("FAILED [%s]: Expected error getting token: %s", tc.name, tc.errString)
+			}
+		} else {
+			if err.Error() != tc.errString {
+				t.Errorf("FAILED [%s]: Have error %q, expected %q", tc.name, err.Error(), tc.errString)
+			}
+		}
 	}
 }

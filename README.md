@@ -76,6 +76,7 @@ We'll take a look at an example file and disect each section.
 ### Example
 ```
 plugin: bridge
+token: "<provide>"
 topology:
   my-master:
     interface: "enp10s0"
@@ -109,6 +110,13 @@ dns64:
 ### Plugin (plugin)
 Currently, the reference Bridge plugin is supported by this script. Looking to add
 other plugins.
+
+### Token (token)
+KubeAdm uses a bootstrap token for bidirectional trust between nodes. As root, run
+the command `kubeadm token generate` and place the output into this entry.
+```
+token: "7aee33.05f81856d78346bd"
+```
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred

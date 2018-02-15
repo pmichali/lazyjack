@@ -51,6 +51,7 @@ type Node struct {
 
 type Config struct {
 	Plugin   string `yaml:"plugin"`
+	Token    string `yaml:"token"`
 	Topology map[string]Node
 	Support  SupportNetwork    `yaml:"support_net"`
 	Mgmt     ManagementNetwork `yaml:"mgmt_net"`
