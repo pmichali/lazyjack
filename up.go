@@ -81,6 +81,7 @@ apiServerExtraArgs:
 	fmt.Fprintf(contents, "networking:\n")
 	fmt.Fprintf(contents, "  serviceSubnet: %q\n", c.Service.CIDR)
 	fmt.Fprintf(contents, "nodeName: %s\n", n.Name)
+	fmt.Fprintf(contents, "token: %q\n", c.Token)
 	fmt.Fprintf(contents, trailer)
 	return contents
 }
@@ -93,6 +94,25 @@ func CreateKubeAdmConfigFile(node *Node, c *Config) error {
 		glog.V(1).Infof("Created %s file", KubeAdmConfFile)
 	}
 	return err
+}
+
+func StartKubernetes(isMaster bool, token string) error {
+	args := make([]string, 2)
+	if isMaster {
+		args[0] = "init"
+	} else {
+		args[0] = "join"
+	}
+	args[1] = fmt.Sprintf("--config-file=%s", KubeAdmConfFile)
+
+	output, err := DoExecCommand("kubeadm", args)
+	if err != nil {
+		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
+		os.Exit(1)
+	}
+	glog.V(1).Info("Kubernetes %s output: %s", args[0], output)
+	glog.Info("Kubernetes %s successful", args[0])
+	return nil
 }
 
 func BringUp(name string, c *Config) {
@@ -123,7 +143,12 @@ func BringUp(name string, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
-	// Run kubeadm init/join
+	err = StartKubernetes(node.IsMaster, c.Token)
+	if err != nil {
+		glog.Fatalf(err.Error())
+		os.Exit(1) // TODO: Rollback?
+	}
+
 	// [master] update ~/.kube/config
 
 	glog.Infof("Node %q brought up", name)

@@ -8,6 +8,7 @@ import (
 
 func TestKubeAdmConfigContents(t *testing.T) {
 	c := &orca.Config{
+		Token: "56cdce.7b18ad347f3de81c",
 		Service: orca.ServiceNetwork{
 			CIDR: "fd00:30::/110",
 		},
@@ -29,6 +30,7 @@ api:
 networking:
   serviceSubnet: "fd00:30::/110"
 nodeName: my-master
+token: "56cdce.7b18ad347f3de81c"
 tokenTTL: 0s
 apiServerExtraArgs:
   insecure-bind-address: "::"
