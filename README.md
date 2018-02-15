@@ -36,6 +36,7 @@ undoing the setup made and restoring the system to original state.
 The following needs to be done, prior to using this tool:
 * One or more bare-metal systems running Linux (tested with Ubuntu 16.04)
   * Two interfaces, one for access to box, one for management network for cluster
+  * Make sure management interface doesn't have a conflicting IPv6 address
   * Internet access via IPv4 on the node being used for DNS64/NAT64
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
@@ -310,10 +311,11 @@ Here are the actions that Orca does for the `clean` command:
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
-* How to join on the minion nodes, as need token.
+* How to join on the minion nodes, as need token. (can use "kubeadm generate token" and put in config.yaml)
 * Create makefile for building/installing. Build executable for immediate use?
 * Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
-*  Multipe successive runs of `prepare` will overwrite backup files. Instead of restoring /etc/hosts and /etc/resolv.conf from .bak files, reverse the changes made during `prepare`.
+* Multipe successive runs of `prepare` will overwrite backup files. Instead of restoring /etc/hosts and /etc/resolv.conf from .bak files, reverse the changes made during `prepare`.
+* Is there a way to check if management interface already has an (incompatible) IPv6 address?
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?

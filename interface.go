@@ -97,6 +97,7 @@ func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 }
 
 func AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
+	glog.V(4).Infof("Adding route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
@@ -109,6 +110,7 @@ func AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 }
 
 func DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
+	glog.V(4).Infof("Deleting route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
 		return err
@@ -129,6 +131,7 @@ func BuildGWIP(prefix string, intfPart int) string {
 }
 
 func AddRouteUsingInterfaceName(dest, gw, intf string) error {
+	glog.V(4).Infof("Adding route for %s via %s using interface %s", dest, gw, intf)
 	link, err := netlink.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", intf)
@@ -142,6 +145,7 @@ func AddRouteUsingInterfaceName(dest, gw, intf string) error {
 }
 
 func DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
+	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
 	link, err := netlink.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", intf)
