@@ -63,13 +63,21 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				var err error
 				if op == "add" {
 					err = AddRouteUsingInterfaceName(dest, gw, n.Interface)
+					if err != nil && err.Error() == "file exists" {
+						glog.V(1).Infof("Skipping - %s route to %s via %s as already exists", op, dest, gw)
+						return nil
+					}
 				} else {
 					err = DeleteRouteUsingInterfaceName(dest, gw, n.Interface)
+					if err != nil && err.Error() == "no such process" {
+						glog.V(1).Infof("Skipping - %s route from %s via %s as non-existent", op, dest, gw)
+						return nil
+					}
 				}
 				if err != nil {
 					return fmt.Errorf("Unable to %s pod network route for %s to %s: %s", op, dest, n.Name, err.Error())
 				}
-				glog.V(4).Infof("Did pod network %s route for %s to %s", op, dest, n.Name)
+				glog.V(1).Infof("Did pod network %s route for %s to %s", op, dest, n.Name)
 			}
 		}
 	}
@@ -78,18 +86,10 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 
 func CreateRoutesForPodNetwork(node *Node, c *Config) error {
 	glog.V(4).Info("Creating routes for pod network")
-	err := DoRouteOpsOnNodes(node, c, "add")
-	if err == nil {
-		glog.V(1).Info("Pod network routes created for bridge plugin")
-	}
-	return err
+	return DoRouteOpsOnNodes(node, c, "add")
 }
 
 func RemoveRoutesForPodNetwork(node *Node, c *Config) error {
 	glog.V(4).Info("Deleting routes for pod network")
-	err := DoRouteOpsOnNodes(node, c, "delete")
-	if err == nil {
-		glog.V(1).Info("Pod network routes deleted for bridge plugin")
-	}
-	return err
+	return DoRouteOpsOnNodes(node, c, "delete")
 }
