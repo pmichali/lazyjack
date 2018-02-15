@@ -96,6 +96,8 @@ mgmt_net:
 pod_net:
     prefix: "fd00:40:0:0"
     size: 80
+service_net:
+    cidr: "fd00:30::/110"
 nat64:
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"
@@ -176,6 +178,13 @@ prefix: "fd00:40:0:0"
 ```
 In the example configuration, we would have a pod subnet `fd00:40:0:0:2::/80`
 on node `my-master` and `fd00:40:0:0:3::/80` on node `a-minion`.
+
+### Service Network (service_net)
+Specify the network CIDR to be used for service pods. This should be a smaller
+network than the pod subnet?
+```
+    cidr: "fd00:30::/110"
+```
 
 # NAT64 (nat64)
 To be able to reach external sites that only support IPv4, we use NAT64 (which
@@ -310,10 +319,8 @@ rules.
 
 ## TODOs/Futures
 ### Implementation
-* Implement `up` and `down` commands. Consider others for Istio.
-  * For bridge plugin, static rotues between nodes for pod networks.
-  * Create bridge CNI config file before "kubeadm init"
-  * Do daemon-reload of kubelet to pick up added drop-in file. Restart kubelet service?
+* Implement `up` and `down` commands (in progress)
+  * kubeadm reset/init
 * Enhance validation
   * Ensure IP addresses, subnets, and CIDRs are valid.
   * No overlap on pod, management, and support networks.
@@ -329,11 +336,10 @@ rules.
 * Add version command.
 * Add per function documentation.
 * Mention on my blog.
-* Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).
+* **Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).**
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
-* How to join on the minion nodes, as need token. (can use "kubeadm generate token" and put in config.yaml)
 * Create makefile for building/installing. Build executable for immediate use?
 * Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?

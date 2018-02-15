@@ -23,6 +23,8 @@ mgmt_net:
 pod_net:
     prefix: "fd00:40:0:0"
     size: 80
+service_net:
+    cidr: "fd00:30::/110"
 nat64:
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"

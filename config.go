@@ -25,6 +25,10 @@ type PodNetwork struct {
 	Size   int    `yaml:"size"`
 }
 
+type ServiceNetwork struct {
+	CIDR string `yaml:"cidr"`
+}
+
 type DNS64Config struct {
 	RemoteV4Server string `yaml:"remote_server"`
 	Prefix         string `yaml:"prefix"`
@@ -56,6 +60,7 @@ type Config struct {
 	Support  SupportNetwork    `yaml:"support_net"`
 	Mgmt     ManagementNetwork `yaml:"mgmt_net"`
 	Pod      PodNetwork        `yaml:"pod_net"`
+	Service  ServiceNetwork    `yaml:"service_net"`
 	NAT64    NAT64Config       `yaml:"nat64"`
 	DNS64    DNS64Config       `yaml:"dns64"`
 }
@@ -77,6 +82,8 @@ const (
 	EtcHostsBackupFile      = "/etc/hosts.bak"
 	EtcResolvConfFile       = "/etc/resolv.conf"
 	EtcResolvConfBackupFile = "/etc/resolv.conf.bak"
+
+	KubeAdmConfFile = "/tmp/kubeadm.conf"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {

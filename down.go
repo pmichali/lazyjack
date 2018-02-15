@@ -41,6 +41,18 @@ func TearDown(name string, c *Config) {
 	glog.V(1).Infof("Tearing down %q as %s", name, asType)
 
 	// Do kubeadm reset
+
+	err := os.Remove(KubeAdmConfFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			glog.V(4).Info("No kubeadm config file to remove")
+		} else {
+			glog.Warningf("Unable to remove kubeadm config file (%s): %s", KubeAdmConfFile, err.Error())
+		}
+	} else {
+		glog.V(4).Info("Removed kubeadm config file")
+	}
+
 	CleanupForPlugin(&node, c)
 
 	glog.Infof("Node %q tore down", name)
