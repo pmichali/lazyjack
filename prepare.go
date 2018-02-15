@@ -71,7 +71,7 @@ func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
 	var output bytes.Buffer
 	for _, line := range lines {
 		if bytes.HasSuffix(line, []byte("  #[+]")) {
-			continue // prepare was previousy run
+			continue // prepare was previousy run, filter out additions
 		}
 		if !bytes.HasPrefix(line, []byte("#")) {
 			i := MatchingNodeIndex(line, n)
@@ -117,6 +117,9 @@ func UpdateResolvConfInfo(contents []byte, ns string) []byte {
 	var output bytes.Buffer
 	first := true
 	for _, line := range lines {
+		if bytes.HasSuffix(line, []byte("  #[+]")) {
+			continue // prepare was previousy run, filter out additions
+		}
 		if bytes.HasPrefix(line, []byte("nameserver")) {
 			matches := bytes.Contains(line, []byte(ns))
 			if first && !matches {

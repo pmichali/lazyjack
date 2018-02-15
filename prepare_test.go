@@ -307,6 +307,19 @@ nameserver fd00:10::100
 nameserver 8.8.8.8
 `,
 		},
+		{
+			name: "changed value",
+			input: bytes.NewBufferString(`# changed value
+search example.com
+nameserver fd00:10::999  #[+]
+nameserver 8.8.8.8
+`).Bytes(),
+			expected: `# changed value
+search example.com
+nameserver fd00:10::100  #[+]
+nameserver 8.8.8.8
+`,
+		},
 	}
 
 	for _, tc := range testCases {

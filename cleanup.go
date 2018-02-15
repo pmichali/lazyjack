@@ -8,8 +8,8 @@ import (
 	"github.com/golang/glog"
 )
 
-func RevertConfigInfo(contents []byte) []byte {
-	glog.V(4).Infof("Reverting %s", EtcHostsFile)
+func RevertConfigInfo(contents []byte, file string) []byte {
+	glog.V(4).Infof("Reverting %s", file)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	for _, line := range lines {
@@ -21,18 +21,18 @@ func RevertConfigInfo(contents []byte) []byte {
 	return output.Bytes()
 }
 
-func RevertHostEntries(c *Config) error {
-	glog.V(4).Infof("Cleaning %s file", EtcHostsFile)
-	contents, err := GetFileContents(EtcHostsFile)
+func RevertEntries(file, backup string) error {
+	glog.V(4).Infof("Cleaning %s file", file)
+	contents, err := GetFileContents(file)
 	if err != nil {
 		return err
 	}
-	contents = RevertConfigInfo(contents)
-	err = SaveFileContents(contents, EtcHostsFile, EtcHostsBackupFile)
+	contents = RevertConfigInfo(contents, file)
+	err = SaveFileContents(contents, file, backup)
 	if err != nil {
 		return err
 	}
-	glog.V(1).Infof("Cleaned %s file", EtcHostsFile)
+	glog.V(1).Infof("Cleaned %s file", file)
 	return nil
 }
 
@@ -57,20 +57,14 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Info("Removed IP address from management interface")
 	}
 
-	err = RevertHostEntries(c)
+	err = RevertEntries(EtcHostsFile, EtcHostsBackupFile)
 	if err != nil {
 		glog.Warning("Unable to revert %s: %s", EtcHostsFile, err.Error())
 	} else {
 		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
 	}
-	//	err = RestoreFile(EtcHostsBackupFile, EtcHostsFile)
-	//	if err != nil {
-	//		glog.Warningf("Unable to restore %s: %s", EtcHostsFile, err.Error())
-	//	} else {
-	//		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
-	//	}
 
-	err = RestoreFile(EtcResolvConfBackupFile, EtcResolvConfFile)
+	err = RevertEntries(EtcResolvConfFile, EtcResolvConfBackupFile)
 	if err != nil {
 		glog.Warningf("Unable to restore %s: %s", EtcResolvConfFile, err.Error())
 	} else {

@@ -82,9 +82,79 @@ fd00:20::20 minion  #[+]
 		},
 	}
 	for _, tc := range testCases {
-		actual := orca.RevertConfigInfo(tc.input)
+		actual := orca.RevertConfigInfo(tc.input, "test-file")
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
 	}
+}
+
+func TestRestoreResolvConfContents(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		input    []byte
+		expected string
+	}{
+		{
+			name: "no nameservers",
+			input: bytes.NewBufferString(`# no nameservers
+search example.com
+nameserver fd00:10::100  #[+]
+`).Bytes(),
+			expected: `# no nameservers
+search example.com
+`,
+		},
+		{
+			name: "remove new",
+			input: bytes.NewBufferString(`# remove new
+search example.com
+nameserver fd00:10::100  #[+]
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+`).Bytes(),
+			expected: `# remove new
+search example.com
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+`,
+		},
+		{
+			name: "revert position",
+			input: bytes.NewBufferString(`# revert position
+search example.com
+nameserver fd00:10::100  #[+]
+nameserver 8.8.8.8
+#[-] nameserver fd00:10::100
+nameserver 8.8.4.4
+`).Bytes(),
+			expected: `# revert position
+search example.com
+nameserver 8.8.8.8
+nameserver fd00:10::100
+nameserver 8.8.4.4
+`,
+		},
+		{
+			name: "already have",
+			input: bytes.NewBufferString(`# already have
+search example.com
+nameserver fd00:10::100
+nameserver 8.8.8.8
+`).Bytes(),
+			expected: `# already have
+search example.com
+nameserver fd00:10::100
+nameserver 8.8.8.8
+`,
+		},
+	}
+
+	for _, tc := range testCases {
+		actual := orca.RevertConfigInfo(tc.input, "test-file")
+		if string(actual) != tc.expected {
+			t.Errorf("FAILED: [%s] mismatch.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
+		}
+	}
+
 }
