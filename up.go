@@ -96,15 +96,22 @@ func CreateKubeAdmConfigFile(node *Node, c *Config) error {
 	return err
 }
 
-func StartKubernetes(isMaster bool, token string) error {
-	args := make([]string, 2)
-	if isMaster {
-		args[0] = "init"
+func BuildKubeAdmCommand(n *Node, c *Config) []string {
+	var args []string
+	if n.IsMaster {
+		args = []string{"init", fmt.Sprintf("--config=%s", KubeAdmConfFile)}
 	} else {
-		args[0] = "join"
+		args = []string{
+			"join",
+			"--token", c.Token,
+			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, n.ID),
+		}
 	}
-	args[1] = fmt.Sprintf("--config-file=%s", KubeAdmConfFile)
+	return args
+}
 
+func StartKubernetes(n *Node, c *Config) error {
+	args := BuildKubeAdmCommand(n, c)
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
 		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
@@ -143,7 +150,7 @@ func BringUp(name string, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
-	err = StartKubernetes(node.IsMaster, c.Token)
+	err = StartKubernetes(&node, c)
 	if err != nil {
 		glog.Fatalf(err.Error())
 		os.Exit(1) // TODO: Rollback?

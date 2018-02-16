@@ -26,6 +26,18 @@ func CleanupForPlugin(node *Node, c *Config) {
 	glog.Infof("Cleaned up for %s plugin", c.Plugin)
 }
 
+func StopKubernetes() error {
+	args := []string{"reset"}
+	output, err := DoExecCommand("kubeadm", args)
+	if err != nil {
+		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
+		os.Exit(1)
+	}
+	glog.V(1).Infof("Kubernetes %s output: %s", args[0], output)
+	glog.Infof("Kubernetes %s successful", args[0])
+	return nil
+}
+
 func TearDown(name string, c *Config) {
 	node := c.Topology[name]
 	var asType string
@@ -35,22 +47,25 @@ func TearDown(name string, c *Config) {
 	case node.IsMinion:
 		asType = "minion"
 	default:
-		glog.Infof("Skipping node %q as role is not master or minion", name)
+		glog.Infof("Skipping - node %q role is not master or minion", name)
 		return
 	}
-	glog.V(1).Infof("Tearing down %q as %s", name, asType)
+	glog.Infof("Tearing down %q as %s", name, asType)
 
-	// Do kubeadm reset
+	err := StopKubernetes()
+	if err != nil {
+		glog.Warningf("Unable to reset cluster: %s", err.Error())
+	}
 
-	err := os.Remove(KubeAdmConfFile)
+	err = os.Remove(KubeAdmConfFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			glog.V(4).Info("No kubeadm config file to remove")
+			glog.V(1).Info("Skipping - No kubeadm config file to remove")
 		} else {
 			glog.Warningf("Unable to remove kubeadm config file (%s): %s", KubeAdmConfFile, err.Error())
 		}
 	} else {
-		glog.V(4).Info("Removed kubeadm config file")
+		glog.V(1).Info("Removed kubeadm config file")
 	}
 
 	CleanupForPlugin(&node, c)

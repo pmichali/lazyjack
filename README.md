@@ -115,7 +115,8 @@ other plugins.
 
 ### Token (token)
 KubeAdm uses a bootstrap token for bidirectional trust between nodes. As root, run
-the command `kubeadm token generate` and place the output into this entry.
+the command `kubeadm token generate` and place the output of the
+token into this entry.
 ```
 token: "7aee33.05f81856d78346bd"
 ```
@@ -186,7 +187,7 @@ network than the pod subnet?
     cidr: "fd00:30::/110"
 ```
 
-# NAT64 (nat64)
+### NAT64 (nat64)
 To be able to reach external sites that only support IPv4, we use NAT64 (which
 is combined with Docker's NAT44 capabilities) to translate between external
 IPv4 addresses and internal IPv6 addresses. To do this, it needs IPv4 access
@@ -207,7 +208,7 @@ Also, specify the IPv6 address of Tayga on the **support_net** IPv6 subnet.
 ip: "fd00:10::200"
 ```
 
-# DNS64 (dns64)
+### DNS64 (dns64)
 A companion to NAT64, the DNS64 container using bind9 will provide synthesized IPv6
 addresses for external IPv4 addresses (currently, it does so for all addresses).
 The prefix for IPv4 embedded IPv6 addresses is specified, along with the size.
@@ -273,7 +274,9 @@ The default hostname is the name of the system you are on.
 
 
 ## Under The Covers
-Here are the configuration steps that Orca does for the `prepare` command:
+For each command, there are a series of actions performed...
+
+### For the `prepare` command
 * Creates support network with IPv6 and IPv4.
 * Starts DNS64 container, with config file, removes IPv4 address, and adds route to NAT64 server.
 * Starts NAT64 container.
@@ -283,19 +286,32 @@ Here are the configuration steps that Orca does for the `prepare` command:
 * Places management network IP in /etc/hosts, for this hostname.
 * Adds DNS64 support network IP as first nameserver in /etc/resolv.conf.
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
-* Creates CNI config file for bridge plugin (move to "up" step later).
 
-Here are the actions that Orca does for the `clean` command:
+### For the `clean` command
 * Removes drop-in file for kubelet.
 * Removes IP from management interface.
 * Removes route for DNS64 synthesized network.
 * Restores /etc/hosts.
 * Restores /etc/resolv.conf.
-* Removes bridge plugin's CNI config file.
 * Stops and removes DNS64 container.
 * Stops and removes NAT64 container.
 * Removes IPv4 route to NAT64 server.
 * Removes support network.
+
+### For the `up` command
+* Creates CNI config file for bridge plugin.
+* Create routes for each of the pod networks on other nodes.
+* Reloaded daemons for services.
+* Restarted kubelet service.
+* Creates KubeAdm configuration file.
+* On master: Perform KubeAdm init command with config file.
+* On minion: Perform KubeAdm join command using token information.
+
+### For the `down` command
+* Perform KubeAdm reset command.
+* Removes KubeAdm configuration file.
+* Remove routes to other nodes' pod networks.
+* Removes bridge plugin's CNI config file.
 
 
 ## Limitations/Restrictions

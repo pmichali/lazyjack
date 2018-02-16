@@ -152,6 +152,9 @@ func ValidateConfigContents(c *Config) error {
 		return fmt.Errorf("No configuration loaded")
 	}
 	err := ValidateToken(c.Token)
+	if err != nil {
+		return err
+	}
 	err = ValidateUniqueIDs(c)
 	if err != nil {
 		return err
