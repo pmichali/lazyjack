@@ -1,6 +1,7 @@
 package orca_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/pmichali/orca"
@@ -41,5 +42,47 @@ apiServerExtraArgs:
 	actual := orca.CreateKubeAdmConfigContents(n, c)
 	if actual.String() != expected {
 		t.Errorf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	}
+}
+
+func SlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, _ := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestBuildKubeAdmCommand(t *testing.T) {
+	c := &orca.Config{
+		Token: "56cdce.7b18ad347f3de81c",
+		Mgmt: orca.ManagementNetwork{
+			Subnet: "fd00:100::",
+		},
+	}
+	masterNode := &orca.Node{
+		ID:       10,
+		IsMaster: true,
+	}
+	actual := orca.BuildKubeAdmCommand(masterNode, c)
+	expected := []string{"init", "--config=/tmp/kubeadm.conf"}
+
+	if !SlicesEqual(actual, expected) {
+		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
+	}
+
+	minionNode := &orca.Node{
+		ID:       10,
+		IsMaster: false,
+	}
+	actual = orca.BuildKubeAdmCommand(minionNode, c)
+	expected = []string{"join", "--token", "56cdce.7b18ad347f3de81c", "[fd00:100::10]:6443", "--discovery-token-unsafeskip-ca-verification"}
+
+	if !SlicesEqual(actual, expected) {
+		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
 	}
 }

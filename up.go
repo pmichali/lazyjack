@@ -105,6 +105,7 @@ func BuildKubeAdmCommand(n *Node, c *Config) []string {
 			"join",
 			"--token", c.Token,
 			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, n.ID),
+			"--discovery-token-unsafeskip-ca-verification",
 		}
 	}
 	return args
@@ -144,10 +145,12 @@ func BringUp(name string, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
-	err = CreateKubeAdmConfigFile(&node, c)
-	if err != nil {
-		glog.Fatalf(err.Error())
-		os.Exit(1) // TODO: Rollback?
+	if node.IsMaster {
+		err = CreateKubeAdmConfigFile(&node, c)
+		if err != nil {
+			glog.Fatalf(err.Error())
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 
 	err = StartKubernetes(&node, c)
