@@ -105,7 +105,8 @@ func BuildKubeAdmCommand(n *Node, c *Config) []string {
 			"join",
 			"--token", c.Token,
 			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, n.ID),
-			"--discovery-token-unsafeskip-ca-verification",
+			"--discovery-token-ca-cert-hash",
+			fmt.Sprintf("sha256:%s", c.TokenCertHash),
 		}
 	}
 	return args

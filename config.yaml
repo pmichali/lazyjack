@@ -1,6 +1,6 @@
 plugin: bridge
 token: "7aee33.05f81856d78346bd"
-token-cert-hash: "sha256:788174c19ba770971c7755a48afd8539cd975933926169f944f09c9f6ad6d4f5"
+token-cert-hash: "a456a0e578725126753b64ffadf4d5a5f5ddd649f33390c6853394769e94af69"
 topology:
     bxb-c2-77:
         interface: "enp10s0"

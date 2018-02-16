@@ -59,7 +59,8 @@ func SlicesEqual(a, b []string) bool {
 
 func TestBuildKubeAdmCommand(t *testing.T) {
 	c := &orca.Config{
-		Token: "56cdce.7b18ad347f3de81c",
+		Token:         "<valid-token-here>",
+		TokenCertHash: "<valid-ca-certificate-hash-here>",
 		Mgmt: orca.ManagementNetwork{
 			Subnet: "fd00:100::",
 		},
@@ -80,7 +81,8 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 		IsMaster: false,
 	}
 	actual = orca.BuildKubeAdmCommand(minionNode, c)
-	expected = []string{"join", "--token", "56cdce.7b18ad347f3de81c", "[fd00:100::10]:6443", "--discovery-token-unsafeskip-ca-verification"}
+	expected = []string{"join", "--token", "<valid-token-here>",
+		"[fd00:100::10]:6443", "--discovery-token-ca-cert-hash", "sha256:<valid-ca-certificate-hash-here>"}
 
 	if !SlicesEqual(actual, expected) {
 		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))

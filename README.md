@@ -41,6 +41,7 @@ The following needs to be done, prior to using this tool:
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ installed on the system and environment set up.
+  * openssl installed on system (I used 1.0.2g).
 * Obtain Orca and build (see below)
 
 
@@ -77,6 +78,7 @@ We'll take a look at an example file and disect each section.
 ```
 plugin: bridge
 token: "<provide>"
+token-cert-hash: "<provide>"
 topology:
   my-master:
     interface: "enp10s0"
@@ -118,7 +120,30 @@ KubeAdm uses a bootstrap token for bidirectional trust between nodes. As root, r
 the command `kubeadm token generate` and place the output of the
 token into this entry.
 ```
-token: "7aee33.05f81856d78346bd"
+token: "7aee33.05f...6bd"
+```
+
+### Token CA Certificate Hash (token-cert-hash)
+For the KubeAdm join command, a CA certificate has is needed. To create the hash,
+CA certificates are needed. Perform the following steps to create the needed files
+(will add this to an `init` command in the future.
+```
+openssl genrsa -out ca.key 2048
+openssl req -x509 -new -nodes -key ca.key -subj "/CN=Kube-CA" -days 10000 -out ca.crt
+
+sudo mkdir -p /etc/kubernetes/pki
+sudo chmod 700 /etc/kubernetes/pki
+sudo cp ca.key ca.crt /etc/kubernetes/pki
+```
+Next, determine the hash value with:
+```
+openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | \
+openssl rsa -pubin -outform der 2>/dev/null | \
+openssl dgst -sha256 -hex | sed 's/^.* //'
+```
+Place the (long) output value into this key.
+```
+token-cert-hash: "a456...f69"
 ```
 
 ### Topology (topology)
@@ -361,6 +386,7 @@ rules.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 
 ### Enhancements to consider
+* Add `init` command to setup CA certificates and revise the YAML file for the user.
 * Do Istio startup. Useful?  Metal LB startup?
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
 * Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
