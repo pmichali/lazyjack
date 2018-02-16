@@ -146,6 +146,9 @@ Place the (long) output value into this key.
 ```
 token-cert-hash: "a456...f69"
 ```
+**NOTE:** When the `down` command is run on the master node, KubeAdm will clear out
+the contents of /etc/kubernetes/pki/. The ca.key and ca.crt files must be copied back
+into this area, before doing `up` again.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -264,11 +267,9 @@ as root:
    sudo ~/go/bin/orca [options] {prepare|up|down|clean}
 ```
 
-Currently, the `prepare` and `clean` commands are implemented. The former will do all
-the actions to prepare a node to run Kubernetes, and the later will undo that setup.
+Note: Currently, some manual steps are needed to create the configuration file, and to
+setup CA certificates on the master (and to restore them, if `down` is performed).
 
-In the future, the `up` and `down` commands will support bringing up the Kubernetes
-cluster. Will consider commands for Isto support as well.
 
 ### Command Line Options
 ```
@@ -343,7 +344,7 @@ For each command, there are a series of actions performed...
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
 * Relies on the tayga and bind6 containers (as provided by other developers).
-
+* Some manual steps needed on the master, before running commands.
 
 ## Troubleshooting
 This section has some notes on issues seen and resolutions (if any).
@@ -361,8 +362,6 @@ rules.
 
 ## TODOs/Futures
 ### Implementation
-* Implement `up` and `down` commands (in progress)
-  * kubeadm reset/init
 * Enhance validation
   * Ensure IP addresses, subnets, and CIDRs are valid.
   * No overlap on pod, management, and support networks.
@@ -387,7 +386,7 @@ rules.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 
 ### Enhancements to consider
-* Add `init` command to setup CA certificates and revise the YAML file for the user.
+* **Add `init` command to setup CA certificates and revise the YAML file for the user.**
 * Do Istio startup. Useful?  Metal LB startup?
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
 * Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
