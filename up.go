@@ -170,7 +170,7 @@ func BringUp(name string, c *Config) {
 		}
 	}
 
-	err = StartKubernetes(&node, c)
+	// err = StartKubernetes(&node, c)
 	if err != nil {
 		glog.Fatalf(err.Error())
 		os.Exit(1) // TODO: Rollback?
