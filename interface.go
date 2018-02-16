@@ -157,3 +157,32 @@ func DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	}
 	return netlink.RouteDel(route)
 }
+
+func BringLinkDown(name string) error {
+	glog.V(4).Infof("Bringing down interface %q", name)
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return fmt.Errorf("Unable to find interface %q", name)
+	}
+	err = netlink.LinkSetDown(link)
+	if err != nil {
+		return fmt.Errorf("Unable to shut down interface %q", name)
+	}
+	glog.V(1).Infof("Interface %q brought down", name)
+	return nil
+}
+
+func DeleteLink(name string) error {
+	glog.V(4).Infof("Deleting interface %q", name)
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return fmt.Errorf("Unable to find interface %q", name)
+	}
+	err = netlink.LinkDel(link)
+	if err != nil {
+		return fmt.Errorf("Unable to delete interface %q", name)
+	}
+	glog.V(1).Infof("Deleted interface %q", name)
+	return nil
+
+}

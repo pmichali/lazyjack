@@ -267,6 +267,22 @@ as root:
    sudo ~/go/bin/orca [options] {prepare|up|down|clean}
 ```
 
+The commands do the following:
+* **init** - (future) Sets up tokens and certificates needed by Kuberentes
+* **prepare** - Prepares the node so that cluster can be brought up. Do on each node, before proceeded to next step.
+* **up** - Brings up Kubernetes cluster on the node. Do master first, and then minions.
+* **down** - Tears down the cluster on the node. Do minions first, and then master.
+* **clean** - Reverses the prepare steps performed to clear out settings.
+* **version** - (future) Shows the version of this app.
+
+Once a cluster is up on the master, you can setup kubectl, as described byt the
+KubeAdm init command:
+```
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
 Note: Currently, some manual steps are needed to create the configuration file, and to
 setup CA certificates on the master (and to restore them, if `down` is performed).
 
@@ -339,7 +355,7 @@ For each command, there are a series of actions performed...
 * Removes KubeAdm configuration file.
 * Remove routes to other nodes' pod networks.
 * Removes bridge plugin's CNI config file.
-
+* Removes the br0 interface
 
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
@@ -378,6 +394,7 @@ rules.
 * Add per function documentation.
 * Mention on my blog.
 * **Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).**
+* Clean up br0 bridge as part of `down`.
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
@@ -394,4 +411,6 @@ rules.
 * Allow configuration file to be specified as URL?
 * In config file use CIDRs for subnets and split them out to use the parts in the app, instead of having the user specify a subnet and a size separately.
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
+* Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
+* Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.
 

@@ -30,12 +30,26 @@ func StopKubernetes() error {
 	args := []string{"reset"}
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
+		glog.Warningf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
 		os.Exit(1)
 	}
 	glog.V(1).Infof("Kubernetes %s output: %s", args[0], output)
 	glog.Infof("Kubernetes %s successful", args[0])
 	return nil
+}
+
+func RemoveBridge(name string) error {
+	glog.V(1).Infof("Removing bridge %q", name)
+	err := BringLinkDown(name)
+	if err != nil {
+		glog.Warningf(err.Error())
+	}
+	// Even if err, will try to delete bridge
+	err = DeleteLink(name)
+	if err == nil {
+		glog.Infof("Removed bridge %q", name)
+	}
+	return err
 }
 
 func TearDown(name string, c *Config) {
@@ -69,6 +83,11 @@ func TearDown(name string, c *Config) {
 	}
 
 	CleanupForPlugin(&node, c)
+
+	err = RemoveBridge("br0")
+	if err != nil {
+		glog.Warningf("Unable to remove br0 bridge: %s", err.Error())
+	}
 
 	glog.Infof("Node %q tore down", name)
 }

@@ -84,6 +84,8 @@ func main() {
 	glog.V(1).Infof("Command %q on host %q", command, *host)
 
 	switch command {
+	case "init":
+		fmt.Printf("TODO: init command on host %q", *host)
 	case "prepare":
 		orca.Prepare(*host, config)
 	case "up":
@@ -96,5 +98,5 @@ func main() {
 		fmt.Printf("Unknown command %q\n", command)
 		os.Exit(1)
 	}
-	glog.V(4).Info("Done")
+	glog.V(4).Info("Command completed")
 }
