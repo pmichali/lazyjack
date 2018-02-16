@@ -145,6 +145,22 @@ func ValidateToken(token string) error {
 	}
 }
 
+func ValidateTokenCertHash(certHash string) error {
+	if certHash == "" {
+		return fmt.Errorf("Missing token certificate hash in config file")
+	}
+	if len(certHash) != 64 {
+		return fmt.Errorf("Invalid token certificate hash length (%d)", len(certHash))
+	}
+	hashRE := regexp.MustCompile("^[a-fA-F0-9]{64}$")
+	if hashRE.MatchString(certHash) {
+		return nil
+	} else {
+		return fmt.Errorf("Token certificate hash is invalid %q", certHash)
+	}
+	return nil
+}
+
 // TODO: Validate IPs, subnets, CIDRS are valid and no overlaps
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config) error {
@@ -152,6 +168,10 @@ func ValidateConfigContents(c *Config) error {
 		return fmt.Errorf("No configuration loaded")
 	}
 	err := ValidateToken(c.Token)
+	if err != nil {
+		return err
+	}
+	err = ValidateTokenCertHash(c.TokenCertHash)
 	if err != nil {
 		return err
 	}

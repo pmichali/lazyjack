@@ -96,7 +96,7 @@ func CreateKubeAdmConfigFile(node *Node, c *Config) error {
 	return err
 }
 
-func BuildKubeAdmCommand(n *Node, c *Config) []string {
+func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	var args []string
 	if n.IsMaster {
 		args = []string{"init", fmt.Sprintf("--config=%s", KubeAdmConfFile)}
@@ -104,7 +104,8 @@ func BuildKubeAdmCommand(n *Node, c *Config) []string {
 		args = []string{
 			"join",
 			"--token", c.Token,
-			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, n.ID),
+			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, master.ID),
+			// "--discovery-token-unsafe-skip-ca-verification",
 			"--discovery-token-ca-cert-hash",
 			fmt.Sprintf("sha256:%s", c.TokenCertHash),
 		}
@@ -112,8 +113,23 @@ func BuildKubeAdmCommand(n *Node, c *Config) []string {
 	return args
 }
 
+func DetermineMasterNode(c *Config) *Node {
+	for _, node := range c.Topology {
+		if node.IsMaster {
+			return &node
+		}
+	}
+	return nil
+}
+
 func StartKubernetes(n *Node, c *Config) error {
-	args := BuildKubeAdmCommand(n, c)
+	master := DetermineMasterNode(c)
+	if master == nil {
+		return fmt.Errorf("Unable to determine master node")
+	}
+
+	args := BuildKubeAdmCommand(n, master, c)
+
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
 		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())

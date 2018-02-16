@@ -376,3 +376,44 @@ func TestBootstrapToken(t *testing.T) {
 		}
 	}
 }
+
+func TestTokenCertificateHash(t *testing.T) {
+	var testCases = []struct {
+		name      string
+		input     string
+		errString string
+	}{
+		{
+			name:      "Valid cert hash",
+			input:     "123456789012345678901234567890123456789012345678901234567890abcd",
+			errString: "",
+		},
+		{
+			name:      "Missing/empty cert hash",
+			input:     "",
+			errString: "Missing token certificate hash in config file",
+		},
+		{
+			name:      "Wrong length",
+			input:     "123456789012345678901234567890123456789012345678901234567890abc",
+			errString: "Invalid token certificate hash length (63)",
+		},
+		{
+			name:      "Invalid value",
+			input:     "123456789012345678901234567890123456789012345678hasbadcharacters",
+			errString: "Token certificate hash is invalid \"123456789012345678901234567890123456789012345678hasbadcharacters\"",
+		},
+	}
+	for _, tc := range testCases {
+		err := orca.ValidateTokenCertHash(tc.input)
+		if err == nil {
+			if tc.errString != "" {
+				t.Errorf("FAILED [%s]: Expected error getting cert hash: %s", tc.name, tc.errString)
+			}
+		} else {
+			if err.Error() != tc.errString {
+				t.Errorf("FAILED [%s]: Have error %q, expected %q", tc.name, err.Error(), tc.errString)
+			}
+		}
+	}
+}

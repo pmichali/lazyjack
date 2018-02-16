@@ -65,23 +65,24 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 			Subnet: "fd00:100::",
 		},
 	}
+	minionNode := &orca.Node{
+		ID:       20,
+		IsMaster: false,
+	}
 	masterNode := &orca.Node{
 		ID:       10,
 		IsMaster: true,
 	}
-	actual := orca.BuildKubeAdmCommand(masterNode, c)
+	actual := orca.BuildKubeAdmCommand(masterNode, masterNode, c)
 	expected := []string{"init", "--config=/tmp/kubeadm.conf"}
 
 	if !SlicesEqual(actual, expected) {
 		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
 	}
 
-	minionNode := &orca.Node{
-		ID:       10,
-		IsMaster: false,
-	}
-	actual = orca.BuildKubeAdmCommand(minionNode, c)
+	actual = orca.BuildKubeAdmCommand(minionNode, masterNode, c)
 	expected = []string{"join", "--token", "<valid-token-here>",
+		//	"[fd00:100::10]:6443", "--discovery-token-unsafe-skip-ca-verification"}
 		"[fd00:100::10]:6443", "--discovery-token-ca-cert-hash", "sha256:<valid-ca-certificate-hash-here>"}
 
 	if !SlicesEqual(actual, expected) {

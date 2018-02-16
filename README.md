@@ -126,10 +126,11 @@ token: "7aee33.05f...6bd"
 ### Token CA Certificate Hash (token-cert-hash)
 For the KubeAdm join command, a CA certificate has is needed. To create the hash,
 CA certificates are needed. Perform the following steps to create the needed files
-(will add this to an `init` command in the future.
+(will add this to an `init` command in the future). For master-ip, use the Management
+subnet and node ID for the master node (e.g. fd00:20::2 in this case).
 ```
 openssl genrsa -out ca.key 2048
-openssl req -x509 -new -nodes -key ca.key -subj "/CN=Kube-CA" -days 10000 -out ca.crt
+openssl req -x509 -new -nodes -key ca.key -subj "/CN=<master-ip>" -days 10000 -out ca.crt
 
 sudo mkdir -p /etc/kubernetes/pki
 sudo chmod 700 /etc/kubernetes/pki
