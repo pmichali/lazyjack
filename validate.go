@@ -14,7 +14,7 @@ func ValidateCommand(command string) (string, error) {
 	if command == "" {
 		return "", fmt.Errorf("Missing command")
 	}
-	validCommands := []string{"prepare", "up", "down", "clean"}
+	validCommands := []string{"init", "prepare", "up", "down", "clean"}
 	for _, c := range validCommands {
 		if strings.EqualFold(c, command) {
 			return c, nil

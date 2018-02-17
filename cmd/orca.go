@@ -38,7 +38,7 @@ func FlushLogs() {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] {prepare|up|down|clean}\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] {init|prepare|up|down|clean}\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
@@ -85,7 +85,7 @@ func main() {
 
 	switch command {
 	case "init":
-		fmt.Printf("TODO: init command on host %q", *host)
+		orca.Initialize(*host, config)
 	case "prepare":
 		orca.Prepare(*host, config)
 	case "up":

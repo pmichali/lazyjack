@@ -168,6 +168,7 @@ func BringUp(name string, c *Config) {
 			glog.Fatalf(err.Error())
 			os.Exit(1) // TODO: Rollback?
 		}
+		// TODO: Copy CA cert and key to /etc/kubernetes/pki/
 	}
 
 	err = StartKubernetes(&node, c)
@@ -176,7 +177,7 @@ func BringUp(name string, c *Config) {
 		os.Exit(1) // TODO: Rollback?
 	}
 
-	// [master] update ~/.kube/config
+	// FUTURE: update ~/.kube/config (how to know user?)
 
 	glog.Infof("Node %q brought up", name)
 }

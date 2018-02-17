@@ -178,4 +178,5 @@ func Cleanup(name string, c *Config) {
 	if node.IsDNS64Server || node.IsNAT64Server {
 		CleanupSupportNetwork()
 	}
+	glog.Infof("Node %q cleaned", name)
 }

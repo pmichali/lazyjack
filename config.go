@@ -69,6 +69,7 @@ type Config struct {
 const (
 	SupportNetName = "support_net"
 
+	CertArea = "/tmp/certs"
 	DNS64BaseArea  = "/tmp/bind9"
 	DNS64ConfArea  = "/tmp/bind9/conf"
 	DNS64CacheArea = "/tmp/bind9/cache"

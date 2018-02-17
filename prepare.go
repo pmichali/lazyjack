@@ -431,4 +431,5 @@ func Prepare(name string, c *Config) {
 	if node.IsMaster || node.IsMinion {
 		PrepareClusterNode(&node, c)
 	}
+	glog.Infof("Prepared node %q", name)
 }
