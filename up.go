@@ -144,7 +144,11 @@ func CopyFile(name, src, dst string) (err error) {
 }
 
 func PlaceCertificateAndKeyForCA() error {
-	err := CopyFile("ca.crt", CertArea, KubernetesCertArea)
+	err := os.MkdirAll(KubernetesCertArea, 0755)
+	if err != nil {
+		return fmt.Errorf("Unable to create area for Kubernetes certificates (%s): %s", KubernetesCertArea, err.Error())
+	}
+	err = CopyFile("ca.crt", CertArea, KubernetesCertArea)
 	if err != nil {
 		return err
 	}

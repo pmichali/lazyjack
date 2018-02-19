@@ -66,7 +66,7 @@ func BuildX509CertForCA() error {
 	if err != nil {
 		return fmt.Errorf("Unable to save X509 cert for CA", err.Error())
 	}
-	glog.V(1).Infof("Created CA X509 certificate")
+	glog.V(1).Infof("Built CA X509 certificate")
 	return nil
 }
 
@@ -82,7 +82,7 @@ func BuildRSAForCA() error {
 	if err != nil {
 		return fmt.Errorf("Unable to create RSA key for CA: %s", err.Error())
 	}
-	glog.V(1).Infof("Created RSA key for CA")
+	glog.V(1).Infof("Built RSA key for CA")
 	return nil
 }
 
@@ -101,7 +101,7 @@ func BuildDigestForCA() (string, error) {
 		return "", fmt.Errorf("Unable to parse digest info for CA key")
 	}
 	hash := strings.TrimSpace(parts[1])
-	glog.V(1).Infof("Created digest for CA (%s)", hash)
+	glog.V(1).Infof("Built digest for CA (%s)", hash)
 	return hash, err
 }
 
@@ -155,12 +155,6 @@ func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte 
 		}
 		output.WriteString(fmt.Sprintf("%s\n", line))
 	}
-	// Create any missing entries
-	//	for _, node := range n {
-	//		if !node.Seen {
-	//			output.WriteString(fmt.Sprintf("%s %s  #[+]\n", node.IP, node.Name))
-	//		}
-	//	}
 	return output.Bytes()
 }
 
