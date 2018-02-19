@@ -115,19 +115,20 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 }
 
 func CopyFile(name, src, dst string) (err error) {
-	s, err := os.Open(src)
+	glog.V(4).Infof("Copying %s/%s to %s/%s", src, name, dst, name)
+	s, err := os.Open(fmt.Sprintf("%s/%s", src, name))
 	if err != nil {
 		return fmt.Errorf("Unable to open source file %q: %s", name, err.Error())
 	}
 	defer s.Close()
 
-	d, err := os.Create(dst)
+	d, err := os.Create(fmt.Sprintf("%s/%s", dst, name))
 	if err != nil {
-		return fmt.Errorf("Unable to open detination file %q: %s", name, err.Error())
+		return fmt.Errorf("Unable to open destination file %q: %s", name, err.Error())
 	}
 	defer func() {
 		cerr := d.Close()
-		if err == nil {
+		if err == nil && cerr != nil {
 			err = fmt.Errorf("Unable to close destination file %q: %s", name, cerr.Error())
 		}
 	}()
@@ -144,6 +145,7 @@ func CopyFile(name, src, dst string) (err error) {
 }
 
 func PlaceCertificateAndKeyForCA() error {
+	glog.V(1).Infof("Copying certificate and key to Kuberentes area")
 	err := os.MkdirAll(KubernetesCertArea, 0755)
 	if err != nil {
 		return fmt.Errorf("Unable to create area for Kubernetes certificates (%s): %s", KubernetesCertArea, err.Error())
@@ -152,7 +154,11 @@ func PlaceCertificateAndKeyForCA() error {
 	if err != nil {
 		return err
 	}
-	return CopyFile("ca.key", CertArea, KubernetesCertArea)
+	err = CopyFile("ca.key", CertArea, KubernetesCertArea)
+	if err == nil {
+		glog.Infof("Copied certificate and key to Kuberentes area")
+	}
+	return err
 }
 
 func DetermineMasterNode(c *Config) *Node {
