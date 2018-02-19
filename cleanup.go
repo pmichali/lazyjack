@@ -49,7 +49,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Info("Removed kubelet drop-in file")
 	}
 
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
 	err = RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Warningf("Unable to remove IP from management interface: %s", err.Error())
@@ -71,7 +71,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Infof("Restored %s contents", EtcResolvConfFile)
 	}
 
-	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	dest := c.DNS64.CIDR
 	var gw string
 	var ok bool
 	if node.IsNAT64Server {
@@ -92,7 +92,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 	}
 
 	if !node.IsNAT64Server && !node.IsDNS64Server {
-		dest = fmt.Sprintf("%s/%d", c.Support.Subnet, c.Support.Size)
+		dest = c.Support.CIDR
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			err = fmt.Errorf("Unable to find node with NAT64 server configured")

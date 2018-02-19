@@ -101,12 +101,10 @@ topology:
     opmodes: "minion"
     id: 3
 support_net:
-    subnet: "fd00:10::"
+    cidr: "fd00:10::/64"
     v4cidr: "172.18.0.0/16"
-    size: 64
 mgmt_net:
-    subnet: "fd00:20::"
-    size: 64
+    cidr: "fd00:20::/64"
 pod_net:
     prefix: "fd00:40:0:0"
     size: 80
@@ -118,8 +116,7 @@ nat64:
     ip: "fd00:10::200"
 dns64:
     remote_server: "64.102.6.247"
-    prefix: "fd00:10:64:ff9b::"
-    prefix_size: 96
+    cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"
 ```
 
@@ -162,10 +159,9 @@ minion, or can be on a node by themselves.
 ### Support Network (support_net)
 For the NAT64 and DNS64 services, which are running in containers, we need a network
 that has both V4 and V6 addresses. This section of the YAML file specifies the IPv6
-subnet and size (split out as Orca uses the parts separately), and the IPv4 CIDR:
+CIDR, and the IPv4 CIDR:
 ```
-    subnet: "fd00:10::"
-    size: 64
+    cidr: "fd00:10::/64"
     v4cidr: "172.18.0.0/16"
 ```
 The IPv4 subnet should be large enough to contain the V4 subnet that will be created
@@ -174,17 +170,16 @@ validate this dependency, currently).
 
 ### Management Network (mgmt_net)
 The network that is used by Kubernetes for each cluster node, is called out in this
-section. The IPv6 subnet and size are specified.
+section. 
 ```
-    subnet: "fd00:20::"
-    size: 64
+    cidr: "fd00:20::/64"
 ```
 
 ### Pod Network (pod_net)
 A second network that is used by Kubernetes for the pods. This network should be
 distint from the support and management networks. Here, we specify all but 16 bits
 of the subnet address. During provisioning, Orca will add the node ID to the
-address to form distinct subnet on each node.
+network prefix to form distinct subnet on each node.
 ```
 prefix: "fd00:40:0:0"
     size: 80
@@ -223,13 +218,12 @@ ip: "fd00:10::200"
 ### DNS64 (dns64)
 A companion to NAT64, the DNS64 container using bind9 will provide synthesized IPv6
 addresses for external IPv4 addresses (currently, it does so for all addresses).
-The prefix for IPv4 embedded IPv6 addresses is specified, along with the size.
+The CIDR used for this translation is specified in this section.
 ```
-    prefix: "fd00:10:64:ff9b::"
-    prefix_size: 96
+    cidr: "fd00:10:64:ff9b::/96"
 ```
 An external address with a IPv4 address of `172.217.12.238`, would be encoded as
-`fd00:10:64:ff9b::acd9:cee`.
+`fd00:10:64:ff9b::acd9:cee/96`.
 
 The DNS64 container will forward DNS requests to a remote DNS server, which is
 also specified.
@@ -428,7 +422,6 @@ have been corruption of IPTABLES rules.
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
 * Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
 * Support hypervisors other than Docker (have separated out the code)?
-* In config file use CIDRs for subnets and split them out to use the parts in the app, instead of having the user specify a subnet and a size separately.
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
 * Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.

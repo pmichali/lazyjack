@@ -14,7 +14,7 @@ func TestKubeAdmConfigContents(t *testing.T) {
 			CIDR: "fd00:30::/110",
 		},
 		Mgmt: orca.ManagementNetwork{
-			Subnet: "fd00:100::",
+			Prefix: "fd00:100::",
 		},
 	}
 	n := &orca.Node{
@@ -62,7 +62,7 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 		Token:         "<valid-token-here>",
 		TokenCertHash: "<valid-ca-certificate-hash-here>",
 		Mgmt: orca.ManagementNetwork{
-			Subnet: "fd00:100::",
+			Prefix: "fd00:100::",
 		},
 	}
 	minionNode := &orca.Node{

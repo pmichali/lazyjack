@@ -78,7 +78,7 @@ apiServerExtraArgs:
   feature-gates: AllAlpha=true
 `
 	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "  advertiseAddress: \"%s%d\"\n", c.Mgmt.Subnet, n.ID)
+	fmt.Fprintf(contents, "  advertiseAddress: \"%s%d\"\n", c.Mgmt.Prefix, n.ID)
 	fmt.Fprintf(contents, "networking:\n")
 	fmt.Fprintf(contents, "  serviceSubnet: %q\n", c.Service.CIDR)
 	fmt.Fprintf(contents, "nodeName: %s\n", n.Name)
@@ -105,7 +105,7 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 		args = []string{
 			"join",
 			"--token", c.Token,
-			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Subnet, master.ID),
+			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID),
 			// "--discovery-token-unsafe-skip-ca-verification",
 			"--discovery-token-ca-cert-hash",
 			fmt.Sprintf("sha256:%s", c.TokenCertHash),

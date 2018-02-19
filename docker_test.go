@@ -1,9 +1,10 @@
 package orca_test
 
 import (
-	"github.com/pmichali/orca"
 	"strings"
 	"testing"
+
+	"github.com/pmichali/orca"
 )
 
 func TestBuildDockerArgsForDNS64(t *testing.T) {
@@ -20,7 +21,7 @@ func TestBuildDockerArgsForDNS64(t *testing.T) {
 }
 
 func TestBuildCreateSupportNetArgs(t *testing.T) {
-	list := orca.BuildCreateNetArgsForSupportNet("fd00:10::", 64, "172.18.0.0/16")
+	list := orca.BuildCreateNetArgsForSupportNet("fd00:10::/64", "fd00:10::", "172.18.0.0/16")
 	actual := strings.Join(list, " ")
 	expected := "network create --ipv6 --subnet=\"fd00:10::/64\" --subnet=172.18.0.0/16 --gateway=\"fd00:10::1\" support_net"
 	if actual != expected {
@@ -58,8 +59,8 @@ func TestBuildAddrDeleteArgs(t *testing.T) {
 func TestBuildAddRouteForDNS64Args(t *testing.T) {
 	c := &orca.Config{
 		DNS64: orca.DNS64Config{
-			Prefix:     "fd00:10:64:ff9b::",
-			PrefixSize: 96,
+			CIDR:       "fd00:10:64:ff9b::/96",
+			CIDRPrefix: "fd00:10:64:ff9b::",
 		},
 		NAT64: orca.NAT64Config{
 			ServerIP: "fd00:10::200",
@@ -77,8 +78,8 @@ func TestBuildAddRouteForDNS64Args(t *testing.T) {
 func TestBuildDockerArgsForNAT64(t *testing.T) {
 	c := &orca.Config{
 		DNS64: orca.DNS64Config{
-			Prefix:         "fd00:10:64:ff9b::",
-			PrefixSize:     96,
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
 			ServerIP:       "fd00:10::100",
 			RemoteV4Server: "8.8.8.8",
 		},

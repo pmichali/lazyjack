@@ -44,7 +44,7 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 	n := make([]NodeInfo, len(c.Topology))
 	i := 0
 	for nodeName, node := range c.Topology {
-		ip := fmt.Sprintf("%s%d", c.Mgmt.Subnet, node.ID)
+		ip := fmt.Sprintf("%s%d", c.Mgmt.Prefix, node.ID)
 		glog.V(4).Infof("Created node info for %s (%s)", nodeName, ip)
 		n[i] = NodeInfo{Name: nodeName, IP: ip, Seen: false}
 		i++
@@ -157,7 +157,7 @@ func AddResolvConfEntry(c *Config) error {
 func FindHostIPForNAT64(c *Config) (string, bool) {
 	for _, node := range c.Topology {
 		if node.IsNAT64Server {
-			return fmt.Sprintf("%s%d", c.Mgmt.Subnet, node.ID), true
+			return fmt.Sprintf("%s%d", c.Mgmt.Prefix, node.ID), true
 		}
 	}
 	return "", false
@@ -166,7 +166,7 @@ func FindHostIPForNAT64(c *Config) (string, bool) {
 func PrepareClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Preparing general settings")
 
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Subnet, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
 	err := AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Fatal(err)
@@ -192,7 +192,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 	}
 
 	// Route to NAT64 server from other nodes for DNS64 prefix subnet
-	dest := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	dest := c.DNS64.CIDR
 	var gw string
 	var ok bool
 	if node.IsNAT64Server {
@@ -219,7 +219,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 
 	// Route to support network, from other nodes
 	if !node.IsNAT64Server && !node.IsDNS64Server {
-		dest = fmt.Sprintf("%s/%d", c.Support.Subnet, c.Support.Size)
+		dest = c.Support.CIDR
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			glog.Fatal("Unable to find node with NAT64 server configured")
@@ -255,9 +255,9 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 };
 `
 	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "        %s%s;\n", c.DNS64.Prefix, c.DNS64.RemoteV4Server)
+	fmt.Fprintf(contents, "        %s%s;\n", c.DNS64.CIDRPrefix, c.DNS64.RemoteV4Server)
 	fmt.Fprintf(contents, middle)
-	fmt.Fprintf(contents, "    dns64 %s/%d {\n", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	fmt.Fprintf(contents, "    dns64 %s {\n", c.DNS64.CIDR)
 	fmt.Fprintf(contents, trailer)
 	return contents
 }
@@ -268,7 +268,7 @@ func CreateSupportNetwork(c *Config) {
 		return
 	}
 
-	args := BuildCreateNetArgsForSupportNet(c.Support.Subnet, c.Support.Size, c.Support.V4CIDR)
+	args := BuildCreateNetArgsForSupportNet(c.Support.CIDR, c.Support.Prefix, c.Support.V4CIDR)
 	_, err := DoCommand(SupportNetName, args)
 	if err != nil {
 		glog.Fatal(err)

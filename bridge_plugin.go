@@ -59,7 +59,7 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 			}
 			if n.IsMaster || n.IsMinion {
 				dest := BuildDestCIDR(c.Pod.Prefix, n.ID, c.Pod.Size)
-				gw := BuildGWIP(c.Mgmt.Subnet, n.ID)
+				gw := BuildGWIP(c.Mgmt.Prefix, n.ID)
 				var err error
 				if op == "add" {
 					err = AddRouteUsingInterfaceName(dest, gw, n.Interface)

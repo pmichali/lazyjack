@@ -3,6 +3,7 @@ package orca
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -167,6 +168,16 @@ func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 	return nil
 }
 
+func GetNetAndMask(input string) (string, int, error) {
+	_, cidr, err := net.ParseCIDR(input)
+	if err != nil {
+		return "", 0, err
+	}
+	net := cidr.IP.String()
+	mask, _ := cidr.Mask.Size()
+	return net, mask, nil
+}
+
 // TODO: Validate IPs, subnets, CIDRS are valid and no overlaps
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
@@ -188,6 +199,22 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	err = ValidateOpModesForAllNodes(c)
 	if err != nil {
 		return err
+	}
+
+	// Calculate derived fields
+	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid management network CIDR: %s", err.Error())
+	}
+
+	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid support network CIDR: %s", err.Error())
+	}
+
+	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid DNS64 CIDR: %s", err.Error())
 	}
 
 	// FUTURE: Check no overlapping management/support/pod networks, validate IPs

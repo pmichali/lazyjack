@@ -52,9 +52,8 @@ func BuildV4AddrDelArgsForDNS64(ip string) []string {
 }
 
 func BuildAddRouteArgsForDNS64(c *Config) []string {
-	prefixCIDR := fmt.Sprintf("%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
 	return []string{
-		"exec", "bind9", "ip", "-6", "route", "add", prefixCIDR, "via", c.NAT64.ServerIP,
+		"exec", "bind9", "ip", "-6", "route", "add", c.DNS64.CIDR, "via", c.NAT64.ServerIP,
 	}
 }
 
@@ -68,7 +67,7 @@ func RemoveDNS64Container() error {
 }
 
 func BuildRunArgsForNAT64(c *Config) []string {
-	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s/%d", c.DNS64.Prefix, c.DNS64.PrefixSize)
+	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s", c.DNS64.CIDR)
 	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
 	cmdList := []string{
 		"run", "-d", "--name", "tayga", "--hostname", "tayga", "--label", "orca",
@@ -91,9 +90,9 @@ func RemoveNAT64Container() error {
 	return nil
 }
 
-func BuildCreateNetArgsForSupportNet(subnet string, subnetSize int, v4cidr string) []string {
+func BuildCreateNetArgsForSupportNet(cidr, subnet, v4cidr string) []string {
 	args := []string{"network", "create", "--ipv6"}
-	subnetOption := fmt.Sprintf("--subnet=\"%s/%d\"", subnet, subnetSize)
+	subnetOption := fmt.Sprintf("--subnet=\"%s\"", cidr)
 	v4SubnetOption := fmt.Sprintf("--subnet=%s", v4cidr)
 	gw := fmt.Sprintf("--gateway=\"%s1\"", subnet)
 	args = append(args, subnetOption, v4SubnetOption, gw, SupportNetName)

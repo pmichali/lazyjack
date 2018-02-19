@@ -9,8 +9,8 @@ import (
 	"github.com/vishvananda/netlink/nl"
 )
 
-func BuildNodeCIDR(subnet string, node, prefix int) string {
-	return fmt.Sprintf("%s%d/%d", subnet, node, prefix)
+func BuildNodeCIDR(prefix string, node, mask int) string {
+	return fmt.Sprintf("%s%d/%d", prefix, node, mask)
 }
 
 func AddAddressToLink(ip, intf string) error {

@@ -40,7 +40,7 @@ func CreateCertificateForCA(n *Node, c *Config) error {
 	args := []string{
 		"req", "-x509", "-new", "-nodes",
 		"-key", fmt.Sprintf("%s/ca.key", CertArea),
-		"-subj", fmt.Sprintf("/CN=%s%d", c.Mgmt.Subnet, n.ID),
+		"-subj", fmt.Sprintf("/CN=%s%d", c.Mgmt.Prefix, n.ID),
 		"-days", "10000",
 		"-out", fmt.Sprintf("%s/ca.crt", CertArea),
 	}

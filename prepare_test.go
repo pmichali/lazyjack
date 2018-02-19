@@ -24,8 +24,8 @@ Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::100 --cluster-domain=clust
 func TestNamedConfContents(t *testing.T) {
 	c := &orca.Config{
 		DNS64: orca.DNS64Config{
-			Prefix:         "fd00:10:64:ff9b::",
-			PrefixSize:     96,
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
 			RemoteV4Server: "8.8.8.8",
 		},
 	}
@@ -100,7 +100,7 @@ func TestBuildNodeInfo(t *testing.T) {
 			},
 		},
 		Mgmt: orca.ManagementNetwork{
-			Subnet: "fd00:100::",
+			Prefix: "fd00:100::",
 		},
 	}
 
@@ -348,7 +348,7 @@ func TestFindHostIPForNAT64(t *testing.T) {
 			},
 		},
 		Mgmt: orca.ManagementNetwork{
-			Subnet: "fd00:100::",
+			Prefix: "fd00:100::",
 		},
 	}
 	gw, ok := orca.FindHostIPForNAT64(c)
@@ -366,7 +366,7 @@ func TestFindHostIPForNAT64(t *testing.T) {
 			},
 		},
 		Mgmt: orca.ManagementNetwork{
-			Subnet: "fd00:100::",
+			Prefix: "fd00:100::",
 		},
 	}
 	gw, ok = orca.FindHostIPForNAT64(bad)

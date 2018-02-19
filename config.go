@@ -10,14 +10,16 @@ import (
 )
 
 type SupportNetwork struct {
-	Subnet string `yaml:"subnet"`
-	Size   int    `yaml:"size"`
+	CIDR   string `yaml:"cidr"`
+	Prefix string
+	Size   int
 	V4CIDR string `yaml:"v4cidr"`
 }
 
 type ManagementNetwork struct {
-	Subnet string `yaml:"subnet"`
-	Size   int    `yaml:"size"`
+	CIDR   string `yaml:"cidr"`
+	Prefix string
+	Size   int
 }
 
 type PodNetwork struct {
@@ -31,8 +33,8 @@ type ServiceNetwork struct {
 
 type DNS64Config struct {
 	RemoteV4Server string `yaml:"remote_server"`
-	Prefix         string `yaml:"prefix"`
-	PrefixSize     int    `yaml:"prefix_size"`
+	CIDR           string `yaml:"cidr"`
+	CIDRPrefix     string
 	ServerIP       string `yaml:"ip"`
 }
 
@@ -54,24 +56,24 @@ type Node struct {
 }
 
 type Config struct {
-	Plugin   string `yaml:"plugin"`
-	Token    string `yaml:"token"`
-	TokenCertHash    string `yaml:"token-cert-hash"`
-	Topology map[string]Node
-	Support  SupportNetwork    `yaml:"support_net"`
-	Mgmt     ManagementNetwork `yaml:"mgmt_net"`
-	Pod      PodNetwork        `yaml:"pod_net"`
-	Service  ServiceNetwork    `yaml:"service_net"`
-	NAT64    NAT64Config       `yaml:"nat64"`
-	DNS64    DNS64Config       `yaml:"dns64"`
+	Plugin        string `yaml:"plugin"`
+	Token         string `yaml:"token"`
+	TokenCertHash string `yaml:"token-cert-hash"`
+	Topology      map[string]Node
+	Support       SupportNetwork    `yaml:"support_net"`
+	Mgmt          ManagementNetwork `yaml:"mgmt_net"`
+	Pod           PodNetwork        `yaml:"pod_net"`
+	Service       ServiceNetwork    `yaml:"service_net"`
+	NAT64         NAT64Config       `yaml:"nat64"`
+	DNS64         DNS64Config       `yaml:"dns64"`
 }
 
 const (
 	SupportNetName = "support_net"
 
-	CertArea = "/tmp/certs"
+	CertArea           = "/tmp/certs"
 	KubernetesCertArea = "/etc/kubernetes/pki"
-	
+
 	DNS64BaseArea  = "/tmp/bind9"
 	DNS64ConfArea  = "/tmp/bind9/conf"
 	DNS64CacheArea = "/tmp/bind9/cache"

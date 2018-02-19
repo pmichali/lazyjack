@@ -13,12 +13,10 @@ topology:
         opmodes: "minion"
         id: 4
 support_net:
-    subnet: "fd00:10::"
+    cidr: "fd00:10::/64"
     v4cidr: "172.18.0.0/16"
-    size: 64
 mgmt_net:
-    subnet: "fd00:20::"
-    size: 64
+    cidr: "fd00:20::/64"
 pod_net:
     prefix: "fd00:40:0:0"
     size: 80
@@ -30,6 +28,5 @@ nat64:
     ip: "fd00:10::200"
 dns64:
     remote_server: "64.102.6.247"
-    prefix: "fd00:10:64:ff9b::"
-    prefix_size: 96
+    cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"

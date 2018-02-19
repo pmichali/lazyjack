@@ -116,19 +116,16 @@ topology:
         opmodes: "minion"
         id: 3
 support_net:
-    subnet: "fd00:10::"
-    size: 64
+    cidr: "fd00:10::/64"
 mgmt_net:
-    subnet: "fd00:20::"
-    size: 64
+    cidr: "fd00:20::/64"
 nat64:
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"
     ip: "fd00:10::200"
 dns64:
     remote_server: "8.8.8.8"  # Could be a internal/company DNS server
-    prefix: "fd00:10:64:ff9b::"
-    prefix_size: 96
+    cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"`
 
 	stream = &ClosingBuffer{bytes.NewBufferString(goodYAML)}
@@ -157,11 +154,11 @@ dns64:
 		t.Errorf("Incorrect config for node my-minion (%+v)", node)
 	}
 
-	if config.Support.Subnet != "fd00:10::" || config.Support.Size != 64 {
+	if config.Support.CIDR != "fd00:10::/64" {
 		t.Errorf("Support net config parse failed (%+v)", config.Support)
 	}
 
-	if config.Mgmt.Subnet != "fd00:20::" || config.Mgmt.Size != 64 {
+	if config.Mgmt.CIDR != "fd00:20::/64" {
 		t.Errorf("Management net config parse failed (%+v)", config.Mgmt)
 	}
 
@@ -172,8 +169,7 @@ dns64:
 	}
 
 	if config.DNS64.RemoteV4Server != "8.8.8.8" ||
-		config.DNS64.Prefix != "fd00:10:64:ff9b::" ||
-		config.DNS64.PrefixSize != 96 ||
+		config.DNS64.CIDR != "fd00:10:64:ff9b::/96" ||
 		config.DNS64.ServerIP != "fd00:10::100" {
 		t.Errorf("DNS64 config parse failure (%+v)", config.DNS64)
 	}
@@ -416,6 +412,75 @@ func TestTokenCertificateHash(t *testing.T) {
 			if err.Error() != tc.errString {
 				t.Errorf("FAILED [%s]: Have error %q, expected %q", tc.name, err.Error(), tc.errString)
 			}
+		}
+	}
+}
+
+func TestGetNetAndMask(t *testing.T) {
+	var testCases = []struct {
+		name           string
+		input          string
+		expectedPrefix string
+		expectedMask   int
+		errString      string
+	}{
+		{name: "Valid CIDR",
+			input:          "fd00:20::/64",
+			expectedPrefix: "fd00:20::",
+			expectedMask:   64,
+			errString:      "",
+		},
+		{name: "Valid DNS CIDR",
+			input:          "fd00:10:64:ff9b::/96",
+			expectedPrefix: "fd00:10:64:ff9b::",
+			expectedMask:   96,
+			errString:      "",
+		},
+		{name: "Missing subnet prefix",
+			input:          "/64",
+			expectedPrefix: "",
+			expectedMask:   0,
+			errString:      "invalid CIDR address: /64",
+		},
+		{name: "Missing mask part",
+			input:          "fd00:20::",
+			expectedPrefix: "",
+			expectedMask:   0,
+			errString:      "invalid CIDR address: fd00:20::",
+		},
+		{name: "Missing mask part value",
+			input:          "fd00:20::/",
+			expectedPrefix: "",
+			expectedMask:   0,
+			errString:      "invalid CIDR address: fd00:20::/",
+		},
+		{name: "Invalid mask",
+			input:          "fd00:20::/200",
+			expectedPrefix: "",
+			expectedMask:   0,
+			errString:      "invalid CIDR address: fd00:20::/200",
+		},
+		{name: "Invalid subnet prefix",
+			input:          "fd00::20::/64",
+			expectedPrefix: "",
+			expectedMask:   0,
+			errString:      "invalid CIDR address: fd00::20::/64",
+		},
+	}
+	for _, tc := range testCases {
+		actualPrefix, actualMask, err := orca.GetNetAndMask(tc.input)
+		if err == nil {
+			if tc.errString != "" {
+				t.Errorf("FAILED: [%s] Expected error (%s), but was successful converting", tc.name, tc.errString)
+			} else {
+				if actualPrefix != tc.expectedPrefix || actualMask != tc.expectedMask {
+					t.Errorf("FAILED: [%s} Conversion failed. Expected {%s %d}, got {%s %d}",
+						tc.name, tc.expectedPrefix, tc.expectedMask, actualPrefix, actualMask)
+
+				}
+			}
+		} else if err.Error() != tc.errString {
+			t.Errorf("FAILED: [%s] Error mismatch. Expected: %q, got %q", tc.name, tc.errString, err.Error())
 		}
 	}
 }
