@@ -1,10 +1,10 @@
-package orca_test
+package lazyjack_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 )
 
 func TestRestoreEtcHostsContents(t *testing.T) {
@@ -82,7 +82,7 @@ fd00:20::20 minion  #[+]
 		},
 	}
 	for _, tc := range testCases {
-		actual := orca.RevertConfigInfo(tc.input, "test-file")
+		actual := lazyjack.RevertConfigInfo(tc.input, "test-file")
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
@@ -151,7 +151,7 @@ nameserver 8.8.8.8
 	}
 
 	for _, tc := range testCases {
-		actual := orca.RevertConfigInfo(tc.input, "test-file")
+		actual := lazyjack.RevertConfigInfo(tc.input, "test-file")
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}

@@ -1,4 +1,4 @@
-package orca
+package lazyjack
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ func DoCommand(name string, args []string) (string, error) {
 func BuildRunArgsForDNS64(c *Config) []string {
 	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", DNS64NamedConf)
 	cmdList := []string{
-		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "orca",
+		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "lazyjack",
 		"--privileged=true", "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
 		"--sysctl", "net.ipv6.conf.all.forwarding=1",
@@ -70,7 +70,7 @@ func BuildRunArgsForNAT64(c *Config) []string {
 	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s", c.DNS64.CIDR)
 	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
 	cmdList := []string{
-		"run", "-d", "--name", "tayga", "--hostname", "tayga", "--label", "orca",
+		"run", "-d", "--name", "tayga", "--hostname", "tayga", "--label", "lazyjack",
 		"--privileged=true", "--ip", c.NAT64.V4MappingIP, "--ip6", c.NAT64.ServerIP,
 		"--dns", c.DNS64.RemoteV4Server, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",

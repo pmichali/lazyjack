@@ -1,11 +1,11 @@
-package orca_test
+package lazyjack_test
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 )
 
 func TestValidateCommand(t *testing.T) {
@@ -42,7 +42,7 @@ func TestValidateCommand(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		command, err := orca.ValidateCommand(tc.command)
+		command, err := lazyjack.ValidateCommand(tc.command)
 		if command != tc.expected {
 			t.Errorf("FAILED: [%s] Expected %s, got %s", tc.name, tc.expected, command)
 		}
@@ -57,7 +57,7 @@ func TestValidateCommand(t *testing.T) {
 
 func TestValidateConfig(t *testing.T) {
 	// No file specified
-	cf, err := orca.ValidateConfigFile("")
+	cf, err := lazyjack.ValidateConfigFile("")
 	if cf != nil {
 		t.Errorf("Did not expect to have config, with empty filename")
 	}
@@ -66,7 +66,7 @@ func TestValidateConfig(t *testing.T) {
 	}
 
 	// File does not exist
-	cf, err = orca.ValidateConfigFile("non-existing-file")
+	cf, err = lazyjack.ValidateConfigFile("non-existing-file")
 	if cf != nil {
 		t.Errorf("Did not expect to have config, with non-existing filename")
 	}
@@ -95,7 +95,7 @@ topology:
 \topmodes: "master"
        id: 2`
 	stream := &ClosingBuffer{bytes.NewBufferString(badYAML)}
-	config, err := orca.LoadConfig(stream)
+	config, err := lazyjack.LoadConfig(stream)
 	if config != nil {
 		t.Errorf("Should not have config loaded, if YAML is malformed")
 	}
@@ -129,7 +129,7 @@ dns64:
     ip: "fd00:10::100"`
 
 	stream = &ClosingBuffer{bytes.NewBufferString(goodYAML)}
-	config, err = orca.LoadConfig(stream)
+	config, err = lazyjack.LoadConfig(stream)
 
 	if err != nil {
 		t.Errorf("Unexpected error, when reading config")
@@ -177,8 +177,8 @@ dns64:
 
 func TestUniqueIDs(t *testing.T) {
 	// Create bare minimum to test IDs
-	c := &orca.Config{
-		Topology: map[string]orca.Node{
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"master": {
 				ID: 10,
 			},
@@ -190,7 +190,7 @@ func TestUniqueIDs(t *testing.T) {
 			},
 		},
 	}
-	err := orca.ValidateUniqueIDs(c)
+	err := lazyjack.ValidateUniqueIDs(c)
 	if err == nil {
 		t.Errorf("Expected failure with duplicate IDs")
 	}
@@ -271,8 +271,8 @@ func TestOperatingModesOnNode(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		node := &orca.Node{Name: "test-node", OperatingModes: tc.opMode}
-		err := orca.ValidateNodeOpModes(node)
+		node := &lazyjack.Node{Name: "test-node", OperatingModes: tc.opMode}
+		err := lazyjack.ValidateNodeOpModes(node)
 		if tc.expectedStr == "" {
 			if err != nil {
 				t.Errorf("FAILED: [%s] Expected test to pass - see error: %s", tc.name, err.Error())
@@ -289,8 +289,8 @@ func TestOperatingModesOnNode(t *testing.T) {
 
 func TestDuplicateMasters(t *testing.T) {
 	// Create minimum to test node entries
-	c := &orca.Config{
-		Topology: map[string]orca.Node{
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"node1": {
 				OperatingModes: "master dns64 nat64",
 			},
@@ -303,7 +303,7 @@ func TestDuplicateMasters(t *testing.T) {
 		},
 	}
 
-	err := orca.ValidateOpModesForAllNodes(c)
+	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
 		t.Errorf("FAILED: Expected to see error, when configuration has duplicate master nodes")
 	} else if err.Error() != "Found multiple nodes with \"master\" operating mode" {
@@ -313,8 +313,8 @@ func TestDuplicateMasters(t *testing.T) {
 
 func TestNoMasterNode(t *testing.T) {
 	// Create minimum to test node entries
-	c := &orca.Config{
-		Topology: map[string]orca.Node{
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"node1": {
 				OperatingModes: "dns64 nat64",
 			},
@@ -324,7 +324,7 @@ func TestNoMasterNode(t *testing.T) {
 		},
 	}
 
-	err := orca.ValidateOpModesForAllNodes(c)
+	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
 		t.Errorf("FAILED: Expected to see error, when configuration has no master node entry")
 	} else if err.Error() != "No master node configuration" {
@@ -361,7 +361,7 @@ func TestBootstrapToken(t *testing.T) {
 	}
 	ignoreMissing := false
 	for _, tc := range testCases {
-		err := orca.ValidateToken(tc.input, ignoreMissing)
+		err := lazyjack.ValidateToken(tc.input, ignoreMissing)
 		if err == nil {
 			if tc.errString != "" {
 				t.Errorf("FAILED [%s]: Expected error getting token: %s", tc.name, tc.errString)
@@ -403,7 +403,7 @@ func TestTokenCertificateHash(t *testing.T) {
 	}
 	ignoreMissing := false
 	for _, tc := range testCases {
-		err := orca.ValidateTokenCertHash(tc.input, ignoreMissing)
+		err := lazyjack.ValidateTokenCertHash(tc.input, ignoreMissing)
 		if err == nil {
 			if tc.errString != "" {
 				t.Errorf("FAILED [%s]: Expected error getting cert hash: %s", tc.name, tc.errString)
@@ -468,7 +468,7 @@ func TestGetNetAndMask(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		actualPrefix, actualMask, err := orca.GetNetAndMask(tc.input)
+		actualPrefix, actualMask, err := lazyjack.GetNetAndMask(tc.input)
 		if err == nil {
 			if tc.errString != "" {
 				t.Errorf("FAILED: [%s] Expected error (%s), but was successful converting", tc.name, tc.errString)

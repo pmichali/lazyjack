@@ -1,29 +1,29 @@
-package orca_test
+package lazyjack_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 )
 
 func TestKubeletDropInContents(t *testing.T) {
-	c := &orca.Config{
-		DNS64: orca.DNS64Config{ServerIP: "2001:db8::100"},
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
 	}
 
 	expected := `[Service]
 Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::100 --cluster-domain=cluster.local"
 `
-	actual := orca.CreateKubeletDropInContents(c)
+	actual := lazyjack.CreateKubeletDropInContents(c)
 	if actual.String() != expected {
 		t.Errorf("Kubelet drop-in contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
 	}
 }
 
 func TestNamedConfContents(t *testing.T) {
-	c := &orca.Config{
-		DNS64: orca.DNS64Config{
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
 			CIDRPrefix:     "fd00:10:64:ff9b::",
 			RemoteV4Server: "8.8.8.8",
@@ -43,7 +43,7 @@ func TestNamedConfContents(t *testing.T) {
     };
 };
 `
-	actual := orca.CreateNamedConfContents(c)
+	actual := lazyjack.CreateNamedConfContents(c)
 	if actual.String() != expected {
 		t.Errorf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
 	}
@@ -79,7 +79,7 @@ func TestParseIPv4AddressFromIfConfig(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		actual := orca.ParseIPv4Address(tc.ifConfig)
+		actual := lazyjack.ParseIPv4Address(tc.ifConfig)
 		if actual != tc.expected {
 			t.Errorf("FAILED: [%s]. Expected %q, got %q", tc.name, tc.expected, actual)
 		}
@@ -87,8 +87,8 @@ func TestParseIPv4AddressFromIfConfig(t *testing.T) {
 }
 
 func TestBuildNodeInfo(t *testing.T) {
-	c := &orca.Config{
-		Topology: map[string]orca.Node{
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"master": {
 				ID: 10,
 			},
@@ -99,18 +99,18 @@ func TestBuildNodeInfo(t *testing.T) {
 				ID: 30,
 			},
 		},
-		Mgmt: orca.ManagementNetwork{
+		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "fd00:100::",
 		},
 	}
 
-	ni := orca.BuildNodeInfo(c)
+	ni := lazyjack.BuildNodeInfo(c)
 	if len(ni) != 3 {
 		t.Errorf("FAILURE: Expected three nodes")
 	}
-	expected1st := orca.NodeInfo{Name: "alpha", IP: "fd00:100::30", Seen: false}
-	expected2nd := orca.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
-	expected3rd := orca.NodeInfo{Name: "minion", IP: "fd00:100::20", Seen: false}
+	expected1st := lazyjack.NodeInfo{Name: "alpha", IP: "fd00:100::30", Seen: false}
+	expected2nd := lazyjack.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
+	expected3rd := lazyjack.NodeInfo{Name: "minion", IP: "fd00:100::20", Seen: false}
 	if ni[0] != expected1st {
 		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected1st, ni[0])
 	}
@@ -123,7 +123,7 @@ func TestBuildNodeInfo(t *testing.T) {
 }
 
 func TestMatchingIndexes(t *testing.T) {
-	ni := []orca.NodeInfo{
+	ni := []lazyjack.NodeInfo{
 		{
 			Name: "master",
 		},
@@ -134,11 +134,11 @@ func TestMatchingIndexes(t *testing.T) {
 			Name: "minionB",
 		},
 	}
-	idx := orca.MatchingNodeIndex([]byte("10.20.30.40 minionA"), ni)
+	idx := lazyjack.MatchingNodeIndex([]byte("10.20.30.40 minionA"), ni)
 	if idx != 1 {
 		t.Errorf("FAILED: Should have been able to find node 'minionA'")
 	}
-	idx = orca.MatchingNodeIndex([]byte("10.20.30.40 minionC"), ni)
+	idx = lazyjack.MatchingNodeIndex([]byte("10.20.30.40 minionC"), ni)
 	if idx != -1 {
 		t.Errorf("FAILED: Should not have been able to find node 'minionC'")
 	}
@@ -230,7 +230,7 @@ fd00:20::20 minion  #[+]
 		},
 	}
 	for _, tc := range testCases {
-		ni := []orca.NodeInfo{
+		ni := []lazyjack.NodeInfo{
 			{
 				Name: "master",
 				IP:   "fd00:20::10",
@@ -241,7 +241,7 @@ fd00:20::20 minion  #[+]
 			},
 		}
 
-		actual := orca.UpdateHostsInfo(tc.input, ni)
+		actual := lazyjack.UpdateHostsInfo(tc.input, ni)
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch. Expected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
@@ -323,7 +323,7 @@ nameserver 8.8.8.8
 	}
 
 	for _, tc := range testCases {
-		actual := orca.UpdateResolvConfInfo(tc.input, "fd00:10::100")
+		actual := lazyjack.UpdateResolvConfInfo(tc.input, "fd00:10::100")
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] mismatch.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, string(actual))
 		}
@@ -332,8 +332,8 @@ nameserver 8.8.8.8
 }
 
 func TestFindHostIPForNAT64(t *testing.T) {
-	c := &orca.Config{
-		Topology: map[string]orca.Node{
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"master": {
 				ID:            10,
 				IsNAT64Server: false,
@@ -347,29 +347,29 @@ func TestFindHostIPForNAT64(t *testing.T) {
 				IsNAT64Server: false,
 			},
 		},
-		Mgmt: orca.ManagementNetwork{
+		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "fd00:100::",
 		},
 	}
-	gw, ok := orca.FindHostIPForNAT64(c)
+	gw, ok := lazyjack.FindHostIPForNAT64(c)
 	if !ok {
 		t.Errorf("Expected to find node with NAT64 server")
 	}
 	if gw != "fd00:100::20" {
 		t.Errorf("Incorrect GW IP from node with NAT64 server")
 	}
-	bad := &orca.Config{
-		Topology: map[string]orca.Node{
+	bad := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
 			"master": {
 				ID:            10,
 				IsNAT64Server: false,
 			},
 		},
-		Mgmt: orca.ManagementNetwork{
+		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "fd00:100::",
 		},
 	}
-	gw, ok = orca.FindHostIPForNAT64(bad)
+	gw, ok = lazyjack.FindHostIPForNAT64(bad)
 	if ok {
 		t.Errorf("Expected no NAT64 server to be found")
 	}

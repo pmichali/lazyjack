@@ -1,24 +1,24 @@
-# ORCA
-Orca is a (very) simple, provisioning application for bare-metal systems so
-that they can be used with Kubernetes/Istio in an IPv6 (only) environment.
+# Lazyjack
+Lazyjacks are rigging used to assist in sail handling during reefing and
+furling, making the process easier.
+
+In keeping with the nautical theme of Kubernetes, the lazyjack application
+is used to make it easier to provision bare-metal systems that they can be
+used with Kubernetes/Istio in an IPv6 (only) environment.
 
 The goal is to reduce as many manual steps as possible, so that provisioning
 of systems can occur quickly. This is geared to a lab environment, where the
 user is using KubeAdm or similar tool to bring up Kubernetes.
-
-A stretch goal is to automate, as much as possible, of the setup of Kubernetes
-and Istio.
-
 
 ## Quick Start Guide
 For the impatient, you can do the following to bring up cluster of two (or more)
 nodes. See below for details on each step.
 
 1. Provision the hardware with OS and the pre-requisite tools.
-2. Install Orca on master and build.
+2. Install Lazyjack on master and build.
 3. Modify the sample config file using the hosts/interfaces for your topology.
 4. Run `init` command on master.
-5. Copy Orca binary and updated config file to minions.
+5. Copy Lazyjack binary and updated config file to minions.
 6. Run `prepare` on each node.
 7. Run `up` on master, and then on minions.
 
@@ -27,7 +27,7 @@ nodes. See below for details on each step.
 Kubernetes 1.9 has alpha support for IPv6 only (not dual stack) mode of
 operation for pods and services. There are various plugins that have or are
 adding support for IPv6. The reference Bridge plugin, has support and will be
-used by Orca.
+used by Lazyjack.
 
 Currently, there are some external sites, like github.com, which do not support
 IPv6 yet. As a result, the Kubernetes installation in 1.9 uses DNS64 and NAT64
@@ -37,10 +37,10 @@ be employed via containers, rather than relying on external H/W or S/W.
 
 ## How does this all work?
 Once the bare-metals systems have met the **prerequisites** shown below, you can
-create a configuration file for your topology, and then run Orca commands on
+create a configuration file for your topology, and then run Lazyjack commands on
 each node to prepare and run Kubernetes.
 
-When done, you can use Orca commands to clean up the systems, effectively
+When done, you can use Lazyjack commands to clean up the systems, effectively
 undoing the setup made and restoring the system to original state.
 
 
@@ -54,11 +54,11 @@ The following needs to be done, prior to using this tool:
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ installed on the system and environment set up.
   * openssl installed on system (I used 1.0.2g).
-* Obtain Orca and build (see below)
+* Obtain Lazyjack and build (see below)
 
 
-## Preparing Orca
-Use the following command to obtain Orca and place it into your $GOPATH
+## Preparing Lazyjack
+Use the following command to obtain Lazyjack and place it into your $GOPATH
 
 ```
 go get github.com/pmichali/orca
@@ -77,7 +77,7 @@ to each system to be provisioned.
 
 
 ## Configuration Setup
-Orca is driven by a YAML configuration file that specifies the topology for the
+Lazyjack is driven by a YAML configuration file that specifies the topology for the
 entire cluster, the roles that nodes play, and the values to use for subnets,
 CIDRs, and IPs.
 
@@ -165,7 +165,7 @@ CIDR, and the IPv4 CIDR:
     v4cidr: "172.18.0.0/16"
 ```
 The IPv4 subnet should be large enough to contain the V4 subnet that will be created
-for NAT64 mapping of V6 to V4 addresses. A /16 net is usually fine (Orca doesn't
+for NAT64 mapping of V6 to V4 addresses. A /16 net is usually fine (Lazyjack doesn't
 validate this dependency, currently).
 
 ### Management Network (mgmt_net)
@@ -178,7 +178,7 @@ section.
 ### Pod Network (pod_net)
 A second network that is used by Kubernetes for the pods. This network should be
 distint from the support and management networks. Here, we specify all but 16 bits
-of the subnet address. During provisioning, Orca will add the node ID to the
+of the subnet address. During provisioning, Lazyjack will add the node ID to the
 network prefix to form distinct subnet on each node.
 ```
 prefix: "fd00:40:0:0"
@@ -237,8 +237,8 @@ ip: "fd00:10::100"
 
 
 ## Usage
-As mentioned above, you should have Orca and the YAML file on each system to be
-provisioned. Since Orca needs to perform privileged operations, you'll need to run this
+As mentioned above, you should have Lazyjack and the YAML file on each system to be
+provisioned. Since Lazyjack needs to perform privileged operations, you'll need to run this
 as root:
 ```
    sudo ~/go/bin/orca [options] {init|prepare|up|down|clean|version}
@@ -407,8 +407,6 @@ have been corruption of IPTABLES rules.
 * Support Calico plugin. Cillium? Contiv? Others?
 * Mocking for UTs to provide better coverage.
 * Add per function documentation.
-* Mention on my blog.
-* **Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).**
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?

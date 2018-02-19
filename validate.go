@@ -1,4 +1,4 @@
-package orca
+package lazyjack
 
 import (
 	"fmt"

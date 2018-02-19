@@ -1,18 +1,18 @@
-package orca_test
+package lazyjack_test
 
 import (
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 	"testing"
 )
 
 func TestBridgeCNIConfigContents(t *testing.T) {
-	c := &orca.Config{
-		Pod: orca.PodNetwork{
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
 			Prefix: "fd00:40:0:0",
 			Size:   80,
 		},
 	}
-	n := &orca.Node{ID: 10}
+	n := &lazyjack.Node{ID: 10}
 
 	expected := `{
     "cniVersion": "0.3.0",
@@ -35,7 +35,7 @@ func TestBridgeCNIConfigContents(t *testing.T) {
     }
 }
 `
-	actual := orca.CreateBridgeCNIConfContents(n, c)
+	actual := lazyjack.CreateBridgeCNIConfContents(n, c)
 	if actual.String() != expected {
 		t.Errorf("Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}

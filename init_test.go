@@ -1,10 +1,10 @@
-package orca_test
+package lazyjack_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 )
 
 func TestUpdateConfigYAMLContents(t *testing.T) {
@@ -142,7 +142,7 @@ topology:
 		},
 	}
 	for _, tc := range testCases {
-		actual := orca.UpdateConfigYAMLContents(tc.input, "my-config.yaml", tc.token, tc.hash)
+		actual := lazyjack.UpdateConfigYAMLContents(tc.input, "my-config.yaml", tc.token, tc.hash)
 		if string(actual) != tc.expected {
 			t.Errorf("FAILED: [%s] Incorrect contents.\nExpected:\n%s\nActual:\n%s\n", tc.name, tc.expected, actual)
 		}
