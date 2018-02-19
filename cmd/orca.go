@@ -85,7 +85,7 @@ func main() {
 
 	switch command {
 	case "init":
-		orca.Initialize(*host, config)
+		orca.Initialize(*host, config, *configFIle)
 	case "prepare":
 		orca.Prepare(*host, config)
 	case "up":

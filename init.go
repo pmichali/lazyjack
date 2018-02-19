@@ -1,0 +1,223 @@
+package orca
+
+import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"github.com/golang/glog"
+)
+
+func CreateCertKeyArea() error {
+	err := os.RemoveAll(CertArea)
+	if err != nil {
+		return fmt.Errorf("Unable to clear out certificate area: %s", err.Error())
+	}
+	err = os.MkdirAll(CertArea, 0700)
+	if err != nil {
+		return fmt.Errorf("Unable to create area for certificates (%s): %s", CertArea, err.Error())
+	}
+	glog.V(1).Infof("Created area for certificates")
+	return nil
+}
+
+// TODO: Create UTs that check syntax of arg strings
+func CreateKeyForCA() error {
+	glog.V(4).Infof("Creating CA key")
+	args := []string{"genrsa", "-out", fmt.Sprintf("%s/%s", CertArea, "ca.key"), "2048"}
+	_, err := DoExecCommand("openssl", args)
+	if err != nil {
+		return fmt.Errorf("Unable to create CA key: %s", err.Error())
+	}
+	glog.V(1).Infof("Created CA key")
+	return nil
+}
+
+func CreateCertificateForCA(n *Node, c *Config) error {
+	glog.V(4).Infof("Creating CA certificate")
+	args := []string{
+		"req", "-x509", "-new", "-nodes",
+		"-key", fmt.Sprintf("%s/ca.key", CertArea),
+		"-subj", fmt.Sprintf("/CN=%s%d", c.Mgmt.Subnet, n.ID),
+		"-days", "10000",
+		"-out", fmt.Sprintf("%s/ca.crt", CertArea),
+	}
+	_, err := DoExecCommand("openssl", args)
+	if err != nil {
+		return fmt.Errorf("Unable to create CA certificate: %s", err.Error())
+	}
+	glog.V(1).Infof("Created CA certificate")
+	return nil
+}
+
+func BuildX509CertForCA() error {
+	glog.V(4).Infof("Building CA X509 certificate")
+	args := []string{
+		"x509", "-pubkey",
+		"-in", fmt.Sprintf("%s/ca.crt", CertArea),
+	}
+	output, err := DoExecCommand("openssl", args)
+	if err != nil || len(output) == 0 {
+		return fmt.Errorf("Unable to create X509 cert: %s", err.Error())
+	}
+	err = ioutil.WriteFile(fmt.Sprintf("%s/ca.x509", CertArea), []byte(output), 0644)
+	if err != nil {
+		return fmt.Errorf("Unable to save X509 cert for CA", err.Error())
+	}
+	glog.V(1).Infof("Created CA X509 certificate")
+	return nil
+}
+
+func BuildRSAForCA() error {
+	glog.V(4).Infof("Building RSA key for CA")
+	args := []string{
+		"rsa", "-pubin",
+		"-in", fmt.Sprintf("%s/ca.x509", CertArea),
+		"-outform", "der",
+		"-out", fmt.Sprintf("%s/ca.rsa", CertArea),
+	}
+	_, err := DoExecCommand("openssl", args)
+	if err != nil {
+		return fmt.Errorf("Unable to create RSA key for CA: %s", err.Error())
+	}
+	glog.V(1).Infof("Created RSA key for CA")
+	return nil
+}
+
+func BuildDigestForCA() (string, error) {
+	glog.V(4).Infof("Building digest for CA")
+	args := []string{
+		"dgst", "-sha256", "-hex",
+		fmt.Sprintf("%s/ca.rsa", CertArea),
+	}
+	output, err := DoExecCommand("openssl", args)
+	if err != nil {
+		return "", fmt.Errorf("Unable to create CA digest: %s", err.Error())
+	}
+	parts := strings.Split(output, " ")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("Unable to parse digest info for CA key")
+	}
+	hash := strings.TrimSpace(parts[1])
+	glog.V(1).Infof("Created digest for CA (%s)", hash)
+	return hash, err
+}
+
+func BuildCertficateHashForCA() (string, error) {
+	err := BuildX509CertForCA()
+	if err != nil {
+		return "", err
+	}
+	err = BuildRSAForCA()
+	if err != nil {
+		return "", err
+	}
+	return BuildDigestForCA()
+}
+
+func BuildToken() (string, error) {
+	glog.V(4).Infof("Creating shared token")
+	args := []string{"token", "generate"}
+	token, err := DoExecCommand("kubeadm", args)
+	if err != nil {
+		return "", fmt.Errorf("Unable to create shared token: %s", err.Error())
+	}
+	token = strings.TrimSpace(token)
+	err = ValidateToken(token)
+	if err != nil {
+		return "", fmt.Errorf("Internal error, token is malformed: %s", err.Error())
+	}
+	glog.V(1).Infof("Created shared token (%s)", token)
+	return token, nil
+}
+
+func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte {
+	glog.V(4).Infof("Updating %s", file)
+	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
+	var output bytes.Buffer
+	sawPlugin := false
+	notHandled := true
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("plugin:")) {
+			sawPlugin = true
+		} else if sawPlugin && notHandled {
+			output.WriteString(fmt.Sprintf("token: %q\n", token))
+			output.WriteString(fmt.Sprintf("token-cert-hash: %q\n", hash))
+			notHandled = false
+		}
+		if bytes.HasPrefix(line, []byte("token:")) {
+			continue
+		}
+		if bytes.HasPrefix(line, []byte("token-cert-hash:")) {
+			continue
+		}
+		output.WriteString(fmt.Sprintf("%s\n", line))
+	}
+	// Create any missing entries
+	//	for _, node := range n {
+	//		if !node.Seen {
+	//			output.WriteString(fmt.Sprintf("%s %s  #[+]\n", node.IP, node.Name))
+	//		}
+	//	}
+	return output.Bytes()
+}
+
+func UpdateConfigYAML(file, token, hash string) error {
+	glog.V(1).Infof("Updating %s file", file)
+	contents, err := GetFileContents(file)
+	if err != nil {
+		return err
+	}
+	contents = UpdateConfigYAMLContents(contents, file, token, hash)
+	backup := fmt.Sprintf("%s.bak", file)
+	err = SaveFileContents(contents, file, backup)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Updated %s file", file)
+	return nil
+}
+
+func Initialize(name string, c *Config, configFile string) {
+	node := c.Topology[name]
+
+	if !node.IsMaster {
+		return
+	}
+	glog.Infof("Initializing master node %q", name)
+	err := CreateCertKeyArea()
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+
+	err = CreateKeyForCA()
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+	err = CreateCertificateForCA(&node, c)
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+	hash, err := BuildCertficateHashForCA()
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+	token, err := BuildToken()
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+	err = UpdateConfigYAML(configFile, token, hash)
+	if err != nil {
+		glog.Errorf(err.Error())
+		os.Exit(1)
+	}
+
+	glog.Infof("Node %q initialized", name)
+}

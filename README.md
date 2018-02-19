@@ -77,8 +77,8 @@ We'll take a look at an example file and disect each section.
 ### Example
 ```
 plugin: bridge
-token: "<provide>"
-token-cert-hash: "<provide>"
+token: "<provide-token>"
+token-cert-hash: "<provide-cert-hash>"
 topology:
   my-master:
     interface: "enp10s0"
