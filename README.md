@@ -25,8 +25,7 @@ be employed via containers, rather than relying on external H/W or S/W.
 ## How does this all work?
 Once the bare-metals systems have met the **prerequisites** shown below, you can
 create a configuration file for your topology, and then run Orca commands on
-each node to prepare them for running Kubernetes (and in the future, to bring
-up a cluster, I hope!)
+each node to prepare and run Kubernetes.
 
 When done, you can use Orca commands to clean up the systems, effectively
 undoing the setup made and restoring the system to original state.
@@ -239,7 +238,7 @@ as root:
 ```
 
 The commands do the following:
-* **init** - Sets up tokens and certificates needed by Kuberentes. Must be run on the master node, before copying the config file to minion nodes.
+* **init** - Sets up tokens and certificates needed by Kuberentes. Must be run on the master node, **before** copying the config file to minion nodes. Only needed once.
 * **prepare** - Prepares the node so that cluster can be brought up. Do on each node, before proceeded to next step.
 * **up** - Brings up Kubernetes cluster on the node. Do master first, and then minions.
 * **down** - Tears down the cluster on the node. Do minions first, and then master.
@@ -289,7 +288,7 @@ For each command, there are a series of actions performed...
 ### For the `init` command
 * Creates CA certificate and key for KubeAdm.
 * Creates token and CA certificate hash.
-* Updates configuration YAML file (needed for up command on minions).
+* Updates the configuration YAML file (needed for `up` command on minions).
 
 ### For the `prepare` command
 * Creates support network with IPv6 and IPv4.
@@ -333,20 +332,30 @@ For each command, there are a series of actions performed...
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
 * Relies on the tayga and bind6 containers (as provided by other developers).
-* Some manual steps needed on the master, before running commands.
+* The `init` command must be run on the master node, and then the updated configuration file copied to minion nodes.
 
 ## Troubleshooting
 This section has some notes on issues seen and resolutions (if any).
 
-Tip: If for some reason the `prepare` fails after updating /etc/resolv.conf or /etc/hosts, you can
-recover the originals from the .bak files created. However, the tool is designed to allow multiple
-invocations, so this should not be required.
+Tip: If for some reason the `prepare` fails after updating /etc/resolv.conf
+or /etc/hosts, you can recover the originals from the .bak files created.
+However, the tool is designed to allow multiple invocations, so this should
+not be required.
 
-I did have one case where kube-dns was not coming up, and kube-proxy log was showing iptables restore
-errors saying "iptables-restore v1.6.0: invalid mask `128' specified". This should be using the
-ip6tables-restore operation. Was unable to find root cause, but did KubeAdm reset, `clean` command,
-flush iptables rules, and rebooted, and problem was cleared. May have been corruption of iptables
-rules.
+If a system is rebooted, the entire process (`init`, copy config, `prepare`,
+and `up`) must be performed, because some changes are not persisted, and some
+files are created in /tmp.
+
+On a related note, you want to make sure that the node does not already have
+incompatible configuration on being interfaces or for routes that will be
+defined.
+
+I did have one case where kube-dns was not coming up, and kube-proxy log was
+showing iptables restore errors saying "iptables-restore v1.6.0: invalid
+ mask `128' specified". This should be using the ip6tables-restore operation.
+I was unable to find root cause, but did KubeAdm reset, `clean` command,
+fllush iptables rules, and rebooted, and problem was cleared. May have been
+corruption of iptables rules.
 
 
 ## TODOs/Futures
@@ -361,7 +370,7 @@ rules.
   * Kubeadm, kubectl, kubelet version 1.9+.
   * Go version.
   * Other tools?
-* Support Calico plugin. Cillium? Others?  
+* Support Calico plugin. Cillium? Contiv? Others?
 * Mocking for UTs to provide better coverage.
 * Add version command.
 * Add per function documentation.
@@ -379,7 +388,6 @@ rules.
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
 * Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
 * Support hypervisors other than Docker (have separated out the code)?
-* Allow configuration file to be specified as URL?
 * In config file use CIDRs for subnets and split them out to use the parts in the app, instead of having the user specify a subnet and a size separately.
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)

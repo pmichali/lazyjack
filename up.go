@@ -3,6 +3,7 @@ package orca
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -113,6 +114,43 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	return args
 }
 
+func CopyFile(name, src, dst string) (err error) {
+	s, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("Unable to open source file %q: %s", name, err.Error())
+	}
+	defer s.Close()
+
+	d, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("Unable to open detination file %q: %s", name, err.Error())
+	}
+	defer func() {
+		cerr := d.Close()
+		if err == nil {
+			err = fmt.Errorf("Unable to close destination file %q: %s", name, cerr.Error())
+		}
+	}()
+
+	_, err = io.Copy(d, s)
+	if err != nil {
+		return fmt.Errorf("Unable to copy %q from %q to %q: %s", name, src, dst, err.Error())
+	}
+	err = d.Sync()
+	if err != nil {
+		return fmt.Errorf("Unable to flush data to destination file %q: %s", name, err.Error())
+	}
+	return
+}
+
+func PlaceCertificateAndKeyForCA() error {
+	err := CopyFile("ca.crt", CertArea, KubernetesCertArea)
+	if err != nil {
+		return err
+	}
+	return CopyFile("ca.key", CertArea, KubernetesCertArea)
+}
+
 func DetermineMasterNode(c *Config) *Node {
 	for _, node := range c.Topology {
 		if node.IsMaster {
@@ -168,7 +206,11 @@ func BringUp(name string, c *Config) {
 			glog.Fatalf(err.Error())
 			os.Exit(1) // TODO: Rollback?
 		}
-		// TODO: Copy CA cert and key to /etc/kubernetes/pki/
+		err = PlaceCertificateAndKeyForCA()
+		if err != nil {
+			glog.Fatalf(err.Error())
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 
 	err = StartKubernetes(&node, c)
