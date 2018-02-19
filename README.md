@@ -112,43 +112,14 @@ dns64:
 ```
 
 ### Plugin (plugin)
-Currently, the reference Bridge plugin is supported by this script. Looking to add
-other plugins.
+Currently, the reference Bridge plugin is supported by this script. Looking
+to add other plugins.
 
-### Token (token)
-KubeAdm uses a bootstrap token for bidirectional trust between nodes. As root, run
-the command `kubeadm token generate` and place the output of the
-token into this entry.
-```
-token: "7aee33.05f...6bd"
-```
-
-### Token CA Certificate Hash (token-cert-hash)
-For the KubeAdm join command, a CA certificate has is needed. To create the hash,
-CA certificates are needed. Perform the following steps to create the needed files
-(will add this to an `init` command in the future). For master-ip, use the Management
-subnet and node ID for the master node (e.g. fd00:20::2 in this case).
-```
-openssl genrsa -out ca.key 2048
-openssl req -x509 -new -nodes -key ca.key -subj "/CN=<master-ip>" -days 10000 -out ca.crt
-
-sudo mkdir -p /etc/kubernetes/pki
-sudo chmod 700 /etc/kubernetes/pki
-sudo cp ca.key ca.crt /etc/kubernetes/pki
-```
-Next, determine the hash value with:
-```
-openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | \
-openssl rsa -pubin -outform der 2>/dev/null | \
-openssl dgst -sha256 -hex | sed 's/^.* //'
-```
-Place the (long) output value into this key.
-```
-token-cert-hash: "a456...f69"
-```
-**NOTE:** When the `down` command is run on the master node, KubeAdm will clear out
-the contents of /etc/kubernetes/pki/. The ca.key and ca.crt files must be copied back
-into this area, before doing `up` again.
+### Token (token) and Token CA Certificate Hash (token-cert-hash)
+KubeAdm uses a token and CA certificate for nodes to communicate. These two
+fields are filled out automatically by the `init` command, which needs to
+be run on the master node, before copying the configuration file over to
+minion nodes for use in the `up` command.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -264,18 +235,18 @@ As mentioned above, you should have Orca and the YAML file on each system to be
 provisioned. Since Orca needs to perform privileged operations, you'll need to run this
 as root:
 ```
-   sudo ~/go/bin/orca [options] {prepare|up|down|clean}
+   sudo ~/go/bin/orca [options] {init|prepare|up|down|clean}
 ```
 
 The commands do the following:
-* **init** - (future) Sets up tokens and certificates needed by Kuberentes
+* **init** - Sets up tokens and certificates needed by Kuberentes. Must be run on the master node, before copying the config file to minion nodes.
 * **prepare** - Prepares the node so that cluster can be brought up. Do on each node, before proceeded to next step.
 * **up** - Brings up Kubernetes cluster on the node. Do master first, and then minions.
 * **down** - Tears down the cluster on the node. Do minions first, and then master.
 * **clean** - Reverses the prepare steps performed to clear out settings.
 * **version** - (future) Shows the version of this app.
 
-Once a cluster is up on the master, you can setup kubectl, as described byt the
+Once a cluster is up on the master, you can setup kubectl, as described by the
 KubeAdm init command:
 ```
 mkdir -p $HOME/.kube
@@ -283,13 +254,9 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-Note: Currently, some manual steps are needed to create the configuration file, and to
-setup CA certificates on the master (and to restore them, if `down` is performed).
-
-
 ### Command Line Options
 ```
-Usage: orca [options] {prepare|up|down|clean}
+Usage: orca [options] {init|prepare|up|down|clean}
   -alsologtostderr
         log to standard error as well as files
   -config string
@@ -319,6 +286,11 @@ The default hostname is the name of the system you are on.
 ## Under The Covers
 For each command, there are a series of actions performed...
 
+### For the `init` command
+* Creates CA certificate and key for KubeAdm.
+* Creates token and CA certificate hash.
+* Updates configuration YAML file (needed for up command on minions).
+
 ### For the `prepare` command
 * Creates support network with IPv6 and IPv4.
 * Starts DNS64 container, with config file, removes IPv4 address, and adds route to NAT64 server.
@@ -346,6 +318,7 @@ For each command, there are a series of actions performed...
 * Create routes for each of the pod networks on other nodes.
 * Reloaded daemons for services.
 * Restarted kubelet service.
+* Restores CA certificate and Key files.
 * Creates KubeAdm configuration file.
 * On master: Perform KubeAdm init command with config file.
 * On minion: Perform KubeAdm join command using token information.
@@ -394,7 +367,6 @@ rules.
 * Add per function documentation.
 * Mention on my blog.
 * **Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).**
-* Clean up br0 bridge as part of `down`.
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
@@ -403,7 +375,6 @@ rules.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 
 ### Enhancements to consider
-* **Add `init` command to setup CA certificates and revise the YAML file for the user.**
 * Do Istio startup. Useful?  Metal LB startup?
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
 * Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
