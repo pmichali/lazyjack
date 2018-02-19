@@ -61,15 +61,15 @@ The following needs to be done, prior to using this tool:
 Use the following command to obtain Lazyjack and place it into your $GOPATH
 
 ```
-go get github.com/pmichali/orca
-cd $GOPATH/src/github.com/pmichali/orca
+go get github.com/pmichali/lazyjack
+cd $GOPATH/src/github.com/pmichali/lazyjack
 ```
 
 Build the code into an executable (yeah, I need to figure this out), and place
 where desired for easy access. For example:
 
 ```
-go build -o ~/go/bin/orca cmd/orca.go
+go build -o ~/go/bin/lazyjack cmd/lazyjack.go
 ```
 
 Copy this executable, and the associated configuration YAML file (see next section)
@@ -241,7 +241,7 @@ As mentioned above, you should have Lazyjack and the YAML file on each system to
 provisioned. Since Lazyjack needs to perform privileged operations, you'll need to run this
 as root:
 ```
-   sudo ~/go/bin/orca [options] {init|prepare|up|down|clean|version}
+   sudo ~/go/bin/lazyjack [options] {init|prepare|up|down|clean|version}
 ```
 
 The commands do the following:
@@ -262,11 +262,11 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 ### Command Line Options
 ```
-Usage: orca [options] {init|prepare|up|down|clean|version}
+Usage: lazyjack [options] {init|prepare|up|down|clean|version}
   -alsologtostderr
         log to standard error as well as files
   -config string
-        Configurations for orca (default "config.yaml")
+        Configurations for lazyjack (default "config.yaml")
   -host string
         Name of (this) host to apply command (default "my-master")
   -log_backtrace_at value

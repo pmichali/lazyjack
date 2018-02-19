@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pmichali/orca"
+	"github.com/pmichali/lazyjack"
 
 	"github.com/golang/glog"
 )
@@ -50,7 +50,7 @@ func main() {
 	if err != nil {
 		thisHost = "" // Hopefully user can specify
 	}
-	var configFile = flag.String("config", "config.yaml", "Configurations for orca")
+	var configFile = flag.String("config", "config.yaml", "Configurations for lazyjack")
 	var host = flag.String("host", thisHost, "Name of (this) host to apply command")
 
 	InitLogs()
@@ -58,7 +58,7 @@ func main() {
 
 	flag.Parse()
 
-	command, err := orca.ValidateCommand(flag.Arg(0))
+	command, err := lazyjack.ValidateCommand(flag.Arg(0))
 	if err != nil {
 		fmt.Printf("ERROR: %s\n\n", err.Error())
 		flag.Usage()
@@ -69,23 +69,23 @@ func main() {
 		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
 	}
-	cf, err := orca.ValidateConfigFile(*configFile)
+	cf, err := lazyjack.ValidateConfigFile(*configFile)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
-	config, err := orca.LoadConfig(cf)
+	config, err := lazyjack.LoadConfig(cf)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 	ignoreMissing := (command == "init")
-	err = orca.ValidateConfigContents(config, ignoreMissing)
+	err = lazyjack.ValidateConfigContents(config, ignoreMissing)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
-	err = orca.ValidateHost(*host, config)
+	err = lazyjack.ValidateHost(*host, config)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
@@ -95,15 +95,15 @@ func main() {
 
 	switch command {
 	case "init":
-		orca.Initialize(*host, config, *configFile)
+		lazyjack.Initialize(*host, config, *configFile)
 	case "prepare":
-		orca.Prepare(*host, config)
+		lazyjack.Prepare(*host, config)
 	case "up":
-		orca.BringUp(*host, config)
+		lazyjack.BringUp(*host, config)
 	case "down":
-		orca.TearDown(*host, config)
+		lazyjack.TearDown(*host, config)
 	case "clean":
-		orca.Cleanup(*host, config)
+		lazyjack.Cleanup(*host, config)
 	default:
 		fmt.Printf("Unknown command %q\n", command)
 		os.Exit(1)
