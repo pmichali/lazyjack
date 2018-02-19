@@ -241,7 +241,7 @@ As mentioned above, you should have Orca and the YAML file on each system to be
 provisioned. Since Orca needs to perform privileged operations, you'll need to run this
 as root:
 ```
-   sudo ~/go/bin/orca [options] {init|prepare|up|down|clean}
+   sudo ~/go/bin/orca [options] {init|prepare|up|down|clean|version}
 ```
 
 The commands do the following:
@@ -250,7 +250,7 @@ The commands do the following:
 * **up** - Brings up Kubernetes cluster on the node. Do master first, and then minions.
 * **down** - Tears down the cluster on the node. Do minions first, and then master.
 * **clean** - Reverses the prepare steps performed to clear out settings.
-* **version** - (future) Shows the version of this app.
+* **version** - Shows the version of this app and exits.
 
 Once a cluster is up on the master, you can setup kubectl, as described by the
 KubeAdm init command:
@@ -262,7 +262,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 ### Command Line Options
 ```
-Usage: orca [options] {init|prepare|up|down|clean}
+Usage: orca [options] {init|prepare|up|down|clean|version}
   -alsologtostderr
         log to standard error as well as files
   -config string
@@ -406,7 +406,6 @@ have been corruption of IPTABLES rules.
   * Other tools?
 * Support Calico plugin. Cillium? Contiv? Others?
 * Mocking for UTs to provide better coverage.
-* Add version command.
 * Add per function documentation.
 * Mention on my blog.
 * **Need to rename app, so as to not conflict with other project names (e.g. spinnaker/orca).**

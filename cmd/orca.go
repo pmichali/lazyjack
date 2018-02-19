@@ -12,6 +12,10 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	Version = "1.0.0a"
+)
+
 func init() {
 	flag.Set("logtostderr", "true")
 }
@@ -38,7 +42,7 @@ func FlushLogs() {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] {init|prepare|up|down|clean}\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] {init|prepare|up|down|clean|version}\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 
@@ -59,6 +63,11 @@ func main() {
 		fmt.Printf("ERROR: %s\n\n", err.Error())
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if command == "version" {
+		fmt.Printf("Version: %s\n", Version)
+		os.Exit(0)
 	}
 	cf, err := orca.ValidateConfigFile(*configFile)
 	if err != nil {
