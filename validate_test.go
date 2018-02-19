@@ -363,8 +363,9 @@ func TestBootstrapToken(t *testing.T) {
 			errString: "Token is invalid \"ABCDEF.hasbadcharacters\"",
 		},
 	}
+	ignoreMissing := false
 	for _, tc := range testCases {
-		err := orca.ValidateToken(tc.input)
+		err := orca.ValidateToken(tc.input, ignoreMissing)
 		if err == nil {
 			if tc.errString != "" {
 				t.Errorf("FAILED [%s]: Expected error getting token: %s", tc.name, tc.errString)
@@ -404,8 +405,9 @@ func TestTokenCertificateHash(t *testing.T) {
 			errString: "Token certificate hash is invalid \"123456789012345678901234567890123456789012345678hasbadcharacters\"",
 		},
 	}
+	ignoreMissing := false
 	for _, tc := range testCases {
-		err := orca.ValidateTokenCertHash(tc.input)
+		err := orca.ValidateTokenCertHash(tc.input, ignoreMissing)
 		if err == nil {
 			if tc.errString != "" {
 				t.Errorf("FAILED [%s]: Expected error getting cert hash: %s", tc.name, tc.errString)

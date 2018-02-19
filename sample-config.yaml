@@ -1,19 +1,17 @@
 plugin: bridge
-token: "f4a602.da54979b6542ecba"
-token-cert-hash: "4ffe32519974934d5b0ffa6aa511bf8ca6f57578bab83134d889a8e0b581e998"
 topology:
-    bxb-c2-77:
-        interface: "enp10s0"
+    <master-name>:
+        interface: "<intf-name>"
         opmodes: "master dns64 nat64"
         id: 2
-    bxb-c2-79:
-        interface: "enp10s0"
+    <minion-1-name>:
+        interface: "<intf-name>"
         opmodes: "minion"
         id: 3
-#     bxb-c2-78:
-#         interface: "enp9s0"
-#         opmodes: "minion"
-#         id: 4
+    <minion-2-name>:
+        interface: "<intf-name>"
+        opmodes: "minion"
+        id: 4
 support_net:
     subnet: "fd00:10::"
     v4cidr: "172.18.0.0/16"

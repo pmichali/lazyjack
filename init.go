@@ -25,18 +25,18 @@ func CreateCertKeyArea() error {
 
 // TODO: Create UTs that check syntax of arg strings
 func CreateKeyForCA() error {
-	glog.V(4).Infof("Creating CA key")
+	glog.V(1).Infof("Creating CA key")
 	args := []string{"genrsa", "-out", fmt.Sprintf("%s/%s", CertArea, "ca.key"), "2048"}
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
 		return fmt.Errorf("Unable to create CA key: %s", err.Error())
 	}
-	glog.V(1).Infof("Created CA key")
+	glog.Infof("Created CA key")
 	return nil
 }
 
 func CreateCertificateForCA(n *Node, c *Config) error {
-	glog.V(4).Infof("Creating CA certificate")
+	glog.V(1).Infof("Creating CA certificate")
 	args := []string{
 		"req", "-x509", "-new", "-nodes",
 		"-key", fmt.Sprintf("%s/ca.key", CertArea),
@@ -48,7 +48,7 @@ func CreateCertificateForCA(n *Node, c *Config) error {
 	if err != nil {
 		return fmt.Errorf("Unable to create CA certificate: %s", err.Error())
 	}
-	glog.V(1).Infof("Created CA certificate")
+	glog.Infof("Created CA certificate")
 	return nil
 }
 
@@ -101,8 +101,12 @@ func BuildDigestForCA() (string, error) {
 		return "", fmt.Errorf("Unable to parse digest info for CA key")
 	}
 	hash := strings.TrimSpace(parts[1])
+	err = ValidateTokenCertHash(hash, true)
+	if err != nil {
+		return "", err
+	}
 	glog.V(1).Infof("Built digest for CA (%s)", hash)
-	return hash, err
+	return hash, nil
 }
 
 func BuildCertficateHashForCA() (string, error) {
@@ -125,7 +129,7 @@ func BuildToken() (string, error) {
 		return "", fmt.Errorf("Unable to create shared token: %s", err.Error())
 	}
 	token = strings.TrimSpace(token)
-	err = ValidateToken(token)
+	err = ValidateToken(token, false)
 	if err != nil {
 		return "", fmt.Errorf("Internal error, token is malformed: %s", err.Error())
 	}
@@ -134,7 +138,7 @@ func BuildToken() (string, error) {
 }
 
 func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte {
-	glog.V(4).Infof("Updating %s", file)
+	glog.V(4).Infof("Updating %s contents", file)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	sawPlugin := false
@@ -158,6 +162,14 @@ func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte 
 	return output.Bytes()
 }
 
+func OpenPermissions(name string) error {
+	err := os.Chmod(name, 0777)
+	if err != nil {
+		return fmt.Errorf("Unable to open permissions on %q: %s", name, err.Error())
+	}
+	return nil
+}
+
 func UpdateConfigYAML(file, token, hash string) error {
 	glog.V(1).Infof("Updating %s file", file)
 	contents, err := GetFileContents(file)
@@ -167,6 +179,14 @@ func UpdateConfigYAML(file, token, hash string) error {
 	contents = UpdateConfigYAMLContents(contents, file, token, hash)
 	backup := fmt.Sprintf("%s.bak", file)
 	err = SaveFileContents(contents, file, backup)
+	if err != nil {
+		return err
+	}
+	err = OpenPermissions(file)
+	if err != nil {
+		return err
+	}
+	err = OpenPermissions(backup)
 	if err != nil {
 		return err
 	}

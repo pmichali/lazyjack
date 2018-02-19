@@ -130,8 +130,11 @@ func ValidateOpModesForAllNodes(c *Config) error {
 	return nil
 }
 
-func ValidateToken(token string) error {
+func ValidateToken(token string, ignoreMissing bool) error {
 	if token == "" {
+		if ignoreMissing {
+			return nil
+		}
 		return fmt.Errorf("Missing token in config file")
 	}
 	if len(token) != 23 {
@@ -145,8 +148,11 @@ func ValidateToken(token string) error {
 	}
 }
 
-func ValidateTokenCertHash(certHash string) error {
+func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 	if certHash == "" {
+		if ignoreMissing {
+			return nil
+		}
 		return fmt.Errorf("Missing token certificate hash in config file")
 	}
 	if len(certHash) != 64 {
@@ -163,15 +169,15 @@ func ValidateTokenCertHash(certHash string) error {
 
 // TODO: Validate IPs, subnets, CIDRS are valid and no overlaps
 // TODO: Validate support net v4 subnet > NAT64 subnet
-func ValidateConfigContents(c *Config) error {
+func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	if c == nil {
 		return fmt.Errorf("No configuration loaded")
 	}
-	err := ValidateToken(c.Token)
+	err := ValidateToken(c.Token, ignoreMissing)
 	if err != nil {
 		return err
 	}
-	err = ValidateTokenCertHash(c.TokenCertHash)
+	err = ValidateTokenCertHash(c.TokenCertHash, ignoreMissing)
 	if err != nil {
 		return err
 	}

@@ -178,13 +178,14 @@ func StartKubernetes(n *Node, c *Config) error {
 
 	args := BuildKubeAdmCommand(n, master, c)
 
+	glog.Infof("Starting Kubernetes on %s... (please wait)", n.Name)
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
 		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
 		os.Exit(1)
 	}
 	glog.V(1).Info("Kubernetes %s output: %s", args[0], output)
-	glog.Info("Kubernetes %s successful", args[0])
+	glog.Infof("Kubernetes %s successful", args[0])
 	return nil
 }
 

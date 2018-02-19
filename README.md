@@ -10,6 +10,19 @@ A stretch goal is to automate, as much as possible, of the setup of Kubernetes
 and Istio.
 
 
+## Quick Start Guide
+For the impatient, you can do the following to bring up cluster of two (or more)
+nodes. See below for details on each step.
+
+1. Provision the hardware with OS and the pre-requisite tools.
+2. Install Orca on master and build.
+3. Modify the sample config file using the hosts/interfaces for your topology.
+4. Run `init` command on master.
+5. Copy Orca binary and updated config file to minions.
+6. Run `prepare` on each node.
+7. Run `up` on master, and then on minions.
+
+
 ## A bit about IPv6 and Kubernetes...
 Kubernetes 1.9 has alpha support for IPv6 only (not dual stack) mode of
 operation for pods and services. There are various plugins that have or are
@@ -329,10 +342,13 @@ For each command, there are a series of actions performed...
 * Removes bridge plugin's CNI config file.
 * Removes the br0 interface
 
+
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
 * Relies on the tayga and bind6 containers (as provided by other developers).
-* The `init` command must be run on the master node, and then the updated configuration file copied to minion nodes.
+* The `init` command modifies the specified configuration YAML file. As a result, `init` must be done before copying the config YAML to other nodes.
+* Because the config YAML file is modified by the root user, permissions is set to 777, so that the non-root user can still modify the file.
+
 
 ## Troubleshooting
 This section has some notes on issues seen and resolutions (if any).
@@ -350,15 +366,39 @@ On a related note, you want to make sure that the node does not already have
 incompatible configuration on being interfaces or for routes that will be
 defined.
 
-I did have one case where kube-dns was not coming up, and kube-proxy log was
-showing iptables restore errors saying "iptables-restore v1.6.0: invalid
+I had one case where I could not ping from a pod on one node, to a pod on
+another (but it worked in the reverse direction). Looks like an issue with
+some stray IPTABLES rules. Found out that I could tear everything down, do
+the following commands to flush IPTABLES rules, and then bring everything
+up:
+```
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+sudo iptables -t nat -F
+sudo iptables -t mangle -F
+sudo iptables -F
+sudo iptables -X
+
+sudo ip6tables -P INPUT ACCEPT
+sudo ip6tables -P FORWARD ACCEPT
+sudo ip6tables -P OUTPUT ACCEPT
+sudo ip6tables -t nat -F
+sudo ip6tables -t mangle -F
+sudo ip6tables -F
+sudo ip6tables -X
+```
+
+I had another case where kube-dns was not coming up, and kube-proxy log was
+showing IPTABLES restore errors saying "iptables-restore v1.6.0: invalid
  mask `128' specified". This should be using the ip6tables-restore operation.
 I was unable to find root cause, but did KubeAdm reset, `clean` command,
-fllush iptables rules, and rebooted, and problem was cleared. May have been
-corruption of iptables rules.
+fllush IPTABLES rules (like above), rebooted, and problem was cleared. May
+have been corruption of IPTABLES rules.
 
 
 ## TODOs/Futures
+
 ### Implementation
 * Enhance validation
   * Ensure IP addresses, subnets, and CIDRs are valid.
@@ -392,4 +432,3 @@ corruption of iptables rules.
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
 * Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.
-

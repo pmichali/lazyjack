@@ -70,7 +70,8 @@ func main() {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
-	err = orca.ValidateConfigContents(config)
+	ignoreMissing := (command == "init")
+	err = orca.ValidateConfigContents(config, ignoreMissing)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)
