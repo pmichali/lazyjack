@@ -313,21 +313,24 @@ For each command, there are a series of actions performed...
 * Starts NAT64 container.
 * Adds IPv4 route to NAT64 server on node.
 * Adds management network IP on specified interface.
-* Adds route to DNS64 synthesized network via NAT64 server (based on node).
 * Places management network IP in /etc/hosts, for this hostname.
 * Adds DNS64 support network IP as first nameserver in /etc/resolv.conf.
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
+* Creates KubeAdm configuration file.
+* Adds route to DNS64 synthesized network via NAT64 server (based on node).
+* Adds route to support network for other nodes to access.
 
 ### For the `clean` command
 * Removes drop-in file for kubelet.
 * Removes IP from management interface.
-* Removes route for DNS64 synthesized network.
 * Restores /etc/hosts.
 * Restores /etc/resolv.conf.
+* Removes route to NAT64 server for DNS64 synthesized net.
+* Removes route to support network.
 * Stops and removes DNS64 container.
 * Stops and removes NAT64 container.
 * Removes IPv4 route to NAT64 server.
-* Removes support network.
+* Removes support network on DNS64/NAT64 node.
 
 ### For the `up` command
 * Creates CNI config file for bridge plugin.
@@ -335,7 +338,6 @@ For each command, there are a series of actions performed...
 * Reloaded daemons for services.
 * Restarted kubelet service.
 * Restores CA certificate and Key files.
-* Creates KubeAdm configuration file.
 * On master: Perform KubeAdm init command with config file.
 * On minion: Perform KubeAdm join command using token information.
 
