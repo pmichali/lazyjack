@@ -1,0 +1,14 @@
+# .goreleaser.yml
+builds:
+  - main: ./cmd/lazyjack.go
+    binary: lazyjack
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - i386
+archive:
+  format: tar.gz
+  files:
+    - LICENSE
+    - sample-config.yaml
