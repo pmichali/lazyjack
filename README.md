@@ -15,10 +15,10 @@ For the impatient, you can do the following to bring up cluster of two (or more)
 nodes. See below for details on each step.
 
 1. Provision the hardware with OS and the pre-requisite tools.
-2. Install Lazyjack on master and build.
+2. Install Lazyjack on all systems.
 3. Modify the sample config file using the hosts/interfaces for your topology.
 4. Run `init` command on master.
-5. Copy Lazyjack binary and updated config file to minions.
+5. Copy updated config file to minions.
 6. Run `prepare` on each node.
 7. Run `up` on master, and then on minions.
 
@@ -54,22 +54,32 @@ The following needs to be done, prior to using this tool:
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ installed on the system and environment set up.
   * openssl installed on system (I used 1.0.2g).
-* Obtain Lazyjack and build (see below)
+* Install Lazyjack on each system (see below)
 
 
 ## Preparing Lazyjack
-Use the following command to obtain Lazyjack and place it into your $GOPATH
+The easiest way to install lazyjack is to pull down the latest release. For example:
+```
+mkdir ~/bare-metal
+cd ~/bare-metal
+wget https://github.com/pmichali/lazyjack/releases/download/v1.0.0/lazyjack_1.0.0_linux_amd64.tar.gz
+tar -xzf lazyjack_1.0.0_linux_amd64.tar.gz
+sudo cp lazyjack /usr/local/bin
+```
 
+This will provide the executable and a sample configuration YAML file.
+
+Alternately, you can get the code:
 ```
 go get github.com/pmichali/lazyjack
 cd $GOPATH/src/github.com/pmichali/lazyjack
 ```
 
-Build the code into an executable (yeah, I need to figure this out), and place
-where desired for easy access. For example:
+Build an executable, and place it where desired for easy access. For example:
 
 ```
-go build -o ~/go/bin/lazyjack cmd/lazyjack.go
+go build cmd/lazyjack.go
+sudo cp lazyjack /usr/local/bin/
 ```
 
 Copy this executable, and the associated configuration YAML file (see next section)
