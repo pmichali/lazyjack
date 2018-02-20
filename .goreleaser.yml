@@ -6,9 +6,11 @@ builds:
       - linux
     goarch:
       - amd64
-      - i386
+      - 386
 archive:
   format: tar.gz
   files:
     - LICENSE
     - sample-config.yaml
+sign:
+  artifacts: checksum
