@@ -2,10 +2,63 @@ package lazyjack_test
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
 )
+
+func TestBuildArgsForCAKey(t *testing.T) {
+	args := lazyjack.BuildArgsForCAKey()
+	actual := strings.Join(args, " ")
+	expected := "genrsa -out /tmp/lazyjack/certs/ca.key 2048"
+	if actual != expected {
+		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildArgsForCACert(t *testing.T) {
+	n := &lazyjack.Node{ID: 2}
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+
+	args := lazyjack.BuildArgsForCACert(n, c)
+	actual := strings.Join(args, " ")
+	expected := "req -x509 -new -nodes -key /tmp/lazyjack/certs/ca.key -subj /CN=fd00:100::2 -days 10000 -out /tmp/lazyjack/certs/ca.crt"
+	if actual != expected {
+		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildArgsForX509Cert(t *testing.T) {
+	args := lazyjack.BuildArgsForX509Cert()
+	actual := strings.Join(args, " ")
+	expected := "x509 -pubkey -in /tmp/lazyjack/certs/ca.crt"
+	if actual != expected {
+		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildArgsForRSA(t *testing.T) {
+	args := lazyjack.BuildArgsForRSA()
+	actual := strings.Join(args, " ")
+	expected := "rsa -pubin -in /tmp/lazyjack/certs/ca.x509 -outform der -out /tmp/lazyjack/certs/ca.rsa"
+	if actual != expected {
+		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildArgsForCADigest(t *testing.T) {
+	args := lazyjack.BuildArgsForCADigest()
+	actual := strings.Join(args, " ")
+	expected := "dgst -sha256 -hex /tmp/lazyjack/certs/ca.rsa"
+	if actual != expected {
+		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+	}
+}
 
 func TestUpdateConfigYAMLContents(t *testing.T) {
 	var testCases = []struct {

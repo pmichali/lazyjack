@@ -197,7 +197,7 @@ func FindHostIPForNAT64(c *Config) (string, bool) {
 	return "", false
 }
 
-func CreateRouteToNAT64ServerForDNS64Subnet(node *Node, c *Config) error {
+func CreateRouteToNAT64ServerForDNS64Subnet(node *Node, c *Config) (err error) {
 	var gw string
 	var ok bool
 	dest := c.DNS64.CIDR
@@ -224,8 +224,8 @@ func CreateRouteToNAT64ServerForDNS64Subnet(node *Node, c *Config) error {
 
 func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error) {
 	if !node.IsNAT64Server && !node.IsDNS64Server {
-		dest = c.Support.CIDR
-		gw, ok = FindHostIPForNAT64(c)
+		dest := c.Support.CIDR
+		gw, ok := FindHostIPForNAT64(c)
 		if !ok {
 			return fmt.Errorf("Unable to find node with NAT64 server configured")
 		}

@@ -23,10 +23,13 @@ func CreateCertKeyArea() error {
 	return nil
 }
 
-// TODO: Create UTs that check syntax of arg strings
+func BuildArgsForCAKey() []string {
+	return []string{"genrsa", "-out", fmt.Sprintf("%s/%s", CertArea, "ca.key"), "2048"}
+}
+
 func CreateKeyForCA() error {
 	glog.V(1).Infof("Creating CA key")
-	args := []string{"genrsa", "-out", fmt.Sprintf("%s/%s", CertArea, "ca.key"), "2048"}
+	args := BuildArgsForCAKey()
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
 		return fmt.Errorf("Unable to create CA key: %s", err.Error())
@@ -35,15 +38,19 @@ func CreateKeyForCA() error {
 	return nil
 }
 
-func CreateCertificateForCA(n *Node, c *Config) error {
-	glog.V(1).Infof("Creating CA certificate")
-	args := []string{
+func BuildArgsForCACert(n *Node, c *Config) []string {
+	return []string{
 		"req", "-x509", "-new", "-nodes",
 		"-key", fmt.Sprintf("%s/ca.key", CertArea),
 		"-subj", fmt.Sprintf("/CN=%s%d", c.Mgmt.Prefix, n.ID),
 		"-days", "10000",
 		"-out", fmt.Sprintf("%s/ca.crt", CertArea),
 	}
+}
+
+func CreateCertificateForCA(n *Node, c *Config) error {
+	glog.V(1).Infof("Creating CA certificate")
+	args := BuildArgsForCACert(n, c)
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
 		return fmt.Errorf("Unable to create CA certificate: %s", err.Error())
@@ -52,12 +59,17 @@ func CreateCertificateForCA(n *Node, c *Config) error {
 	return nil
 }
 
-func BuildX509CertForCA() error {
-	glog.V(4).Infof("Building CA X509 certificate")
-	args := []string{
+func BuildArgsForX509Cert() []string {
+	return []string{
 		"x509", "-pubkey",
 		"-in", fmt.Sprintf("%s/ca.crt", CertArea),
 	}
+
+}
+
+func CreateX509CertForCA() error {
+	glog.V(4).Infof("Building CA X509 certificate")
+	args := BuildArgsForX509Cert()
 	output, err := DoExecCommand("openssl", args)
 	if err != nil || len(output) == 0 {
 		return fmt.Errorf("Unable to create X509 cert: %s", err.Error())
@@ -70,14 +82,18 @@ func BuildX509CertForCA() error {
 	return nil
 }
 
-func BuildRSAForCA() error {
-	glog.V(4).Infof("Building RSA key for CA")
-	args := []string{
+func BuildArgsForRSA() []string {
+	return []string{
 		"rsa", "-pubin",
 		"-in", fmt.Sprintf("%s/ca.x509", CertArea),
 		"-outform", "der",
 		"-out", fmt.Sprintf("%s/ca.rsa", CertArea),
 	}
+}
+
+func CreateRSAForCA() error {
+	glog.V(4).Infof("Building RSA key for CA")
+	args := BuildArgsForRSA()
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
 		return fmt.Errorf("Unable to create RSA key for CA: %s", err.Error())
@@ -86,12 +102,16 @@ func BuildRSAForCA() error {
 	return nil
 }
 
-func BuildDigestForCA() (string, error) {
-	glog.V(4).Infof("Building digest for CA")
-	args := []string{
+func BuildArgsForCADigest() []string {
+	return []string{
 		"dgst", "-sha256", "-hex",
 		fmt.Sprintf("%s/ca.rsa", CertArea),
 	}
+}
+
+func CreateDigestForCA() (string, error) {
+	glog.V(4).Infof("Building digest for CA")
+	args := BuildArgsForCADigest()
 	output, err := DoExecCommand("openssl", args)
 	if err != nil {
 		return "", fmt.Errorf("Unable to create CA digest: %s", err.Error())
@@ -109,19 +129,19 @@ func BuildDigestForCA() (string, error) {
 	return hash, nil
 }
 
-func BuildCertficateHashForCA() (string, error) {
-	err := BuildX509CertForCA()
+func CreateCertficateHashForCA() (string, error) {
+	err := CreateX509CertForCA()
 	if err != nil {
 		return "", err
 	}
-	err = BuildRSAForCA()
+	err = CreateRSAForCA()
 	if err != nil {
 		return "", err
 	}
-	return BuildDigestForCA()
+	return CreateDigestForCA()
 }
 
-func BuildToken() (string, error) {
+func CreateToken() (string, error) {
 	glog.V(4).Infof("Creating shared token")
 	args := []string{"token", "generate"}
 	token, err := DoExecCommand("kubeadm", args)
@@ -217,12 +237,12 @@ func Initialize(name string, c *Config, configFile string) {
 		glog.Errorf(err.Error())
 		os.Exit(1)
 	}
-	hash, err := BuildCertficateHashForCA()
+	hash, err := CreateCertficateHashForCA()
 	if err != nil {
 		glog.Errorf(err.Error())
 		os.Exit(1)
 	}
-	token, err := BuildToken()
+	token, err := CreateToken()
 	if err != nil {
 		glog.Errorf(err.Error())
 		os.Exit(1)

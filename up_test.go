@@ -36,7 +36,7 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 		IsMaster: true,
 	}
 	actual := lazyjack.BuildKubeAdmCommand(masterNode, masterNode, c)
-	expected := []string{"init", "--config=/tmp/kubeadm.conf"}
+	expected := []string{"init", "--config=/tmp/lazyjack/kubeadm.conf"}
 
 	if !SlicesEqual(actual, expected) {
 		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
