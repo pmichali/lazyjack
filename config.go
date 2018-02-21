@@ -71,13 +71,13 @@ type Config struct {
 const (
 	SupportNetName = "support_net"
 
-	CertArea           = "/tmp/certs"
+	CertArea           = "/tmp/lazyjack/certs"
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
-	DNS64BaseArea  = "/tmp/bind9"
-	DNS64ConfArea  = "/tmp/bind9/conf"
-	DNS64CacheArea = "/tmp/bind9/cache"
-	DNS64NamedConf = "/tmp/bind9/conf/named.conf"
+	DNS64BaseArea  = "/tmp/lazyjack/bind9"
+	DNS64ConfArea  = "/tmp/lazyjack/bind9/conf"
+	DNS64CacheArea = "/tmp/lazyjack/bind9/cache"
+	DNS64NamedConf = "/tmp/lazyjack/bind9/conf/named.conf"
 
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
@@ -89,7 +89,7 @@ const (
 	EtcResolvConfFile       = "/etc/resolv.conf"
 	EtcResolvConfBackupFile = "/etc/resolv.conf.bak"
 
-	KubeAdmConfFile = "/tmp/kubeadm.conf"
+	KubeAdmConfFile = "/tmp/lazyjack/kubeadm.conf"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {
