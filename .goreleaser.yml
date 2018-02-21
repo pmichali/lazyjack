@@ -14,7 +14,3 @@ archive:
     - sample-config.yaml
 sign:
   artifacts: checksum
-release:
-  github:
-    owner: pmichali
-    name: lazyjack
