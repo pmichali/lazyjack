@@ -325,7 +325,7 @@ For each command, there are a series of actions performed...
 * Create routes for each of the pod networks on other nodes.
 * Reloaded daemons for services.
 * Restarted kubelet service.
-* Restores CA certificate and Key files.
+* On master: Place CA certificate and Key files into Kubernetes area.
 * On master: Perform KubeAdm init command with config file.
 * On minion: Perform KubeAdm join command using token information.
 
