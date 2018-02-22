@@ -68,6 +68,8 @@ func main() {
 	if command == "version" {
 		fmt.Printf("Version: %s\n", Version)
 		os.Exit(0)
+	} else {
+		glog.Infof("Version %s", Version)
 	}
 	cf, err := lazyjack.ValidateConfigFile(*configFile)
 	if err != nil {
