@@ -320,18 +320,6 @@ For each command, there are a series of actions performed...
 * Adds route to DNS64 synthesized network via NAT64 server (based on node).
 * Adds route to support network for other nodes to access.
 
-### For the `clean` command
-* Removes drop-in file for kubelet.
-* Removes IP from management interface.
-* Restores /etc/hosts.
-* Restores /etc/resolv.conf.
-* Removes route to NAT64 server for DNS64 synthesized net.
-* Removes route to support network.
-* Stops and removes DNS64 container.
-* Stops and removes NAT64 container.
-* Removes IPv4 route to NAT64 server.
-* Removes support network on DNS64/NAT64 node.
-
 ### For the `up` command
 * Creates CNI config file for bridge plugin.
 * Create routes for each of the pod networks on other nodes.
@@ -347,6 +335,18 @@ For each command, there are a series of actions performed...
 * Remove routes to other nodes' pod networks.
 * Removes bridge plugin's CNI config file.
 * Removes the br0 interface
+
+### For the `clean` command
+* Removes drop-in file for kubelet.
+* Removes IP from management interface.
+* Restores /etc/hosts.
+* Restores /etc/resolv.conf.
+* Removes route to NAT64 server for DNS64 synthesized net.
+* Removes route to support network.
+* Stops and removes DNS64 container.
+* Stops and removes NAT64 container.
+* Removes IPv4 route to NAT64 server.
+* Removes support network on DNS64/NAT64 node.
 
 
 ## Limitations/Restrictions
