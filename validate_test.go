@@ -55,7 +55,7 @@ func TestValidateCommand(t *testing.T) {
 	}
 }
 
-func TestValidateConfig(t *testing.T) {
+func TestValidateConfigFile(t *testing.T) {
 	// No file specified
 	cf, err := lazyjack.ValidateConfigFile("")
 	if cf != nil {
@@ -481,6 +481,54 @@ func TestGetNetAndMask(t *testing.T) {
 			}
 		} else if err.Error() != tc.errString {
 			t.Errorf("FAILED: [%s] Error mismatch. Expected: %q, got %q", tc.name, tc.errString, err.Error())
+		}
+	}
+}
+
+func TestValidateServiceCIDR(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		cidr        string
+		expectedStr string
+	}{
+		{
+			name:        "Valid",
+			cidr:        "fd00:30::/110",
+			expectedStr: "",
+		},
+		{
+			name:        "Missing mask",
+			cidr:        "fd00:30::",
+			expectedStr: "Unable to parse test CIDR (fd00:30::)",
+		},
+		{
+			name:        "Missing mask value",
+			cidr:        "fd00:30::/",
+			expectedStr: "Unable to parse test CIDR (fd00:30::/)",
+		},
+		{
+			name:        "Bad IP",
+			cidr:        "fd00::30::/110",
+			expectedStr: "Unable to parse test CIDR (fd00::30::/110)",
+		},
+		{
+			name:        "No CIDR",
+			cidr:        "",
+			expectedStr: "Config missing test CIDR",
+		},
+	}
+	for _, tc := range testCases {
+		err := lazyjack.ValidateCIDR("test", tc.cidr)
+		if err == nil {
+			if tc.expectedStr != "" {
+				t.Errorf("FAILED: [%s] No error seen, but expected %s", tc.name, tc.expectedStr)
+			}
+		} else {
+			if tc.expectedStr == "" {
+				t.Errorf("FAILED: [%s] Expected no error, but saw: %s", tc.name, err.Error())
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("FAILED: [%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
+			}
 		}
 	}
 }

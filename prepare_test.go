@@ -9,11 +9,11 @@ import (
 
 func TestKubeletDropInContents(t *testing.T) {
 	c := &lazyjack.Config{
-		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
+		Service: lazyjack.ServiceNetwork{CIDR: "2001:db8::/110"},
 	}
 
 	expected := `[Service]
-Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::100 --cluster-domain=cluster.local"
+Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::a --cluster-domain=cluster.local"
 `
 	actual := lazyjack.CreateKubeletDropInContents(c)
 	if actual.String() != expected {

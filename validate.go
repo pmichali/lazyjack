@@ -168,6 +168,17 @@ func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 	return nil
 }
 
+func ValidateCIDR(which, cidr string) error {
+	if cidr == "" {
+		return fmt.Errorf("Config missing %s CIDR", which)
+	}
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return fmt.Errorf("Unable to parse %s CIDR (%s)", which, cidr)
+	}
+	return nil
+}
+
 func GetNetAndMask(input string) (string, int, error) {
 	_, cidr, err := net.ParseCIDR(input)
 	if err != nil {
@@ -197,6 +208,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 	err = ValidateOpModesForAllNodes(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateCIDR("service network", c.Service.CIDR)
 	if err != nil {
 		return err
 	}

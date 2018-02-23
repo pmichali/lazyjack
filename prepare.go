@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"sort"
@@ -13,9 +14,11 @@ import (
 )
 
 func CreateKubeletDropInContents(c *Config) *bytes.Buffer {
+	ip, _, _ := net.ParseCIDR(c.Service.CIDR) // Already validated
+
 	contents := bytes.NewBufferString("[Service]\n")
-	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%s --cluster-domain=cluster.local\"\n",
-		c.DNS64.ServerIP)
+	// Assumption is that kube-dns will be at address 10 (0xa) in service network
+	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%sa --cluster-domain=cluster.local\"\n", ip)
 	return contents
 }
 
