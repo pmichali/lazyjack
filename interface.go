@@ -113,7 +113,8 @@ func DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error 
 	glog.V(4).Infof("Deleting route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
-		return err
+		glog.V(1).Infof("Skipping - Unable to find interface CIDR %s to determine interface for route delete", supportNetCIDR)
+		return nil
 	}
 	route, err := BuildRoute(dest, gw, index)
 	if err != nil {
@@ -148,7 +149,8 @@ func DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
 	link, err := netlink.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", intf)
+		glog.V(1).Infof("Skipping - Unable to find interface %q to delete route", intf)
+		return nil
 	}
 	index := link.Attrs().Index
 	route, err := BuildRoute(dest, gw, index)

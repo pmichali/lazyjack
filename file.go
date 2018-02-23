@@ -21,7 +21,7 @@ func SaveFileContents(contents []byte, file, backup string) error {
 	glog.V(4).Infof("Saving updated %s", file)
 	err := os.Rename(file, backup)
 	if err != nil {
-		return fmt.Errorf("Unable to save %s to %s", file, backup)
+		return fmt.Errorf("Unable to save %s to %s: %s", file, backup, err.Error())
 	}
 	err = ioutil.WriteFile(file, contents, 0755)
 	if err != nil {
@@ -31,19 +31,6 @@ func SaveFileContents(contents []byte, file, backup string) error {
 				file, err.Error(), backup, err2.Error())
 		}
 		return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, err.Error())
-	}
-	return nil
-}
-
-// TODO: Pull (along with backup variable names
-func RestoreFile(backup, file string) error {
-	glog.V(4).Infof("Restoring %s", file)
-	if _, err := os.Stat(backup); os.IsNotExist(err) {
-		return err
-	}
-	err := os.Rename(backup, file)
-	if err != nil {
-		return err
 	}
 	return nil
 }

@@ -59,7 +59,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 
 	err = RevertEntries(EtcHostsFile, EtcHostsBackupFile)
 	if err != nil {
-		glog.Warning("Unable to revert %s: %s", EtcHostsFile, err.Error())
+		glog.Warningf("Unable to revert %s: %s", EtcHostsFile, err.Error())
 	} else {
 		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
 	}
