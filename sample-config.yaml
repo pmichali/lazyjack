@@ -1,4 +1,7 @@
-plugin: bridge
+# deprecated
+# plugin: bridge
+general:
+    plugin: bridge  # default value
 topology:
     <master-name>:
         interface: "<intf-name>"

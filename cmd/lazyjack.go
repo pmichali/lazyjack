@@ -71,7 +71,7 @@ func main() {
 	} else {
 		glog.Infof("Version %s", Version)
 	}
-	cf, err := lazyjack.ValidateConfigFile(*configFile)
+	cf, err := lazyjack.OpenConfigFile(*configFile)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 		os.Exit(1)

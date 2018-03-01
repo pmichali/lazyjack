@@ -179,6 +179,26 @@ func ValidateCIDR(which, cidr string) error {
 	return nil
 }
 
+// Side effect of storing legacy value into new field.
+func ValidatePlugin(c *Config) error {
+	// Look for legacy plugin first
+	plugin := c.Plugin
+	if plugin == "" {
+		plugin = c.General.Plugin
+	} else {
+		c.General.Plugin = plugin
+	}
+	if plugin == "" {
+		glog.Infof("No plugin specified in config file - defaulting to %q plugin", DefaultPlugin)
+		c.General.Plugin = DefaultPlugin
+		return nil
+	}
+	if plugin != "bridge" {
+		return fmt.Errorf("Plugin %q not supported", plugin)
+	}
+	return nil
+}
+
 func GetNetAndMask(input string) (string, int, error) {
 	_, cidr, err := net.ParseCIDR(input)
 	if err != nil {
@@ -195,11 +215,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	if c == nil {
 		return fmt.Errorf("No configuration loaded")
 	}
-	err := ValidateToken(c.Token, ignoreMissing)
+	err := ValidateToken(c.General.Token, ignoreMissing)
 	if err != nil {
 		return err
 	}
-	err = ValidateTokenCertHash(c.TokenCertHash, ignoreMissing)
+	err = ValidateTokenCertHash(c.General.TokenCertHash, ignoreMissing)
 	if err != nil {
 		return err
 	}
@@ -213,6 +233,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = ValidateCIDR("service network", c.Service.CIDR)
+	if err != nil {
+		return err
+	}
+
+	err = ValidatePlugin(c)
 	if err != nil {
 		return err
 	}
@@ -250,7 +275,7 @@ func LoadConfig(cf io.ReadCloser) (*Config, error) {
 	return config, nil
 }
 
-func ValidateConfigFile(configFile string) (io.ReadCloser, error) {
+func OpenConfigFile(configFile string) (io.ReadCloser, error) {
 	glog.V(1).Infof("Reading configuration file %q", configFile)
 
 	cf, err := os.Open(configFile)

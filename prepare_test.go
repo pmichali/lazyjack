@@ -377,7 +377,9 @@ func TestFindHostIPForNAT64(t *testing.T) {
 
 func TestKubeAdmConfigContents(t *testing.T) {
 	c := &lazyjack.Config{
-		Token: "56cdce.7b18ad347f3de81c",
+		General: lazyjack.GeneralSettings{
+			Token: "56cdce.7b18ad347f3de81c",
+		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
 		},

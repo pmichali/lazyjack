@@ -55,20 +55,26 @@ type Node struct {
 	IsNAT64Server  bool
 }
 
-type Config struct {
+type GeneralSettings struct {
 	Plugin        string `yaml:"plugin"`
-	Token         string `yaml:"token"`
-	TokenCertHash string `yaml:"token-cert-hash"`
-	Topology      map[string]Node
-	Support       SupportNetwork    `yaml:"support_net"`
-	Mgmt          ManagementNetwork `yaml:"mgmt_net"`
-	Pod           PodNetwork        `yaml:"pod_net"`
-	Service       ServiceNetwork    `yaml:"service_net"`
-	NAT64         NAT64Config       `yaml:"nat64"`
-	DNS64         DNS64Config       `yaml:"dns64"`
+	Token         string `yaml:"token"`           // Internal
+	TokenCertHash string `yaml:"token-cert-hash"` // Internal
+}
+
+type Config struct {
+	Plugin   string          `yaml:"plugin"` // Deprecated
+	General  GeneralSettings `yaml:"general"`
+	Topology map[string]Node
+	Support  SupportNetwork    `yaml:"support_net"`
+	Mgmt     ManagementNetwork `yaml:"mgmt_net"`
+	Pod      PodNetwork        `yaml:"pod_net"`
+	Service  ServiceNetwork    `yaml:"service_net"`
+	NAT64    NAT64Config       `yaml:"nat64"`
+	DNS64    DNS64Config       `yaml:"dns64"`
 }
 
 const (
+	DefaultPlugin = "bridge"
 	SupportNetName = "support_net"
 
 	CertArea           = "/tmp/lazyjack/certs"

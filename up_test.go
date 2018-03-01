@@ -21,8 +21,10 @@ func SlicesEqual(a, b []string) bool {
 
 func TestBuildKubeAdmCommand(t *testing.T) {
 	c := &lazyjack.Config{
-		Token:         "<valid-token-here>",
-		TokenCertHash: "<valid-ca-certificate-hash-here>",
+		General: lazyjack.GeneralSettings{
+			Token:         "<valid-token-here>",
+			TokenCertHash: "<valid-ca-certificate-hash-here>",
+		},
 		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "fd00:100::",
 		},

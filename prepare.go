@@ -56,7 +56,7 @@ apiServerExtraArgs:
 	fmt.Fprintf(contents, "networking:\n")
 	fmt.Fprintf(contents, "  serviceSubnet: %q\n", c.Service.CIDR)
 	fmt.Fprintf(contents, "nodeName: %s\n", n.Name)
-	fmt.Fprintf(contents, "token: %q\n", c.Token)
+	fmt.Fprintf(contents, "token: %q\n", c.General.Token)
 	fmt.Fprintf(contents, trailer)
 	return contents
 }

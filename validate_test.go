@@ -57,7 +57,7 @@ func TestValidateCommand(t *testing.T) {
 
 func TestValidateConfigFile(t *testing.T) {
 	// No file specified
-	cf, err := lazyjack.ValidateConfigFile("")
+	cf, err := lazyjack.OpenConfigFile("")
 	if cf != nil {
 		t.Errorf("Did not expect to have config, with empty filename")
 	}
@@ -66,7 +66,7 @@ func TestValidateConfigFile(t *testing.T) {
 	}
 
 	// File does not exist
-	cf, err = lazyjack.ValidateConfigFile("non-existing-file")
+	cf, err = lazyjack.OpenConfigFile("non-existing-file")
 	if cf != nil {
 		t.Errorf("Did not expect to have config, with non-existing filename")
 	}
@@ -530,5 +530,60 @@ func TestValidateServiceCIDR(t *testing.T) {
 				t.Errorf("FAILED: [%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
 			}
 		}
+	}
+}
+
+func TestValidatePlugin(t *testing.T) {
+	// Try valid plugin
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Plugin: "bridge",
+		},
+	}
+	err := lazyjack.ValidatePlugin(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected valid plugin selection to work: %s", err.Error())
+	}
+
+	// Try invalid plugin
+	c = &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Plugin: "bogus-plugin",
+		},
+	}
+	err = lazyjack.ValidatePlugin(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected invalid  plugin selection to fail: %s", c.General.Plugin)
+	}
+
+	// Try legacy plugin
+	c = &lazyjack.Config{
+		Plugin: "bridge",
+	}
+	err = lazyjack.ValidatePlugin(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected valid legacy plugin selection to work: %s", err.Error())
+	}
+	if c.General.Plugin != "bridge" {
+		t.Errorf("FAILED: Expected legacy plugin to be stored in new field. See %q", c.General.Plugin)
+	}
+
+	// Try invalid legacy plugin
+	c = &lazyjack.Config{
+		Plugin: "bogus-legacy-plugin",
+	}
+	err = lazyjack.ValidatePlugin(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected invalid legacy plugin selection to fail: %s", c.Plugin)
+	}
+
+	// Try no plugin specified
+	c = &lazyjack.Config{}
+	err = lazyjack.ValidatePlugin(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected config without plugin to work: %s", err.Error())
+	}
+	if c.General.Plugin != "bridge" {
+		t.Errorf("FAILED: Expected default plugin to be used. See %q", c.General.Plugin)
 	}
 }

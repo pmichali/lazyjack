@@ -68,11 +68,11 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	} else {
 		args = []string{
 			"join",
-			"--token", c.Token,
+			"--token", c.General.Token,
 			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID),
 			// "--discovery-token-unsafe-skip-ca-verification",
 			"--discovery-token-ca-cert-hash",
-			fmt.Sprintf("sha256:%s", c.TokenCertHash),
+			fmt.Sprintf("sha256:%s", c.General.TokenCertHash),
 		}
 	}
 	return args
