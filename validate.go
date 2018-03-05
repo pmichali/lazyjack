@@ -32,15 +32,6 @@ func ValidateHost(host string, config *Config) error {
 	return nil
 }
 
-func contains(ids []int, id int) bool {
-	for _, i := range ids {
-		if i == id {
-			return true
-		}
-	}
-	return false
-}
-
 func ValidateUniqueIDs(c *Config) error {
 	// Ensure no duplicate IDs
 	IDs := make(map[int]string)
@@ -160,9 +151,7 @@ func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 		return fmt.Errorf("Invalid token certificate hash length (%d)", len(certHash))
 	}
 	hashRE := regexp.MustCompile("^[a-fA-F0-9]{64}$")
-	if hashRE.MatchString(certHash) {
-		return nil
-	} else {
+	if !hashRE.MatchString(certHash) {
 		return fmt.Errorf("Token certificate hash is invalid %q", certHash)
 	}
 	return nil
@@ -209,7 +198,27 @@ func GetNetAndMask(input string) (string, int, error) {
 	return net, mask, nil
 }
 
-// TODO: Validate IPs, subnets, CIDRS are valid and no overlaps
+// TODO: Validate n overlaps in CIDRs
+func CalculateDerivedFields(c *Config) error {
+	// Calculate derived fields
+	var err error
+	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid management network CIDR: %s", err.Error())
+	}
+
+	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid support network CIDR: %s", err.Error())
+	}
+
+	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
+	if err != nil {
+		return fmt.Errorf("Invalid DNS64 CIDR: %s", err.Error())
+	}
+	return nil
+}
+
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	if c == nil {
@@ -242,20 +251,9 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 
-	// Calculate derived fields
-	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
+	err = CalculateDerivedFields(c)
 	if err != nil {
-		return fmt.Errorf("Invalid management network CIDR: %s", err.Error())
-	}
-
-	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
-	if err != nil {
-		return fmt.Errorf("Invalid support network CIDR: %s", err.Error())
-	}
-
-	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
-	if err != nil {
-		return fmt.Errorf("Invalid DNS64 CIDR: %s", err.Error())
+		return err
 	}
 
 	// FUTURE: Check no overlapping management/support/pod networks, validate IPs
