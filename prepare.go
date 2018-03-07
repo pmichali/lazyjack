@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -26,11 +27,12 @@ func CreateKubeletDropInContents(c *Config) *bytes.Buffer {
 func CreateKubeletDropInFile(c *Config) error {
 	contents := CreateKubeletDropInContents(c)
 
-	err := os.MkdirAll(KubeletSystemdArea, 0755)
+	err := os.MkdirAll(c.General.SystemdArea, 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create kubelet drop-in file: %s", err.Error())
+		return fmt.Errorf("Unable to create area for kubelet drop-in file: %s", err.Error())
 	}
-	err = ioutil.WriteFile(KubeletDropInFile, contents.Bytes(), 0755)
+	dropIn := filepath.Join(c.General.SystemdArea, KubeletDropInFile)
+	err = ioutil.WriteFile(dropIn, contents.Bytes(), 0755)
 	if err == nil {
 		glog.V(1).Infof("Created kubelet drop-in file")
 	}
@@ -64,7 +66,8 @@ apiServerExtraArgs:
 func CreateKubeAdmConfigFile(node *Node, c *Config) error {
 	contents := CreateKubeAdmConfigContents(node, c)
 
-	err := ioutil.WriteFile(KubeAdmConfFile, contents.Bytes(), 0755)
+	file := filepath.Join(c.General.WorkArea, KubeAdmConfFile)
+	err := ioutil.WriteFile(file, contents.Bytes(), 0755)
 	if err == nil {
 		glog.V(1).Infof("Created %s file", KubeAdmConfFile)
 	}
@@ -132,18 +135,21 @@ func UpdateHostsInfo(contents []byte, n []NodeInfo) []byte {
 }
 
 func AddHostEntries(c *Config) error {
-	glog.V(1).Infof("Preparing %s file", EtcHostsFile)
+	file := filepath.Join(c.General.EtcArea, EtcHostsFile)
+	backup := filepath.Join(c.General.EtcArea, EtcHostsBackupFile)
+
+	glog.V(1).Infof("Preparing %s file", file)
 	nodes := BuildNodeInfo(c)
-	contents, err := GetFileContents(EtcHostsFile)
+	contents, err := GetFileContents(file)
 	if err != nil {
 		return err
 	}
 	contents = UpdateHostsInfo(contents, nodes)
-	err = SaveFileContents(contents, EtcHostsFile, EtcHostsBackupFile)
+	err = SaveFileContents(contents, file, backup)
 	if err != nil {
 		return err
 	}
-	glog.Infof("Prepared %s file", EtcHostsFile)
+	glog.Infof("Prepared %s file", file)
 	return nil
 }
 
@@ -177,17 +183,19 @@ func UpdateResolvConfInfo(contents []byte, ns string) []byte {
 }
 
 func AddResolvConfEntry(c *Config) error {
-	glog.V(1).Infof("Preparing %s file", EtcResolvConfFile)
-	contents, err := GetFileContents(EtcResolvConfFile)
+	file := filepath.Join(c.General.EtcArea, EtcResolvConfFile)
+	backup := filepath.Join(c.General.EtcArea, EtcResolvConfBackupFile)
+	glog.V(1).Infof("Preparing %s file", file)
+	contents, err := GetFileContents(file)
 	if err != nil {
 		return err
 	}
 	contents = UpdateResolvConfInfo(contents, c.DNS64.ServerIP)
-	err = SaveFileContents(contents, EtcResolvConfFile, EtcResolvConfBackupFile)
+	err = SaveFileContents(contents, file, backup)
 	if err != nil {
 		return err
 	}
-	glog.Infof("Prepared %s file", EtcResolvConfFile)
+	glog.Infof("Prepared %s file", file)
 	return nil
 }
 

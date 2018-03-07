@@ -22,6 +22,7 @@ func TestCreateCertKeyArea(t *testing.T) {
 
 func TestFailureToCreateCertKeyArea(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
+
 	// Make it not readable, so that it cannot be removed
 	err := os.MkdirAll(basePath, 0400)
 	if err != nil {
@@ -176,8 +177,9 @@ func TestFailingCreateDigestForCA(t *testing.T) {
 
 func TestCreatingAllCertsAndKeys(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(basePath, t)
-	defer HelperCleanupArea(basePath, t)
+	certArea := filepath.Join(basePath, lazyjack.CertArea)
+	HelperSetupArea(certArea, t)
+	defer HelperCleanupArea(certArea, t)
 
 	err := lazyjack.CreateKeyForCA(basePath)
 	if err != nil {

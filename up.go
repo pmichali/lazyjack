@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/golang/glog"
 )
@@ -64,7 +65,8 @@ func RestartKubeletService() error {
 func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	var args []string
 	if n.IsMaster {
-		args = []string{"init", fmt.Sprintf("--config=%s", KubeAdmConfFile)}
+		file := filepath.Join(c.General.WorkArea, KubeAdmConfFile)
+		args = []string{"init", fmt.Sprintf("--config=%s", file)}
 	} else {
 		args = []string{
 			"join",

@@ -2,6 +2,9 @@ package lazyjack_test
 
 import (
 	"bytes"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
@@ -18,6 +21,39 @@ Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::a --cluster-domain=cluster
 	actual := lazyjack.CreateKubeletDropInContents(c)
 	if actual.String() != expected {
 		t.Errorf("Kubelet drop-in contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	}
+}
+
+func TestCreateKubeletDropInFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		Service: lazyjack.ServiceNetwork{CIDR: "2001:db8::/110"},
+		General: lazyjack.GeneralSettings{SystemdArea: basePath},
+	}
+
+	err := lazyjack.CreateKubeletDropInFile(c)
+	if err != nil {
+		t.Errorf("FAILURE: Expected to be able to create drop-in file: %s", err.Error())
+	}
+}
+
+func TestFailureToCreateKubeletDropInFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	HelperMakeReadOnly(basePath, t)
+	c := &lazyjack.Config{
+		Service: lazyjack.ServiceNetwork{CIDR: "2001:db8::/110"},
+		General: lazyjack.GeneralSettings{SystemdArea: filepath.Join(basePath, "subdir")},
+	}
+
+	err := lazyjack.CreateKubeletDropInFile(c)
+	if err == nil {
+		t.Errorf("FAILURE: Expected not to be able to create area for drop-in file")
 	}
 }
 
@@ -119,6 +155,44 @@ func TestBuildNodeInfo(t *testing.T) {
 	}
 	if ni[2] != expected3rd {
 		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected3rd, ni[2])
+	}
+}
+
+func TestAddHostEntries(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID: 10,
+			},
+			"minion": {
+				ID: 20,
+			},
+			"alpha": {
+				ID: 30,
+			},
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+		General: lazyjack.GeneralSettings{
+			EtcArea: basePath,
+		},
+	}
+
+	// Make a file to read
+	filename := filepath.Join(basePath, lazyjack.EtcHostsFile)
+	err := ioutil.WriteFile(filename, []byte("# empty file"), 0777)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create hosts file for test")
+	}
+
+	err = lazyjack.AddHostEntries(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to update hosts file: %s", err.Error())
 	}
 }
 
@@ -331,6 +405,31 @@ nameserver 8.8.8.8
 
 }
 
+func TestAddResolvConfEntry(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
+		General: lazyjack.GeneralSettings{
+			EtcArea: basePath,
+		},
+	}
+
+	// Make a file to read
+	filename := filepath.Join(basePath, lazyjack.EtcResolvConfFile)
+	err := ioutil.WriteFile(filename, []byte("# empty file"), 0777)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
+	}
+
+	err = lazyjack.AddResolvConfEntry(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to update resolv.conf file: %s", err.Error())
+	}
+}
+
 func TestFindHostIPForNAT64(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
@@ -412,5 +511,63 @@ apiServerExtraArgs:
 	actual := lazyjack.CreateKubeAdmConfigContents(n, c)
 	if actual.String() != expected {
 		t.Errorf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	}
+}
+
+func TestCreateKubeAdmConfFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Token:    "56cdce.7b18ad347f3de81c",
+			WorkArea: basePath,
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+
+	err := lazyjack.CreateKubeAdmConfigFile(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create KubeAdm config file: %s", err.Error())
+	}
+}
+
+func TestFailingCreateKubeAdmConfFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Token:    "56cdce.7b18ad347f3de81c",
+			WorkArea: basePath,
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+
+	HelperMakeReadOnly(basePath, t)
+
+	err := lazyjack.CreateKubeAdmConfigFile(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to create KubeAdm config file")
 	}
 }

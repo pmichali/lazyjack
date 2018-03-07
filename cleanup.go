@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/golang/glog"
 )
@@ -21,29 +22,31 @@ func RevertConfigInfo(contents []byte, file string) []byte {
 	return output.Bytes()
 }
 
-func RevertEntries(file, backup string) error {
+func RevertEntries(file, backup string) {
 	glog.V(4).Infof("Cleaning %s file", file)
 	contents, err := GetFileContents(file)
 	if err != nil {
-		return err
+		glog.Warningf("Unable to read file %s to revert: %s", file, err.Error())
+		return
 	}
 	contents = RevertConfigInfo(contents, file)
 	err = SaveFileContents(contents, file, backup)
 	if err != nil {
-		return err
+		glog.Warningf("Unable to revert %s: %s", file, err.Error())
+		return
 	}
-	glog.V(1).Infof("Cleaned %s file", file)
-	return nil
+	glog.V(4).Infof("Restored %s contents", file)
 }
 
 func CleanupClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Cleaning general settings")
-	err := os.Remove(KubeletDropInFile)
+	file := filepath.Join(c.General.SystemdArea, KubeletDropInFile)
+	err := os.Remove(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			glog.V(4).Info("No kubelet drop-in file to remove")
 		} else {
-			glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", KubeletDropInFile, err.Error())
+			glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
 		}
 	} else {
 		glog.V(4).Info("Removed kubelet drop-in file")
@@ -57,19 +60,13 @@ func CleanupClusterNode(node *Node, c *Config) {
 		glog.V(4).Info("Removed IP address from management interface")
 	}
 
-	err = RevertEntries(EtcHostsFile, EtcHostsBackupFile)
-	if err != nil {
-		glog.Warningf("Unable to revert %s: %s", EtcHostsFile, err.Error())
-	} else {
-		glog.V(4).Infof("Restored %s contents", EtcHostsFile)
-	}
+	file = filepath.Join(c.General.EtcArea, EtcHostsFile)
+	backup := filepath.Join(c.General.EtcArea, EtcHostsBackupFile)
+	RevertEntries(file, backup)
 
-	err = RevertEntries(EtcResolvConfFile, EtcResolvConfBackupFile)
-	if err != nil {
-		glog.Warningf("Unable to restore %s: %s", EtcResolvConfFile, err.Error())
-	} else {
-		glog.V(4).Infof("Restored %s contents", EtcResolvConfFile)
-	}
+	file = filepath.Join(c.General.EtcArea, EtcResolvConfFile)
+	backup = filepath.Join(c.General.EtcArea, EtcResolvConfBackupFile)
+	RevertEntries(file, backup)
 
 	dest := c.DNS64.CIDR
 	var gw string

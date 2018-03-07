@@ -219,8 +219,10 @@ func CalculateDerivedFields(c *Config) error {
 	return nil
 }
 
-func SetupBaseAreas(work string, c *Config) {
+func SetupBaseAreas(work, systemd, etc string, c *Config) {
 	c.General.WorkArea = work
+	c.General.SystemdArea = systemd
+	c.General.EtcArea = etc
 }
 
 // TODO: Validate support net v4 subnet > NAT64 subnet
@@ -260,7 +262,7 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 
-	SetupBaseAreas(WorkArea, c)
+	SetupBaseAreas(WorkArea, KubeletSystemdArea, EtcArea, c)
 
 	// FUTURE: Check no overlapping management/support/pod networks, validate IPs
 	glog.V(1).Info("Configuration is valid")

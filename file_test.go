@@ -18,7 +18,7 @@ func TempFileName(area, suffix string) string {
 }
 
 func HelperSetupArea(basePath string, t *testing.T) {
-	err := lazyjack.CreateCertKeyArea(basePath)
+	err := os.MkdirAll(basePath, 0700)
 	if err != nil {
 		t.Fatalf("ERROR: unable to setup area %q for test: %s", basePath, err.Error())
 	}
@@ -28,6 +28,13 @@ func HelperCleanupArea(basePath string, t *testing.T) {
 	err := os.RemoveAll(basePath)
 	if err != nil {
 		t.Fatalf("ERROR: Test cleanup failure: %s", err.Error())
+	}
+}
+
+func HelperMakeReadOnly(basePath string, t *testing.T) {
+	err := os.Chmod(basePath, 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to make area read only for test")
 	}
 }
 

@@ -60,6 +60,8 @@ type GeneralSettings struct {
 	Token         string `yaml:"token"`           // Internal
 	TokenCertHash string `yaml:"token-cert-hash"` // Internal
 	WorkArea      string // Internal
+	SystemdArea   string // Internal
+	EtcArea       string // Internal
 }
 
 type Config struct {
@@ -80,6 +82,7 @@ const (
 
 	WorkArea           = "/tmp/lazyjack"
 	CertArea           = "certs"
+	EtcArea            = "/etc"
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
 	DNS64BaseArea  = "/tmp/lazyjack/bind9"
@@ -88,16 +91,16 @@ const (
 	DNS64NamedConf = "/tmp/lazyjack/bind9/conf/named.conf"
 
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
-	KubeletDropInFile  = "/etc/systemd/system/kubelet.service.d/20-extra-dns-args.conf"
+	KubeletDropInFile  = "20-extra-dns-args.conf"
 
 	CNIConfArea = "/etc/cni/net.d"
 
-	EtcHostsFile            = "/etc/hosts"
-	EtcHostsBackupFile      = "/etc/hosts.bak"
-	EtcResolvConfFile       = "/etc/resolv.conf"
-	EtcResolvConfBackupFile = "/etc/resolv.conf.bak"
+	EtcHostsFile            = "hosts"
+	EtcHostsBackupFile      = "hosts.bak"
+	EtcResolvConfFile       = "resolv.conf"
+	EtcResolvConfBackupFile = "resolv.conf.bak"
 
-	KubeAdmConfFile = "/tmp/lazyjack/kubeadm.conf"
+	KubeAdmConfFile = "kubeadm.conf"
 )
 
 func ParseConfig(configReader io.Reader) (*Config, error) {

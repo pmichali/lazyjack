@@ -2,6 +2,7 @@ package lazyjack
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/golang/glog"
 )
@@ -71,12 +72,13 @@ func TearDown(name string, c *Config) {
 		glog.Warningf("Unable to reset cluster: %s", err.Error())
 	}
 
-	err = os.Remove(KubeAdmConfFile)
+	file := filepath.Join(c.General.WorkArea, KubeAdmConfFile)
+	err = os.Remove(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			glog.V(1).Info("Skipping - No kubeadm config file to remove")
 		} else {
-			glog.Warningf("Unable to remove kubeadm config file (%s): %s", KubeAdmConfFile, err.Error())
+			glog.Warningf("Unable to remove kubeadm config file (%s): %s", file, err.Error())
 		}
 	} else {
 		glog.V(1).Info("Removed kubeadm config file")
