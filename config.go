@@ -59,6 +59,7 @@ type GeneralSettings struct {
 	Plugin        string `yaml:"plugin"`
 	Token         string `yaml:"token"`           // Internal
 	TokenCertHash string `yaml:"token-cert-hash"` // Internal
+	WorkArea      string // Internal
 }
 
 type Config struct {
@@ -74,10 +75,11 @@ type Config struct {
 }
 
 const (
-	DefaultPlugin = "bridge"
+	DefaultPlugin  = "bridge"
 	SupportNetName = "support_net"
 
-	CertArea           = "/tmp/lazyjack/certs"
+	WorkArea           = "/tmp/lazyjack"
+	CertArea           = "certs"
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
 	DNS64BaseArea  = "/tmp/lazyjack/bind9"

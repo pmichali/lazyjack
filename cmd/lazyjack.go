@@ -97,7 +97,11 @@ func main() {
 
 	switch command {
 	case "init":
-		lazyjack.Initialize(*host, config, *configFile)
+		err := lazyjack.Initialize(*host, config, *configFile)
+		if err != nil {
+			glog.Errorf(err.Error())
+			os.Exit(1)
+		}
 	case "prepare":
 		lazyjack.Prepare(*host, config)
 	case "up":
