@@ -22,20 +22,21 @@ func RevertConfigInfo(contents []byte, file string) []byte {
 	return output.Bytes()
 }
 
-func RevertEntries(file, backup string) {
+func RevertEntries(file, backup string) error {
 	glog.V(4).Infof("Cleaning %s file", file)
 	contents, err := GetFileContents(file)
 	if err != nil {
 		glog.Warningf("Unable to read file %s to revert: %s", file, err.Error())
-		return
+		return err
 	}
 	contents = RevertConfigInfo(contents, file)
 	err = SaveFileContents(contents, file, backup)
 	if err != nil {
 		glog.Warningf("Unable to revert %s: %s", file, err.Error())
-		return
+		return err
 	}
 	glog.V(4).Infof("Restored %s contents", file)
+	return nil
 }
 
 func CleanupClusterNode(node *Node, c *Config) {

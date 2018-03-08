@@ -90,6 +90,72 @@ func TestFailingEnsureCNIAreaExists(t *testing.T) {
 	}
 }
 
+func TestCopyFile(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	dstArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(dstArea, t)
+	defer HelperCleanupArea(dstArea, t)
+
+	// Create a valid source file
+	filename := filepath.Join(srcArea, "foo")
+	err := ioutil.WriteFile(filename, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	err = lazyjack.CopyFile("foo", srcArea, dstArea)
+	if err != nil {
+		t.Errorf("FAILURE: Expected to be able to copy file: %s", err.Error())
+	}
+}
+
+func TestCopyFileFailures(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	dstArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(dstArea, t)
+	defer HelperCleanupArea(dstArea, t)
+
+	// No source file...
+	err := lazyjack.CopyFile("foo", srcArea, dstArea)
+	if err == nil {
+		t.Errorf("FAILURE: Expected not to be able to copy non-existing source file")
+	}
+	expected := "Unable to open source file \"foo\":"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+	}
+
+	// Create a valid source file
+	filename := filepath.Join(srcArea, "foo")
+	err = ioutil.WriteFile(filename, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	// Create a file that is read-only, so that it cannot be overwritten
+	filename = filepath.Join(dstArea, "foo")
+	err = ioutil.WriteFile(filename, []byte("# empty file"), 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create dest file for test")
+	}
+
+	// Unable to copy to dest...
+	err = lazyjack.CopyFile("foo", srcArea, dstArea)
+	if err == nil {
+		t.Errorf("FAILURE: Expected not to be able to copy non-existing source file")
+	}
+	expected = "Unable to open destination file \"foo\":"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+	}
+}
+
 func TestPlaceCertificateAndKeyForCA(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	srcPath := filepath.Join(basePath, lazyjack.CertArea)
@@ -202,4 +268,40 @@ func TestFailingPlaceCertificateAndKeyForCAMissingCrtFile(t *testing.T) {
 	if err == nil {
 		t.Errorf("FAILED: Expected missing ca.crt file for copy")
 	}
+}
+
+func TestDetermineMasterNode(t *testing.T) {
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMaster: false,
+			},
+			"master": {
+				IsMaster: true,
+			},
+			"minion2": {
+				IsMaster: false,
+			},
+		},
+	}
+	n := lazyjack.DetermineMasterNode(c)
+	if n == nil {
+		t.Errorf("FAILED: Expected there to be a master node")
+	}
+
+	c = &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMaster: false,
+			},
+			"minion2": {
+				IsMaster: false,
+			},
+		},
+	}
+	n = lazyjack.DetermineMasterNode(c)
+	if n != nil {
+		t.Errorf("FAILED: Expected there NOT to be a master node")
+	}
+
 }

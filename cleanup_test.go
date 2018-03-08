@@ -2,6 +2,10 @@ package lazyjack_test
 
 import (
 	"bytes"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
@@ -157,4 +161,58 @@ nameserver 8.8.8.8
 		}
 	}
 
+}
+
+func TestRevertEntries(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	// Create a valid source file
+	src := filepath.Join(srcArea, "foo")
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+	backup := filepath.Join(srcArea, "foo.back")
+
+	err = lazyjack.RevertEntries(src, backup)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to restore entry: %s", err.Error())
+	}
+}
+
+func TestFailingRevertEntries(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	src := filepath.Join(srcArea, "foo")
+	backup := filepath.Join(srcArea, "foo.bak")
+
+	err := lazyjack.RevertEntries(src, backup)
+	if err == nil {
+		t.Errorf("FAILED: Expected to NOT be able to restore entry - missing source")
+	}
+	expected := "Unable to read"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+	}
+
+	// Create a valid source file
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	// Use directory as backup file, so rename fails
+	backup = srcArea
+	err = lazyjack.RevertEntries(src, backup)
+	if err == nil {
+		t.Errorf("FAILED: Expected to NOT be able to restore entry - read-only backup")
+	}
+	expected = "Unable to save"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+	}
 }
