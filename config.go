@@ -62,6 +62,8 @@ type GeneralSettings struct {
 	WorkArea      string // Internal
 	SystemdArea   string // Internal
 	EtcArea       string // Internal
+	CNIArea       string // Internal
+	K8sCertArea   string // Internal
 }
 
 type Config struct {
@@ -82,19 +84,19 @@ const (
 
 	WorkArea           = "/tmp/lazyjack"
 	CertArea           = "certs"
-	EtcArea            = "/etc"
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
-	DNS64BaseArea  = "/tmp/lazyjack/bind9"
-	DNS64ConfArea  = "/tmp/lazyjack/bind9/conf"
-	DNS64CacheArea = "/tmp/lazyjack/bind9/cache"
-	DNS64NamedConf = "/tmp/lazyjack/bind9/conf/named.conf"
+	DNS64BaseArea  = "bind9"
+	DNS64ConfArea  = "conf"
+	DNS64CacheArea = "cache"
+	DNS64NamedConf = "named.conf"
 
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "20-extra-dns-args.conf"
 
 	CNIConfArea = "/etc/cni/net.d"
 
+	EtcArea                 = "/etc"
 	EtcHostsFile            = "hosts"
 	EtcHostsBackupFile      = "hosts.bak"
 	EtcResolvConfFile       = "resolv.conf"

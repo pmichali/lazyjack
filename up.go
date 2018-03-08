@@ -9,12 +9,12 @@ import (
 	"github.com/golang/glog"
 )
 
-func EnsureCNIAreaExists() error {
-	err := os.RemoveAll(CNIConfArea)
+func EnsureCNIAreaExists(area string) error {
+	err := os.RemoveAll(area)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(CNIConfArea, 0755)
+	err = os.MkdirAll(area, 0755)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func EnsureCNIAreaExists() error {
 
 func SetupForPlugin(node *Node, c *Config) {
 	glog.V(1).Infof("Setting up %s plugin", c.Plugin)
-	err := EnsureCNIAreaExists()
+	err := EnsureCNIAreaExists(c.General.CNIArea)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
@@ -82,13 +82,13 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 
 func CopyFile(name, src, dst string) (err error) {
 	glog.V(4).Infof("Copying %s/%s to %s/%s", src, name, dst, name)
-	s, err := os.Open(fmt.Sprintf("%s/%s", src, name))
+	s, err := os.Open(filepath.Join(src, name))
 	if err != nil {
 		return fmt.Errorf("Unable to open source file %q: %s", name, err.Error())
 	}
 	defer s.Close()
 
-	d, err := os.Create(fmt.Sprintf("%s/%s", dst, name))
+	d, err := os.Create(filepath.Join(dst, name))
 	if err != nil {
 		return fmt.Errorf("Unable to open destination file %q: %s", name, err.Error())
 	}
@@ -110,17 +110,18 @@ func CopyFile(name, src, dst string) (err error) {
 	return
 }
 
-func PlaceCertificateAndKeyForCA() error {
+func PlaceCertificateAndKeyForCA(workBase, dst string) error {
 	glog.V(1).Infof("Copying certificate and key to Kuberentes area")
-	err := os.MkdirAll(KubernetesCertArea, 0755)
+	src := filepath.Join(workBase, CertArea)
+	err := os.MkdirAll(dst, 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create area for Kubernetes certificates (%s): %s", KubernetesCertArea, err.Error())
+		return fmt.Errorf("Unable to create area for Kubernetes certificates (%s): %s", dst, err.Error())
 	}
-	err = CopyFile("ca.crt", CertArea, KubernetesCertArea)
+	err = CopyFile("ca.crt", src, dst)
 	if err != nil {
 		return err
 	}
-	err = CopyFile("ca.key", CertArea, KubernetesCertArea)
+	err = CopyFile("ca.key", src, dst)
 	if err == nil {
 		glog.Infof("Copied certificate and key to Kuberentes area")
 	}
@@ -178,7 +179,7 @@ func BringUp(name string, c *Config) {
 	}
 
 	if node.IsMaster {
-		err = PlaceCertificateAndKeyForCA()
+		err = PlaceCertificateAndKeyForCA(c.General.WorkArea, c.General.K8sCertArea)
 		if err != nil {
 			glog.Fatalf(err.Error())
 			os.Exit(1) // TODO: Rollback?

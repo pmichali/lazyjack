@@ -3,6 +3,7 @@ package lazyjack
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
@@ -32,7 +33,8 @@ func DoCommand(name string, args []string) (string, error) {
 }
 
 func BuildRunArgsForDNS64(c *Config) []string {
-	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", DNS64NamedConf)
+	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
+	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", conf)
 	cmdList := []string{
 		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "lazyjack",
 		"--privileged=true", "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP,

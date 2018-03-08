@@ -341,16 +341,19 @@ func CreateSupportNetwork(c *Config) {
 	}
 }
 
-func BuildFileStructureForDNS() error {
-	err := os.RemoveAll(DNS64BaseArea)
+func BuildFileStructureForDNS(base string) error {
+	d := filepath.Join(base, DNS64BaseArea)
+	err := os.RemoveAll(d)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(DNS64ConfArea, 0755)
+	conf := filepath.Join(d, DNS64ConfArea)
+	err = os.MkdirAll(conf, 0755)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(DNS64CacheArea, 0755)
+	cache := filepath.Join(d, DNS64CacheArea)
+	err = os.MkdirAll(cache, 0755)
 	if err != nil {
 		return err
 	}
@@ -358,13 +361,14 @@ func BuildFileStructureForDNS() error {
 }
 
 func CreateConfigForDNS64(c *Config) error {
-	err := BuildFileStructureForDNS()
+	err := BuildFileStructureForDNS(c.General.WorkArea)
 	if err != nil {
 		return fmt.Errorf("Unable to create directory structure for DNS64: %s", err.Error())
 	}
 
 	contents := CreateNamedConfContents(c)
-	err = ioutil.WriteFile(DNS64NamedConf, contents.Bytes(), 0755)
+	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
+	err = ioutil.WriteFile(conf, contents.Bytes(), 0755)
 	if err != nil {
 		return fmt.Errorf("Unable to create named.conf for DNS64: %s", err.Error())
 	}

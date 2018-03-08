@@ -114,7 +114,8 @@ func CleanupDNS64Server(node *Node, c *Config) {
 		glog.V(1).Info("Removed DNS64 container")
 	}
 
-	err = os.RemoveAll(DNS64BaseArea)
+	d := filepath.Join(c.General.WorkArea, DNS64BaseArea)
+	err = os.RemoveAll(d)
 	if err != nil {
 		glog.Warning("Unable to remove DNS64 file structure")
 	} else {

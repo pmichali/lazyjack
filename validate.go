@@ -219,10 +219,12 @@ func CalculateDerivedFields(c *Config) error {
 	return nil
 }
 
-func SetupBaseAreas(work, systemd, etc string, c *Config) {
+func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 	c.General.WorkArea = work
 	c.General.SystemdArea = systemd
 	c.General.EtcArea = etc
+	c.General.CNIArea = cni
+	c.General.K8sCertArea = cert
 }
 
 // TODO: Validate support net v4 subnet > NAT64 subnet
@@ -262,7 +264,7 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 
-	SetupBaseAreas(WorkArea, KubeletSystemdArea, EtcArea, c)
+	SetupBaseAreas(WorkArea, KubeletSystemdArea, EtcArea, CNIConfArea, KubernetesCertArea, c)
 
 	// FUTURE: Check no overlapping management/support/pod networks, validate IPs
 	glog.V(1).Info("Configuration is valid")

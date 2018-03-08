@@ -57,6 +57,40 @@ func TestFailureToCreateKubeletDropInFile(t *testing.T) {
 	}
 }
 
+func TestBuildFileStructureForDNS(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	err := lazyjack.BuildFileStructureForDNS(basePath)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create DNS area in %q: %s", basePath, err.Error())
+	}
+	conf := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea)
+	if _, err := os.Stat(conf); os.IsNotExist(err) {
+		t.Errorf("FAILED: Config area was not created")
+	}
+	cache := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64CacheArea)
+	if _, err := os.Stat(cache); os.IsNotExist(err) {
+		t.Errorf("FAILED: Cache area was not created")
+	}
+}
+
+func TestFailingBuildFileStructureForDNS(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	// Make it not readable, so that it cannot be removed
+	err := os.MkdirAll(basePath, 0400)
+	if err != nil {
+		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+	}
+
+	err = lazyjack.BuildFileStructureForDNS(basePath)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to create DNS area in %q", basePath)
+	}
+}
+
 func TestNamedConfContents(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{
@@ -82,6 +116,31 @@ func TestNamedConfContents(t *testing.T) {
 	actual := lazyjack.CreateNamedConfContents(c)
 	if actual.String() != expected {
 		t.Errorf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	}
+}
+
+func TestCreateConfigForDNS64(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		General: lazyjack.GeneralSettings{
+			WorkArea: basePath,
+		},
+	}
+
+	err := lazyjack.CreateConfigForDNS64(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create DNS64 config area and file: %s", err.Error())
+	}
+	conf := filepath.Join(c.General.WorkArea, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea, lazyjack.DNS64NamedConf)
+	if _, err := os.Stat(conf); os.IsNotExist(err) {
+		t.Errorf("FAILED: Config file %q was not created", conf)
 	}
 }
 

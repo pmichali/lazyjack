@@ -10,6 +10,9 @@ import (
 func TestBuildDockerArgsForDNS64(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
+		General: lazyjack.GeneralSettings{
+			WorkArea: "/tmp/lazyjack",
+		},
 	}
 
 	list := lazyjack.BuildRunArgsForDNS64(c)

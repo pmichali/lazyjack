@@ -18,7 +18,7 @@ func CleanupForPlugin(node *Node, c *Config) {
 	}
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
-	err = os.RemoveAll(CNIConfArea)
+	err = os.RemoveAll(c.General.CNIArea)
 	if err != nil {
 		glog.Warningf("Unable to remove CNI config file and area: %s", err.Error())
 	} else {
