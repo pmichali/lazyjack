@@ -111,9 +111,28 @@ topology:
 		t.Errorf("Error message is not correct for malformed YAML file (%s)", err.Error())
 	}
 
+	// Legacy (partial) YAML
+	legacyYAML := `# Valid legacy yaml
+plugin: bridge
+`
+	stream = &ClosingBuffer{bytes.NewBufferString(legacyYAML)}
+	config, err = lazyjack.LoadConfig(stream)
+
+	if err != nil {
+		t.Errorf("Unexpected error, when reading config")
+	}
+	if config == nil {
+		t.Errorf("Should have a config")
+	}
+	if config.Plugin != "bridge" {
+		t.Errorf("Missing plugin config")
+	}
+
 	// Good config file
 	goodYAML := `# Valid YAML file
-plugin: bridge
+general:
+    plugin: bridge
+    work-area: "/override/path/for/work/area"
 topology:
     my-master:
         interface: "eth0"
@@ -146,6 +165,13 @@ dns64:
 		t.Errorf("Should have a config")
 	}
 
+	if config.General.Plugin != "bridge" {
+		t.Errorf("Missing plugin config")
+	}
+	expected := "/override/path/for/work/area"
+	if config.General.WorkArea != expected {
+		t.Errorf("Override to work area is incorrect. Expected %q, got %q", expected, config.General.WorkArea)
+	}
 	node, ok := config.Topology["my-master"]
 	if !ok {
 		t.Errorf("Expected to have configuration for my-master node")

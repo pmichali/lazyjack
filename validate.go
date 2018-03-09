@@ -220,7 +220,9 @@ func CalculateDerivedFields(c *Config) error {
 }
 
 func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
-	c.General.WorkArea = work
+	if c.General.WorkArea == "" {
+		c.General.WorkArea = work
+	}
 	c.General.SystemdArea = systemd
 	c.General.EtcArea = etc
 	c.General.CNIArea = cni
