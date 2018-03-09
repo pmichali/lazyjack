@@ -98,9 +98,11 @@ We'll take a look at an example file and disect each section.
 
 ### Example
 ```
-plugin: bridge
-token: "<provide-token>"
-token-cert-hash: "<provide-cert-hash>"
+general:
+    token: "<provide-token>"
+    token-cert-hash: "<provide-cert-hash>"
+    plugin: bridge
+    work-area: "/tmp/lazyjack"
 topology:
   my-master:
     interface: "enp10s0"
@@ -130,15 +132,20 @@ dns64:
     ip: "fd00:10::100"
 ```
 
-### Plugin (plugin)
-Currently, the reference Bridge plugin is supported by this script. Looking
-to add other plugins.
-
 ### Token (token) and Token CA Certificate Hash (token-cert-hash)
 KubeAdm uses a token and CA certificate for nodes to communicate. These two
 fields are filled out automatically by the `init` command, which needs to
 be run on the master node, before copying the configuration file over to
-minion nodes for use in the `up` command.
+minion nodes for use in the `up` command. You don't need to set these.
+
+### Plugin (plugin)
+Currently, the reference Bridge plugin is supported by this script. Looking
+to add other plugins.
+
+### Work Area (work-area)
+By default, the `/tmp/lazyjack` area is used to place configuration files,
+certificates, etc. that are used by `lazyjack`. If you want to use another location,
+you can optionally add this field to override that setting.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -407,7 +414,7 @@ have been corruption of IPTABLES rules.
 
 ### Implementation
 * Enhance validation
-  * Ensure IP addresses, subnets, and CIDRs are valid.
+  * Ensure IP addresses, subnets, and all CIDRs are valid.
   * No overlap on pod, management, and support networks.
   * Make sure pod network prefix and size are compatible (prefix should be size - 16 bits).
   * Ensure NAT64 IP is within NAT64 subnet, and that NAT64 subnet is with support subnet.
