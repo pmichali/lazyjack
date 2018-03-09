@@ -384,9 +384,9 @@ topology:
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Adding new
 general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
     plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -399,8 +399,8 @@ topology:
 			input: bytes.NewBufferString(`# Replacing
 general:
     plugin: bridge
-token: "<provide-token-here>"
-token-cert-hash: "<provide-cert-hash-here>"
+    token: "<provide-token-here>"
+    token-cert-hash: "<provide-cert-hash-here>"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -411,9 +411,9 @@ topology:
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Replacing
 general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
     plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -422,12 +422,12 @@ topology:
 `,
 		},
 		{
-			name: "replacing when duplicates",
+			name: "replacing when duplicates (legacy)",
 			input: bytes.NewBufferString(`# Duplicates
 general:
     plugin: bridge
-token: "<provide-token-here>"
-token-cert-hash: "<provide-cert-hash-here>"
+    token: "<provide-token-here>"
+    token-cert-hash: "<provide-cert-hash-here>"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -440,9 +440,9 @@ token-cert-hash: "35f932d559ec963388046a690cdeaaced2408a16a2d3da529622c9dfb790fb
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Duplicates
 general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
     plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -455,21 +455,21 @@ topology:
 			input: bytes.NewBufferString(`# Replacing diff order
 general:
     plugin: bridge
-token-cert-hash: "<provide-cert-hash-here>"
+    token-cert-hash: "<provide-cert-hash-here>"
+    token: "<provide-token-here>"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
         opmodes: "master dns64 nat64"
         id: 2
-token: "<provide-token-here>"
 `).Bytes(),
 			token: "1a46e0.4623b882f4f887a2",
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Replacing diff order
 general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
     plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -478,7 +478,7 @@ topology:
 `,
 		},
 		{
-			name: "replacing when first",
+			name: "replacing when first (legacy)",
 			input: bytes.NewBufferString(`# Replacing first
 token: "b362b2.665c96095a76fb5c"
 token-cert-hash: "35f932d559ec963388046a690cdeaaced2408a16a2d3da529622c9dfb790fbe4"
@@ -494,9 +494,9 @@ topology:
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Replacing first
 general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
     plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 topology:
     bxb-c2-77:
         interface: "enp10s0"
@@ -505,28 +505,36 @@ topology:
 `,
 		},
 		{
-			name: "missing topology line",
+			name: "missing general line",
 			input: bytes.NewBufferString(`# Adding new
-general:
-    plugin: bridge
+topology:
+    bxb-c2-77:
+        interface: "enp10s0"
+        opmodes: "master dns64 nat64"
+        id: 2
 `).Bytes(),
 			token: "1a46e0.4623b882f4f887a2",
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `# Adding new
+topology:
+    bxb-c2-77:
+        interface: "enp10s0"
+        opmodes: "master dns64 nat64"
+        id: 2
 general:
-    plugin: bridge
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 `,
 		},
 		{
-			name:  "empty file",
+			name:  "empty file (invalid though)",
 			input: bytes.NewBufferString("").Bytes(),
 			token: "1a46e0.4623b882f4f887a2",
 			hash:  "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef",
 			expected: `
-token: "1a46e0.4623b882f4f887a2"
-token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
+general:
+    token: "1a46e0.4623b882f4f887a2"
+    token-cert-hash: "05b24bf01253ff487504eeb264d4b018529e0430b9d9637cff374c39b740e7ef"
 `,
 		},
 	}

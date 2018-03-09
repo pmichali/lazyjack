@@ -171,33 +171,33 @@ func CreateToken() (string, error) {
 
 // UpdateConfigYAMLContents will parse through the provided config file contents
 // and add the token and token certificate hash entries. Old values, if present,
-// will be removed. The new fields will be placed just before the topology section.
+// will be removed. The new fields will be placed inside of the general section.
 func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte {
 	glog.V(4).Infof("Updating %s contents", file)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 	var output bytes.Buffer
 	notHandled := true
 	for _, line := range lines {
-		if bytes.HasPrefix(line, []byte("token:")) {
+		if bytes.HasPrefix(bytes.TrimLeft(line, " "), []byte("token:")) {
 			continue
 		}
-		if bytes.HasPrefix(line, []byte("token-cert-hash:")) {
+		if bytes.HasPrefix(bytes.TrimLeft(line, " "), []byte("token-cert-hash:")) {
 			continue
 		}
-		if bytes.HasPrefix(line, []byte("topology:")) {
-			if notHandled {
-				output.WriteString(fmt.Sprintf("token: %q\n", token))
-				output.WriteString(fmt.Sprintf("token-cert-hash: %q\n", hash))
-				notHandled = false
-			}
+		if bytes.HasPrefix(line, []byte("general:")) {
+			output.WriteString(fmt.Sprintf("general:\n"))
+			output.WriteString(fmt.Sprintf("    token: %q\n", token))
+			output.WriteString(fmt.Sprintf("    token-cert-hash: %q\n", hash))
+			notHandled = false
+			continue
 		}
 		output.WriteString(fmt.Sprintf("%s\n", line))
 	}
-	// Should have topology line, so that this is not required, but being rigorous
+	// Should have general section, so that this is not required, but being rigorous
 	if notHandled {
-		output.WriteString(fmt.Sprintf("token: %q\n", token))
-		output.WriteString(fmt.Sprintf("token-cert-hash: %q\n", hash))
-		notHandled = false
+		output.WriteString(fmt.Sprintf("general:\n"))
+		output.WriteString(fmt.Sprintf("    token: %q\n", token))
+		output.WriteString(fmt.Sprintf("    token-cert-hash: %q\n", hash))
 	}
 	return output.Bytes()
 }
