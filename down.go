@@ -2,7 +2,6 @@ package lazyjack
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/golang/glog"
 )
@@ -72,17 +71,7 @@ func TearDown(name string, c *Config) {
 		glog.Warningf("Unable to reset cluster: %s", err.Error())
 	}
 
-	file := filepath.Join(c.General.WorkArea, KubeAdmConfFile)
-	err = os.Remove(file)
-	if err != nil {
-		if os.IsNotExist(err) {
-			glog.V(1).Info("Skipping - No kubeadm config file to remove")
-		} else {
-			glog.Warningf("Unable to remove kubeadm config file (%s): %s", file, err.Error())
-		}
-	} else {
-		glog.V(1).Info("Removed kubeadm config file")
-	}
+	// Leave kubeadm.conf, in case user customized it.
 
 	CleanupForPlugin(&node, c)
 
