@@ -323,7 +323,7 @@ For each command, there are a series of actions performed...
 * Places management network IP in /etc/hosts, for this hostname.
 * Adds DNS64 support network IP as first nameserver in /etc/resolv.conf.
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
-* Creates KubeAdm configuration file.
+* Creates KubeAdm configuration file, saves old one with .bak suffix, in case file customized.
 * Adds route to DNS64 synthesized network via NAT64 server (based on node).
 * Adds route to support network for other nodes to access.
 
@@ -338,7 +338,6 @@ For each command, there are a series of actions performed...
 
 ### For the `down` command
 * Perform KubeAdm reset command.
-* Removes KubeAdm configuration file.
 * Remove routes to other nodes' pod networks.
 * Removes bridge plugin's CNI config file.
 * Removes the br0 interface
@@ -424,7 +423,7 @@ have been corruption of IPTABLES rules.
   * Go version.
   * Other tools?
 * Support Calico plugin. Cillium? Contiv? Others?
-* Mocking for UTs to provide better coverage.
+* Mocking for UTs to provide better coverage (in progress).
 * Add per function documentation.
 
 ### Details to figure out
@@ -432,6 +431,7 @@ have been corruption of IPTABLES rules.
 * Create makefile for building/installing. Build executable for immediate use?
 * Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
+* Way to timeout on "kubeadm init", if it gets stuck (e.g. kubelet never comes up).
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?
