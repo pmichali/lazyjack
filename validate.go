@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/vishvananda/netlink"
 )
 
 func ValidateCommand(command string) (string, error) {
@@ -219,6 +220,10 @@ func CalculateDerivedFields(c *Config) error {
 	return nil
 }
 
+// SetupVaseAreas allows the configuration to hold the root for both
+// the working files (overridable), and key configuration files. This
+// will allow the user to specify a different work area in the former
+// and for unit tests to specify a temp area for the latter.
 func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 	if c.General.WorkArea == "" {
 		c.General.WorkArea = work
@@ -227,6 +232,15 @@ func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 	c.General.EtcArea = etc
 	c.General.CNIArea = cni
 	c.General.K8sCertArea = cert
+}
+
+func SetupHandleToExtLibs(c *Config) error {
+	handle, err := netlink.NewHandle()
+	if err != nil {
+		return fmt.Errorf("Internal Error - unable to access networking package: %s", err.Error())
+	}
+	c.General.NetMgr = &NetManager{Mgr: &RealImpl{h: handle}}
+	return nil
 }
 
 // TODO: Validate support net v4 subnet > NAT64 subnet
@@ -262,6 +276,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = CalculateDerivedFields(c)
+	if err != nil {
+		return err
+	}
+
+	err = SetupHandleToExtLibs(c)
 	if err != nil {
 		return err
 	}

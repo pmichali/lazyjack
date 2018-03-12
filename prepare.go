@@ -214,13 +214,13 @@ func CreateRouteToNAT64ServerForDNS64Subnet(node *Node, c *Config) (err error) {
 	dest := c.DNS64.CIDR
 	if node.IsNAT64Server {
 		gw = c.NAT64.ServerIP
-		err = AddRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
+		err = c.General.NetMgr.AddRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			return fmt.Errorf("Unable to find node with NAT64 server configured")
 		}
-		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
+		err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 	}
 	if err != nil {
 		if err.Error() == "file exists" {
@@ -240,7 +240,7 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 		if !ok {
 			return fmt.Errorf("Unable to find node with NAT64 server configured")
 		}
-		err = AddRouteUsingInterfaceName(dest, gw, node.Interface)
+		err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 		if err != nil {
 			if err.Error() == "file exists" {
 				glog.V(1).Infof("Skipping - add route to %s via %s as already exists", dest, gw)
@@ -257,7 +257,7 @@ func PrepareClusterNode(node *Node, c *Config) {
 	glog.V(1).Info("Preparing general settings")
 
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
-	err := AddAddressToLink(mgmtIP, node.Interface)
+	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Fatal(err)
 		os.Exit(1) // TODO: Rollback?
@@ -467,7 +467,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 		glog.V(1).Info("NAT64 container (tayga) started")
 	}
 
-	err = AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err = c.General.NetMgr.AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		if err.Error() == "file exists" {
 			glog.V(1).Infof("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)

@@ -64,6 +64,7 @@ type GeneralSettings struct {
 	EtcArea       string // Internal
 	CNIArea       string // Internal
 	K8sCertArea   string // Internal
+	NetMgr        *NetManager // Internal
 }
 
 type Config struct {

@@ -54,7 +54,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 	}
 
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
-	err = RemoveAddressFromLink(mgmtIP, node.Interface)
+	err = c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
 		glog.Warningf("Unable to remove IP from management interface: %s", err.Error())
 	} else {
@@ -74,13 +74,13 @@ func CleanupClusterNode(node *Node, c *Config) {
 	var ok bool
 	if node.IsNAT64Server {
 		gw = c.NAT64.ServerIP
-		err = DeleteRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
+		err = c.General.NetMgr.DeleteRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
 	} else {
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
 			err = fmt.Errorf("Unable to find node with NAT64 server")
 		} else {
-			err = DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
+			err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 		}
 	}
 	if err != nil {
@@ -95,7 +95,7 @@ func CleanupClusterNode(node *Node, c *Config) {
 		if !ok {
 			err = fmt.Errorf("Unable to find node with NAT64 server configured")
 		} else {
-			err = DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
+			err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 		}
 		if err != nil {
 			glog.Warningf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
@@ -129,7 +129,7 @@ func CleanupDNS64Server(node *Node, c *Config) {
 func CleanupNAT64Server(node *Node, c *Config) {
 	glog.V(1).Info("Cleaning NAT64")
 
-	err := DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	err := c.General.NetMgr.DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		glog.Warning(err)
 	} else {
