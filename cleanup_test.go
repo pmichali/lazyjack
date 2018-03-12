@@ -211,7 +211,7 @@ func TestFailingRevertEntries(t *testing.T) {
 	if err == nil {
 		t.Errorf("FAILED: Expected to NOT be able to restore entry - read-only backup")
 	}
-	expected = "Unable to save"
+	expected = "Unable to backup"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}

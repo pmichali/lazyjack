@@ -567,9 +567,9 @@ apiServerExtraArgs:
   runtime-config: "admissionregistration.k8s.io/v1alpha1"
   feature-gates: AllAlpha=true
 `
-	actual := lazyjack.CreateKubeAdmConfigContents(n, c)
-	if actual.String() != expected {
-		t.Errorf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	actual := string(lazyjack.CreateKubeAdmConfigContents(n, c))
+	if actual != expected {
+		t.Errorf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
 	}
 }
 
