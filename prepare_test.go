@@ -631,7 +631,7 @@ func TestFailingCreateKubeAdmConfFile(t *testing.T) {
 	}
 }
 
-func TestCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
+func TestCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
@@ -643,14 +643,369 @@ func TestCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
 		Name:          "master",
 		ID:            10,
 		IsNAT64Server: true,
+		IsDNS64Server: true,
 	}
-	//	minionNode := &lazyjack.Node{
-	//		Name: "minion1",
-	//		ID:   20,
-	//      Interface: "eth1",
-	//	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
 	if err != nil {
 		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+	}
+}
+
+func TestCreateRouteToNAT64ServerForDNS64SubnetForNonNATServer(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	minionNode := &lazyjack.Node{
+		Name:          "minion1",
+		ID:            20,
+		Interface:     "eth2",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(minionNode, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+	}
+}
+
+func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	minionNode := &lazyjack.Node{
+		Name:          "minion1",
+		ID:            20,
+		Interface:     "eth2",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(minionNode, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to find NAT server: %s", err.Error())
+	}
+	expected := "Unable to find node with NAT64 server configured"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+	}
+	masterNode := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		IsNAT64Server: true,
+		IsDNS64Server: true,
+	}
+	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to create route")
+	}
+	expected := "Mock failure adding route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRouteExistsCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	c := &lazyjack.Config{
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+	}
+	masterNode := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		IsNAT64Server: true,
+		IsDNS64Server: true,
+	}
+	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+	}
+}
+
+func TestSkipNAT64ServerForCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		IsNAT64Server: true,
+		IsDNS64Server: true,
+	}
+	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected no actions for NAT64/DNS64 server")
+	}
+}
+
+func TestCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to add route: %s", err.Error())
+	}
+}
+
+func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to add route")
+	}
+	expected := "Mock failure adding route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRouteExistsCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected existing route to pass: %s", err.Error())
+	}
+}
+
+func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+			Size:   64,
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+	}
+	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to find NAT64/DNS64 server node")
+	}
+	expected := "Unable to find node with NAT64 server configured"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestPrepareClusterNode(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	systemdArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(systemdArea, t)
+	defer HelperCleanupArea(systemdArea, t)
+
+	// Make needed files
+	filename := filepath.Join(etcArea, lazyjack.EtcHostsFile)
+	err := ioutil.WriteFile(filename, []byte("# empty file"), 0777)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create hosts file for test")
+	}
+	filename = filepath.Join(etcArea, lazyjack.EtcResolvConfFile)
+	err = ioutil.WriteFile(filename, []byte("# empty file"), 0777)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
+	}
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+				IsDNS64Server: false,
+			},
+			"minion1": {
+				ID:            20,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:      nm,
+			WorkArea:    workArea,
+			EtcArea:     etcArea,
+			SystemdArea: systemdArea,
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR:   "fd00:10::/64",
+			V4CIDR: "172.20.0.0/16",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+		DNS64: lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		IsDNS64Server: false,
+		IsMaster:      true,
+	}
+
+	err = lazyjack.PrepareClusterNode(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to prepare cluster node: %s", err.Error())
 	}
 }

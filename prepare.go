@@ -254,54 +254,48 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 	return err
 }
 
-func PrepareClusterNode(node *Node, c *Config) {
+func PrepareClusterNode(node *Node, c *Config) error {
 	glog.V(1).Info("Preparing general settings")
 
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
 	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	err = AddHostEntries(c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	err = AddResolvConfEntry(c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	err = CreateKubeletDropInFile(c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	if node.IsMaster {
 		err = CreateKubeAdmConfigFile(node, c)
 		if err != nil {
-			glog.Fatalf(err.Error())
-			os.Exit(1) // TODO: Rollback?
+			return err
 		}
 	}
 
 	err = CreateRouteToNAT64ServerForDNS64Subnet(node, c)
 	if err != nil {
-		glog.Fatalf(err.Error())
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	err = CreateRouteToSupportNetworkForOtherNodes(node, c)
 	if err != nil {
-		glog.Fatalf(err.Error())
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 	glog.Info("Prepared general settings")
+	return nil
 }
 
 func CreateNamedConfContents(c *Config) *bytes.Buffer {
@@ -497,7 +491,11 @@ func Prepare(name string, c *Config) {
 		PrepareNAT64Server(&node, c)
 	}
 	if node.IsMaster || node.IsMinion {
-		PrepareClusterNode(&node, c)
+		err := PrepareClusterNode(&node, c)
+		if err != nil {
+			glog.Fatal(err)
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 	glog.Infof("Prepared node %q", name)
 }

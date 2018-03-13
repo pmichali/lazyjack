@@ -19,6 +19,7 @@ type mockImpl struct {
 	simAddrListFail  bool
 	simLinkListFail  bool
 	simRouteAddFail  bool
+	simRouteExists   bool
 	simRouteDelFail  bool
 	simSetDownFail   bool
 	simLinkDelFail   bool
@@ -95,6 +96,9 @@ func (m *mockImpl) ParseIPNet(s string) (*net.IPNet, error) {
 func (m *mockImpl) RouteAdd(route *netlink.Route) error {
 	if m.simRouteAddFail {
 		return fmt.Errorf("Mock failure adding route")
+	}
+	if m.simRouteExists {
+		return fmt.Errorf("file exists")
 	}
 	return nil
 }
@@ -494,6 +498,18 @@ func TestFailedNotFoundAddRouteUsingInterfaceName(t *testing.T) {
 		t.Errorf("FAILED: Expected to not be able to find index for link")
 	}
 	expected := "Unable to find interface \"eth3\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedExistsAddRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err == nil {
+		t.Errorf("FAILED: Expected failure due to existing route")
+	}
+	expected := "file exists"
 	if err.Error() != expected {
 		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
