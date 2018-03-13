@@ -124,6 +124,7 @@ plugin: bridge
 	if config == nil {
 		t.Errorf("Should have a config")
 	}
+	// Checking legacy location
 	if config.Plugin != "bridge" {
 		t.Errorf("Missing plugin config")
 	}

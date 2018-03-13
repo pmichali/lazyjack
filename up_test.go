@@ -305,3 +305,157 @@ func TestDetermineMasterNode(t *testing.T) {
 	}
 
 }
+
+func TestSetupForPlugin(t *testing.T) {
+	cniArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(cniArea, t)
+	defer HelperCleanupArea(cniArea, t)
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:  nm,
+			CNIArea: cniArea,
+			Plugin:  "bridge",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.SetupForPlugin(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create config file and routes: %s", err.Error())
+	}
+}
+
+func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	// Set CNI base a level lower, so that we can make parent read-only, preventing deletion
+	cniBase := filepath.Join(basePath, "dummy")
+	err := os.MkdirAll(cniBase, 0700)
+	if err != nil {
+		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+	}
+	err = os.Chmod(basePath, 0400)
+	if err != nil {
+		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+	}
+	defer func() { os.Chmod(basePath, 0700) }()
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:  nm,
+			CNIArea: cniBase,
+			Plugin:  "bridge",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err = lazyjack.SetupForPlugin(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to create CNI area")
+	}
+	expected := "permission denied"
+	if !strings.HasSuffix(err.Error(), expected) {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
+	cniArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(cniArea, t)
+	defer HelperCleanupArea(cniArea, t)
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:  nm,
+			CNIArea: cniArea,
+			Plugin:  "bridge",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.SetupForPlugin(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to create route")
+	}
+	expected := ""
+	if !strings.HasSuffix(err.Error(), expected) {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}

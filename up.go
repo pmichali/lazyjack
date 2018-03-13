@@ -21,27 +21,25 @@ func EnsureCNIAreaExists(area string) error {
 	return nil
 }
 
-func SetupForPlugin(node *Node, c *Config) {
-	glog.V(1).Infof("Setting up %s plugin", c.Plugin)
+func SetupForPlugin(node *Node, c *Config) error {
+	glog.V(1).Infof("Setting up %s plugin", c.General.Plugin)
 	err := EnsureCNIAreaExists(c.General.CNIArea)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	} else {
 		glog.V(4).Info("Created area for CNI config file")
 	}
 	err = CreateBridgeCNIConfigFile(node, c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	err = CreateRoutesForPodNetwork(node, c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
-	glog.Infof("Set up for %s plugin", c.Plugin)
+	glog.Infof("Set up for %s plugin", c.General.Plugin)
+	return nil
 }
 
 func RestartKubeletService() error {
@@ -170,9 +168,13 @@ func BringUp(name string, c *Config) {
 	}
 	glog.V(1).Infof("Bringing up %q as %s", name, asType)
 
-	SetupForPlugin(&node, c)
+	err := SetupForPlugin(&node, c)
+	if err != nil {
+		glog.Fatal(err)
+		os.Exit(1) // TODO: Rollback?
+	}
 
-	err := RestartKubeletService()
+	err = RestartKubeletService()
 	if err != nil {
 		glog.Fatalf(err.Error())
 		os.Exit(1) // TODO: Rollback?

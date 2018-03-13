@@ -96,6 +96,7 @@ const (
 	KubeletDropInFile  = "20-extra-dns-args.conf"
 
 	CNIConfArea = "/etc/cni/net.d"
+	CNIConfFile = "cni.conf"
 
 	EtcArea                 = "/etc"
 	EtcHostsFile            = "hosts"

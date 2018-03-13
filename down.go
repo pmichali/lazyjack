@@ -7,13 +7,13 @@ import (
 )
 
 func CleanupForPlugin(node *Node, c *Config) {
-	glog.V(1).Infof("Cleaning up for %s plugin", c.Plugin)
+	glog.V(1).Infof("Cleaning up for %s plugin", c.General.Plugin)
 
 	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
-		glog.Warningf("Unable to remove routes for %s plugin: %s", c.Plugin, err.Error())
+		glog.Warningf("Unable to remove routes for %s plugin: %s", c.General.Plugin, err.Error())
 	} else {
-		glog.V(1).Infof("Removed routes for %s plugin", c.Plugin)
+		glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 	}
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
@@ -23,7 +23,7 @@ func CleanupForPlugin(node *Node, c *Config) {
 	} else {
 		glog.V(1).Info("Removed CNI config file and area")
 	}
-	glog.Infof("Cleaned up for %s plugin", c.Plugin)
+	glog.Infof("Cleaned up for %s plugin", c.General.Plugin)
 }
 
 func StopKubernetes() error {

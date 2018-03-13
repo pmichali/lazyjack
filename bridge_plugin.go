@@ -3,14 +3,11 @@ package lazyjack
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 
 	"github.com/golang/glog"
 
 	"io/ioutil"
-)
-
-const (
-	BridgeCNIConfFile = "/etc/cni/net.d/cni.conf"
 )
 
 func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
@@ -43,7 +40,8 @@ func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 
 func CreateBridgeCNIConfigFile(node *Node, c *Config) error {
 	contents := CreateBridgeCNIConfContents(node, c)
-	err := ioutil.WriteFile(BridgeCNIConfFile, contents.Bytes(), 0755)
+	filename := filepath.Join(c.General.CNIArea, CNIConfFile)
+	err := ioutil.WriteFile(filename, contents.Bytes(), 0755)
 	if err != nil {
 		return fmt.Errorf("Unable to create CNI config for bridge plugin: %s", err.Error())
 	}
