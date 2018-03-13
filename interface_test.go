@@ -8,6 +8,7 @@ import (
 
 	"github.com/pmichali/lazyjack"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netlink/nl"
 )
 
 type mockImpl struct {
@@ -19,6 +20,8 @@ type mockImpl struct {
 	simLinkListFail  bool
 	simRouteAddFail  bool
 	simRouteDelFail  bool
+	simSetDownFail   bool
+	simLinkDelFail   bool
 }
 
 func (m *mockImpl) AddrDel(link netlink.Link, addr *netlink.Addr) error {
@@ -33,8 +36,15 @@ func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, erro
 		return []netlink.Addr{}, fmt.Errorf("Mock failure to list addresses")
 	}
 	// Will use the link index to create dummy addresses per link
-	first, _ := netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::2/64", link.Attrs().Index))
-	second, _ := netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::3/64", link.Attrs().Index))
+	var first *netlink.Addr
+	var second *netlink.Addr
+	if family == nl.FAMILY_V4 {
+		first, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.2/16", link.Attrs().Index))
+		second, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.3/16", link.Attrs().Index))
+	} else {
+		first, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::2/64", link.Attrs().Index))
+		second, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::3/64", link.Attrs().Index))
+	}
 	addrList := []netlink.Addr{*first, *second}
 	return addrList, nil
 }
@@ -96,6 +106,20 @@ func (m *mockImpl) RouteDel(route *netlink.Route) error {
 	return nil
 }
 
+func (m *mockImpl) LinkSetDown(link netlink.Link) error {
+	if m.simSetDownFail {
+		return fmt.Errorf("Mock failure set link down")
+	}
+	return nil
+}
+
+func (m *mockImpl) LinkDel(link netlink.Link) error {
+	if m.simLinkDelFail {
+		return fmt.Errorf("Mock failure link delete")
+	}
+	return nil
+}
+
 // START OF TESTS...
 func TestBuildNodeCIDR(t *testing.T) {
 	actual := lazyjack.BuildNodeCIDR("2001:db8:20::", 2, 64)
@@ -146,14 +170,6 @@ func TestFailedReplaceForAddAddressToLink(t *testing.T) {
 	expectedErr := "Unable to add ip \"2001:db8::10/64\" to interface \"eth1\""
 	if err.Error() != expectedErr {
 		t.Errorf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
-	}
-}
-
-func TestBuildDestCIDR(t *testing.T) {
-	actual := lazyjack.BuildDestCIDR("2001:db8", 20, 80)
-	expected := "2001:db8:20::/80"
-	if actual != expected {
-		t.Errorf("FAILED: Destination CIDR create. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -248,7 +264,7 @@ func TestFailedDeleteForRemoveAddressFromLink(t *testing.T) {
 
 func TestFindLinkIndexForCIDR(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	idx, err := nm.FindLinkIndexForCIDR("2001:db8:30::3/64")
+	idx, err := nm.FindLinkIndexForCIDR("172.30.0.0/16")
 	if err != nil {
 		t.Errorf("FAILED: Expected to find CIDR on link: %s", err.Error())
 	}
@@ -259,11 +275,11 @@ func TestFindLinkIndexForCIDR(t *testing.T) {
 
 func TestFailedParseForFindLinkIndexForCIDR(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	_, err := nm.FindLinkIndexForCIDR("2001:db8::30::2/64")
+	_, err := nm.FindLinkIndexForCIDR("172.30.0.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected to fail parsing of CIDR")
 	}
-	expectedErr := "invalid CIDR address: 2001:db8::30::2/64"
+	expectedErr := "invalid CIDR address: 172.30.0.0.0/16"
 	if err.Error() != expectedErr {
 		t.Errorf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -271,7 +287,7 @@ func TestFailedParseForFindLinkIndexForCIDR(t *testing.T) {
 
 func TestFailedNoLinkFindLinkIndexForCIDR(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkListFail: true}}
-	_, err := nm.FindLinkIndexForCIDR("2001:db8:30::2/64")
+	_, err := nm.FindLinkIndexForCIDR("172.30.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected no links")
 	}
@@ -283,11 +299,11 @@ func TestFailedNoLinkFindLinkIndexForCIDR(t *testing.T) {
 
 func TestFailedAddrNotFoundFindLinkIndexForCIDR(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	_, err := nm.FindLinkIndexForCIDR("2001:db8:50::2/64")
+	_, err := nm.FindLinkIndexForCIDR("172.50.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected not to find address on any links")
 	}
-	expectedErr := "Unable to find interface for CIDR \"2001:db8:50::2/64\""
+	expectedErr := "Unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expectedErr {
 		t.Errorf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -337,7 +353,7 @@ func TestFailedParseIPBuildRoute(t *testing.T) {
 
 func TestAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err != nil {
 		t.Errorf("FAILED: Expected to be able to add route: %s", err.Error())
 	}
@@ -345,7 +361,7 @@ func TestAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to add route")
 	}
@@ -357,7 +373,7 @@ func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to add route")
 	}
@@ -369,11 +385,11 @@ func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:50::2/64")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.50.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to find index from support net CIDR")
 	}
-	expected := "Unable to find interface for CIDR \"2001:db8:50::2/64\""
+	expected := "Unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expected {
 		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -381,7 +397,7 @@ func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err != nil {
 		t.Errorf("FAILED: Expected to be able to delete route: %s", err.Error())
 	}
@@ -389,7 +405,7 @@ func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to delete route")
 	}
@@ -401,7 +417,111 @@ func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedBadCIDRDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "2001:db8:20::2/64")
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.30.40.0.0/16")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to delete route")
+	}
+	expected := "invalid CIDR address: 172.30.40.0.0/16"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.50.0.0/16")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to find index from support net CIDR")
+	}
+	expected := "Unable to find interface for CIDR \"172.50.0.0/16\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestBuildDestCIDR(t *testing.T) {
+	actual := lazyjack.BuildDestCIDR("2001:db8", 20, 80)
+	expected := "2001:db8:20::/80"
+	if actual != expected {
+		t.Errorf("FAILED: Destination CIDR create. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestBuildGWIP(t *testing.T) {
+	actual := lazyjack.BuildGWIP("2001:db8::", 5)
+	expected := "2001:db8::5"
+	if actual != expected {
+		t.Errorf("FAILED: Gateway IP create. Expected %q, got %q", expected, actual)
+	}
+}
+
+func TestAddRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to add route: %s", err.Error())
+	}
+}
+
+func TestFailedAddRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to add route")
+	}
+	expected := "Mock failure adding route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedBadCIDRAddRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.AddRouteUsingInterfaceName("2001:db8::30::2/64", "2001:db8:30::1", "eth3")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to add route")
+	}
+	expected := "Unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNotFoundAddRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to find index for link")
+	}
+	expected := "Unable to find interface \"eth3\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestDeleteRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to delete route: %s", err.Error())
+	}
+}
+
+func TestFailedDeleteRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to delete route")
+	}
+	expected := "Mock failure deleting route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedBadCIDRDeleteRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.DeleteRouteUsingInterfaceName("2001:db8::30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to delete route")
 	}
@@ -411,22 +531,78 @@ func TestFailedBadCIDRDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	}
 }
 
-func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "2001:db8:50::2/64")
+func TestFailedNotFoundDeleteRouteUsingInterfaceName(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to find index from support net CIDR")
+		t.Errorf("FAILED: Expected to not be able to find index for link")
 	}
-	expected := "Unable to find interface for CIDR \"2001:db8:50::2/64\""
+	expected := "Skipping - Unable to find interface \"eth3\" to delete route"
 	if err.Error() != expected {
 		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
-func TestBuildGWIP(t *testing.T) {
-	actual := lazyjack.BuildGWIP("2001:db8::", 5)
-	expected := "2001:db8::5"
-	if actual != expected {
-		t.Errorf("FAILED: Gateway IP create. Expected %q, got %q", expected, actual)
+func TestBringLinkDown(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.BringLinkDown("br0")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to bring link down")
+	}
+}
+
+func TestFailedBringLinkDown(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true}}
+	err := nm.BringLinkDown("br0")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to bring link down")
+	}
+	expected := "Unable to shut down interface \"br0\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNotFoundBringLinkDown(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	err := nm.BringLinkDown("br0")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to find link to bring down")
+	}
+	expected := "Unable to find interface \"br0\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestDeleteLink(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	err := nm.DeleteLink("br0")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to delete link")
+	}
+}
+
+func TestFailedDeleteLink(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkDelFail: true}}
+	err := nm.DeleteLink("br0")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to delete link")
+	}
+	expected := "Unable to delete interface \"br0\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNotFoundDeleteLink(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	err := nm.DeleteLink("br0")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to find link to delete")
+	}
+	expected := "Unable to find interface \"br0\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }

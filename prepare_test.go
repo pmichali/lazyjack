@@ -630,3 +630,27 @@ func TestFailingCreateKubeAdmConfFile(t *testing.T) {
 		t.Errorf("FAILED: Expected not to be able to create KubeAdm config file")
 	}
 }
+
+func TestCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+	}
+	masterNode := &lazyjack.Node{
+		Name:          "master",
+		ID:            10,
+		IsNAT64Server: true,
+	}
+	//	minionNode := &lazyjack.Node{
+	//		Name: "minion1",
+	//		ID:   20,
+	//      Interface: "eth1",
+	//	}
+	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+	}
+}

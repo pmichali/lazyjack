@@ -17,6 +17,8 @@ type network interface {
 	ParseIPNet(s string) (*net.IPNet, error)
 	RouteAdd(route *netlink.Route) error
 	RouteDel(route *netlink.Route) error
+	LinkSetDown(link netlink.Link) error
+	LinkDel(link netlink.Link) error
 }
 
 type NetManager struct {
@@ -62,4 +64,12 @@ func (r *RealImpl) RouteAdd(route *netlink.Route) error {
 
 func (r *RealImpl) RouteDel(route *netlink.Route) error {
 	return r.h.RouteDel(route)
+}
+
+func (r *RealImpl) LinkSetDown(link netlink.Link) error {
+	return r.h.LinkSetDown(link)
+}
+
+func (r *RealImpl) LinkDel(link netlink.Link) error {
+	return r.h.LinkDel(link)
 }

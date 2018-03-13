@@ -109,9 +109,6 @@ const (
 func ParseConfig(configReader io.Reader) (*Config, error) {
 	var config Config
 
-	if configReader == nil {
-		return nil, fmt.Errorf("Missing configuration file")
-	}
 	configContents, err := ioutil.ReadAll(configReader)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read config: %s", err.Error())

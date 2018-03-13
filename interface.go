@@ -137,7 +137,7 @@ func BuildGWIP(prefix string, intfPart int) string {
 
 func (n *NetManager) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Adding route for %s via %s using interface %s", dest, gw, intf)
-	link, err := netlink.LinkByName(intf)
+	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", intf)
 	}
@@ -146,31 +146,30 @@ func (n *NetManager) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	if err != nil {
 		return err
 	}
-	return netlink.RouteAdd(route)
+	return n.Mgr.RouteAdd(route)
 }
 
 func (n *NetManager) DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
-	link, err := netlink.LinkByName(intf)
+	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
-		glog.V(1).Infof("Skipping - Unable to find interface %q to delete route", intf)
-		return nil
+		return fmt.Errorf("Skipping - Unable to find interface %q to delete route", intf)
 	}
 	index := link.Attrs().Index
 	route, err := BuildRoute(dest, gw, index)
 	if err != nil {
 		return err
 	}
-	return netlink.RouteDel(route)
+	return n.Mgr.RouteDel(route)
 }
 
-func BringLinkDown(name string) error {
+func (n *NetManager) BringLinkDown(name string) error {
 	glog.V(4).Infof("Bringing down interface %q", name)
-	link, err := netlink.LinkByName(name)
+	link, err := n.Mgr.LinkByName(name)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", name)
 	}
-	err = netlink.LinkSetDown(link)
+	err = n.Mgr.LinkSetDown(link)
 	if err != nil {
 		return fmt.Errorf("Unable to shut down interface %q", name)
 	}
@@ -178,13 +177,13 @@ func BringLinkDown(name string) error {
 	return nil
 }
 
-func DeleteLink(name string) error {
+func (n *NetManager) DeleteLink(name string) error {
 	glog.V(4).Infof("Deleting interface %q", name)
-	link, err := netlink.LinkByName(name)
+	link, err := n.Mgr.LinkByName(name)
 	if err != nil {
 		return fmt.Errorf("Unable to find interface %q", name)
 	}
-	err = netlink.LinkDel(link)
+	err = n.Mgr.LinkDel(link)
 	if err != nil {
 		return fmt.Errorf("Unable to delete interface %q", name)
 	}
