@@ -38,6 +38,13 @@ func HelperMakeReadOnly(basePath string, t *testing.T) {
 	}
 }
 
+func HelperMakeWriteable(basePath string, t *testing.T) {
+	err := os.Chmod(basePath, 0777)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to make area writeable for test cleanup")
+	}
+}
+
 func TestGetFileContents(t *testing.T) {
 	_, err := lazyjack.GetFileContents("/etc/hostname")
 	if err != nil {

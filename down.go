@@ -1,17 +1,18 @@
 package lazyjack
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/golang/glog"
 )
 
-func CleanupForPlugin(node *Node, c *Config) {
+func CleanupForPlugin(node *Node, c *Config) error {
 	glog.V(1).Infof("Cleaning up for %s plugin", c.General.Plugin)
 
 	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
-		glog.Warningf("Unable to remove routes for %s plugin: %s", c.General.Plugin, err.Error())
+		return fmt.Errorf("Unable to remove routes for %s plugin: %s", c.General.Plugin, err.Error())
 	} else {
 		glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 	}
@@ -19,11 +20,12 @@ func CleanupForPlugin(node *Node, c *Config) {
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
 	err = os.RemoveAll(c.General.CNIArea)
 	if err != nil {
-		glog.Warningf("Unable to remove CNI config file and area: %s", err.Error())
+		return fmt.Errorf("Unable to remove CNI config file and area: %s", err.Error())
 	} else {
 		glog.V(1).Info("Removed CNI config file and area")
 	}
 	glog.Infof("Cleaned up for %s plugin", c.General.Plugin)
+	return nil
 }
 
 func StopKubernetes() error {
@@ -41,15 +43,20 @@ func StopKubernetes() error {
 func (n *NetManager) RemoveBridge(name string) error {
 	glog.V(1).Infof("Removing bridge %q", name)
 	err := n.BringLinkDown(name)
-	if err != nil {
-		glog.Warningf(err.Error())
+	if err == nil {
+		glog.Infof("Brought link %q down", name)
 	}
 	// Even if err, will try to delete bridge
-	err = n.DeleteLink(name)
-	if err == nil {
+	err2 := n.DeleteLink(name)
+	if err2 == nil {
 		glog.Infof("Removed bridge %q", name)
 	}
-	return err
+	if err == nil {
+		return err2
+	} else if err2 == nil {
+		return err
+	}
+	return fmt.Errorf("Unable to bring link down (%s), nor remove link (%s)", err.Error(), err2.Error())
 }
 
 func TearDown(name string, c *Config) {
@@ -73,7 +80,10 @@ func TearDown(name string, c *Config) {
 
 	// Leave kubeadm.conf, in case user customized it.
 
-	CleanupForPlugin(&node, c)
+	err = CleanupForPlugin(&node, c)
+	if err != nil {
+		glog.Warningf(err.Error())
+	}
 
 	err = c.General.NetMgr.RemoveBridge("br0")
 	if err != nil {
