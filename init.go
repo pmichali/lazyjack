@@ -78,7 +78,7 @@ func CreateX509CertForCA(base string) error {
 	}
 	err = ioutil.WriteFile(filepath.Join(base, CertArea, "ca.x509"), []byte(output), 0644)
 	if err != nil {
-		return fmt.Errorf("Unable to save X509 cert for CA", err.Error())
+		return fmt.Errorf("Unable to save X509 cert for CA: %s", err.Error())
 	}
 	glog.V(1).Infof("Built CA X509 certificate")
 	return nil

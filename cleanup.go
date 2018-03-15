@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -26,52 +27,61 @@ func RevertEntries(file, backup string) error {
 	glog.V(4).Infof("Cleaning %s file", file)
 	contents, err := GetFileContents(file)
 	if err != nil {
-		glog.Warningf("Unable to read file %s to revert: %s", file, err.Error())
-		return err
+		return fmt.Errorf("Unable to read file %s to revert: %s", file, err.Error())
 	}
 	contents = RevertConfigInfo(contents, file)
 	err = SaveFileContents(contents, file, backup)
 	if err != nil {
-		glog.Warningf("Unable to revert %s: %s", file, err.Error())
 		return err
 	}
 	glog.V(4).Infof("Restored %s contents", file)
 	return nil
 }
 
-func CleanupClusterNode(node *Node, c *Config) {
-	glog.V(1).Info("Cleaning general settings")
+func RemoveDropInFile(c *Config) error {
+	glog.V(1).Info("Cleaning kubelet drop-in file")
 	file := filepath.Join(c.General.SystemdArea, KubeletDropInFile)
 	err := os.Remove(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			glog.V(4).Info("No kubelet drop-in file to remove")
+			return fmt.Errorf("No kubelet drop-in file to remove")
 		} else {
-			glog.Warningf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
+			return fmt.Errorf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
 		}
 	} else {
 		glog.V(4).Info("Removed kubelet drop-in file")
 	}
+	return nil
+}
 
+func RemoveManagementIP(node *Node, c *Config) error {
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
-	err = c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
+	err := c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
-		glog.Warningf("Unable to remove IP from management interface: %s", err.Error())
-	} else {
-		glog.V(4).Info("Removed IP address from management interface")
+		return fmt.Errorf("Unable to remove IP from management interface: %s", err.Error())
 	}
+	glog.V(4).Info("Removed IP address from management interface")
+	return nil
+}
 
-	file = filepath.Join(c.General.EtcArea, EtcHostsFile)
-	backup := filepath.Join(c.General.EtcArea, EtcHostsBackupFile)
-	RevertEntries(file, backup)
+func RevertEtcAreaFile(c *Config, file, backup string) error {
+	file = filepath.Join(c.General.EtcArea, file)
+	backup = filepath.Join(c.General.EtcArea, backup)
+	err := RevertEntries(file, backup)
+	if err == nil {
+		glog.V(4).Infof("Reverted %q with backup %q", file, backup)
+	}
+	return err
+}
 
-	file = filepath.Join(c.General.EtcArea, EtcResolvConfFile)
-	backup = filepath.Join(c.General.EtcArea, EtcResolvConfBackupFile)
-	RevertEntries(file, backup)
-
+// RemoveRouteForDNS64 removes the route to the DNS64 network via the
+// IPv4 support network, if on the NAT64 node, or via the NAT64 server's
+// management IP, if not on the NAT64 server.
+func RemoveRouteForDNS64(node *Node, c *Config) error {
 	dest := c.DNS64.CIDR
 	var gw string
 	var ok bool
+	var err error
 	if node.IsNAT64Server {
 		gw = c.NAT64.ServerIP
 		err = c.General.NetMgr.DeleteRouteUsingSupportNetInterface(dest, gw, c.Support.V4CIDR)
@@ -84,26 +94,76 @@ func CleanupClusterNode(node *Node, c *Config) {
 		}
 	}
 	if err != nil {
-		glog.Warningf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
+		return fmt.Errorf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
+	}
+	glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
+	return nil
+}
+
+// RemoveRouteForNAT64 removes the route to the support network via the
+// NAT64 server's manage,ent IP.
+func RemoveRouteForNAT64(node *Node, c *Config) error {
+	dest := c.Support.CIDR
+	var gw string
+	var ok bool
+	var err error
+	gw, ok = FindHostIPForNAT64(c)
+	if !ok {
+		err = fmt.Errorf("Unable to find node with NAT64 server configured")
 	} else {
-		glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
+		err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
+	}
+	if err != nil {
+		return fmt.Errorf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
+	}
+	glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
+	return nil
+}
+
+func CleanupClusterNode(node *Node, c *Config) error {
+	var all []string
+	glog.V(1).Info("Cleaning general settings")
+	err := RemoveDropInFile(c)
+	if err != nil {
+		glog.V(4).Info(err.Error())
+		all = append(all, err.Error())
+	}
+
+	err = RemoveManagementIP(node, c)
+	if err != nil {
+		glog.V(4).Info(err.Error())
+		all = append(all, err.Error())
+	}
+
+	err = RevertEtcAreaFile(c, EtcHostsFile, EtcHostsBackupFile)
+	if err != nil {
+		glog.V(4).Info(err.Error())
+		all = append(all, err.Error())
+	}
+	err = RevertEtcAreaFile(c, EtcResolvConfFile, EtcResolvConfBackupFile)
+	if err != nil {
+		glog.V(4).Info(err.Error())
+		all = append(all, err.Error())
+	}
+
+	err = RemoveRouteForDNS64(node, c)
+	if err != nil {
+		glog.V(4).Info(err.Error())
+		all = append(all, err.Error())
 	}
 
 	if !node.IsNAT64Server && !node.IsDNS64Server {
-		dest = c.Support.CIDR
-		gw, ok = FindHostIPForNAT64(c)
-		if !ok {
-			err = fmt.Errorf("Unable to find node with NAT64 server configured")
-		} else {
-			err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
-		}
+		err = RemoveRouteForNAT64(node, c)
 		if err != nil {
-			glog.Warningf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
-		} else {
-			glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
+			glog.V(4).Info(err.Error())
+			all = append(all, err.Error())
 		}
 	}
 	glog.Info("Cleaned general settings")
+	if len(all) > 0 {
+		return fmt.Errorf(strings.Join(all, ". "))
+	}
+	return nil
 }
 
 func CleanupDNS64Server(node *Node, c *Config) {
@@ -131,7 +191,7 @@ func CleanupNAT64Server(node *Node, c *Config) {
 
 	err := c.General.NetMgr.DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
-		glog.Warning(err)
+		glog.Warning(err.Error())
 	} else {
 		glog.V(1).Info("Removed local IPv4 route to NAT64 container")
 	}
@@ -146,27 +206,29 @@ func CleanupNAT64Server(node *Node, c *Config) {
 	glog.Info("Cleaned NAT64")
 }
 
-func CleanupSupportNetwork() {
+func CleanupSupportNetwork() error {
 	if !ResourceExists(SupportNetName) {
-		glog.V(1).Infof("Skipping - support network does not exists")
-		return
+		return fmt.Errorf("Skipping - support network does not exists")
 	}
 
 	args := BuildDeleteNetArgsForSupportNet()
 	_, err := DoCommand("SupportNetName", args)
 	if err != nil {
-		glog.Warning("Unable to remove support network")
-	} else {
-		glog.V(1).Info("Removed support network")
+		return fmt.Errorf("Unable to remove support network")
 	}
 	glog.Info("Cleaned support network")
+	return nil
 }
 
 func Cleanup(name string, c *Config) {
 	node := c.Topology[name]
+	var err error
 	glog.Infof("Cleaning %q", name)
 	if node.IsMaster || node.IsMinion {
-		CleanupClusterNode(&node, c)
+		err = CleanupClusterNode(&node, c)
+		if err != nil {
+			glog.Warning(err.Error())
+		}
 	}
 	if node.IsDNS64Server {
 		CleanupDNS64Server(&node, c)
@@ -175,7 +237,10 @@ func Cleanup(name string, c *Config) {
 		CleanupNAT64Server(&node, c)
 	}
 	if node.IsDNS64Server || node.IsNAT64Server {
-		CleanupSupportNetwork()
+		err = CleanupSupportNetwork()
+		if err != nil {
+			glog.Warning(err.Error())
+		}
 	}
 	glog.Infof("Node %q cleaned", name)
 }

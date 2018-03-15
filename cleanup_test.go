@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -214,5 +215,533 @@ func TestFailingRevertEntries(t *testing.T) {
 	expected = "Unable to backup"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRemoveDropInFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	// Create a dummy file to delete
+	src := filepath.Join(basePath, lazyjack.KubeletDropInFile)
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{SystemdArea: basePath},
+	}
+	err = lazyjack.RemoveDropInFile(c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to remove kubelet drop in file: %s", err.Error())
+	}
+}
+
+func TestFailedNoFileRemoveDropInFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{SystemdArea: basePath},
+	}
+	err := lazyjack.RemoveDropInFile(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected kubelet drop in file to be missing")
+	}
+	expected := "No kubelet drop-in file to remove"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveDropInFile(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	// Set fake systemd area a level lower, so that we can make parent read-only, preventing deletion
+	systemdBase := filepath.Join(basePath, "dummy")
+	err := os.MkdirAll(systemdBase, 0700)
+	if err != nil {
+		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+	}
+	// Create a dummy file that is not writeable
+	src := filepath.Join(systemdBase, lazyjack.KubeletDropInFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	// Make parent dir read-only, to prevent file removal for test.
+	err = os.Chmod(basePath, 0400)
+	if err != nil {
+		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+	}
+	defer func() { os.Chmod(basePath, 0700) }()
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{SystemdArea: systemdBase},
+	}
+	err = lazyjack.RemoveDropInFile(c)
+	if err == nil {
+		t.Errorf("FAILED: Expected kubelet drop in file removal to fail")
+	}
+	expected := "Unable to remove kubelet drop-in file"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRemoveManagementIP(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        10,
+	}
+
+	err := lazyjack.RemoveManagementIP(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to remove management IP: %s", err.Error())
+	}
+}
+
+func TestFailedRemoveManagementIP(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simDeleteFail: true}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        10,
+	}
+
+	err := lazyjack.RemoveManagementIP(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to remove management IP")
+	}
+	expected := "Unable to remove IP from management interface: Unable to delete ip \"2001:db8:20::10/64\" from interface \"eth1\""
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRevertFile(t *testing.T) {
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{EtcArea: etcArea},
+	}
+
+	// Create a valid source file in area
+	src := filepath.Join(etcArea, "foo")
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	err = lazyjack.RevertEtcAreaFile(c, "foo", "foo.bak")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to revert file: %s", err.Error())
+	}
+}
+
+func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+	}
+	n := &lazyjack.Node{
+		Interface:     "eth1",
+		IsNAT64Server: true,
+		ID:            10,
+	}
+	err := lazyjack.RemoveRouteForDNS64(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+	}
+}
+
+func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+	}
+	n := &lazyjack.Node{
+		Interface:     "eth1",
+		IsNAT64Server: true,
+		ID:            10,
+	}
+	err := lazyjack.RemoveRouteForDNS64(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to remove route")
+	}
+	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:5::200: Mock failure deleting route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:40::",
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:6::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+	}
+	n := &lazyjack.Node{
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		ID:            10,
+	}
+	err := lazyjack.RemoveRouteForDNS64(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+	}
+}
+
+func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+			},
+			"minion": {
+				ID:            20,
+				IsNAT64Server: false,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:40::",
+		},
+		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:6::200"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+	}
+	n := &lazyjack.Node{
+		Interface:     "eth1",
+		IsNAT64Server: false,
+		ID:            10,
+	}
+	err := lazyjack.RemoveRouteForDNS64(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to find NAT64 server")
+	}
+	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via : Unable to find node with NAT64 server"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRemoveRouteForNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+		},
+		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        20,
+	}
+	err := lazyjack.RemoveRouteForNAT64(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+	}
+}
+
+func TestFailedRemoveRouteForNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+		},
+		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        20,
+	}
+	err := lazyjack.RemoveRouteForNAT64(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to remove route")
+	}
+	expected := "Unable to delete route to 2001:db8::/64 via 2001:db8:20::10: Mock failure deleting route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNoNATRemoveRouteForNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: false,
+			},
+			"minion": {
+				ID:            20,
+				IsNAT64Server: false,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+		},
+		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        20,
+	}
+	err := lazyjack.RemoveRouteForNAT64(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to remove route")
+	}
+	expected := "Unable to delete route to 2001:db8::/64 via : Unable to find node with NAT64 server configured"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCleanupClusterNode(t *testing.T) {
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	// Create hosts and resolv.conf files
+	src := filepath.Join(etcArea, lazyjack.EtcHostsFile)
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create hosts file for test")
+	}
+	src = filepath.Join(etcArea, lazyjack.EtcResolvConfFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
+	}
+
+	systemArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(systemArea, t)
+	defer HelperCleanupArea(systemArea, t)
+
+	src = filepath.Join(systemArea, lazyjack.KubeletDropInFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create drop-in file for test")
+	}
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:      nm,
+			EtcArea:     etcArea,
+			SystemdArea: systemArea,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64: lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+			CIDR:   "2001:db8::/64",
+		},
+	}
+	// Make sure this node is not the NAT64 or DNS64 server node
+	n := &lazyjack.Node{
+		Interface:     "eth2",
+		IsNAT64Server: false,
+		ID:            20,
+	}
+
+	err = lazyjack.CleanupClusterNode(n, c)
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to clean up cluster: %s", err.Error())
+	}
+}
+
+func TestFailedCleanupClusterNode(t *testing.T) {
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	// Missing hosts and resolv.conf files
+
+	systemArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(systemArea, t)
+	defer HelperCleanupArea(systemArea, t)
+
+	// Missing drop-in file
+
+	// Simulating address delete and all route deletes fail
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{
+		simRouteDelFail: true,
+		simDeleteFail:   true,
+	}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr:      nm,
+			EtcArea:     etcArea,
+			SystemdArea: systemArea,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64: lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+			CIDR:   "2001:db8::/64",
+		},
+	}
+	// Make sure this node is not the NAT64 or DNS64 server node
+	n := &lazyjack.Node{
+		Interface:     "eth2",
+		IsNAT64Server: false,
+		ID:            20,
+	}
+
+	err := lazyjack.CleanupClusterNode(n, c)
+	if err == nil {
+		t.Errorf("FAILED: Expected to have multiple failures cleaning up node")
+	}
+	// Check that each error message is seen
+	actual := strings.Split(err.Error(), ". ")
+	if len(actual) != 6 {
+		t.Errorf("FAILED: Expected 6 error strings, got %d", len(actual))
+	}
+	expected := []*regexp.Regexp{
+		regexp.MustCompile("No kubelet drop-in file to remove"),
+		regexp.MustCompile("Unable to remove IP from management interface: Unable to delete ip \"2001:db8:20::20/64\" from interface \"eth2\""),
+		regexp.MustCompile("Unable to read file .+/hosts to revert: Unable to read .+/hosts: open .+/hosts: no such file or directory"),
+		regexp.MustCompile("Unable to read file .+/resolv.conf to revert: Unable to read .+/resolv.conf: open .+/resolv.conf: no such file or directory"),
+		regexp.MustCompile("Unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:20::10: Mock failure deleting route"),
+		regexp.MustCompile("Unable to delete route to 2001:db8::/64 via 2001:db8:20::10: Mock failure deleting route"),
+	}
+	for i, _ := range actual {
+		if !expected[i].MatchString(actual[i]) {
+			t.Errorf("FAILED: Expected reason to match pattern %q, got %q", expected[i].String(), actual[i])
+		}
 	}
 }

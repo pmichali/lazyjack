@@ -329,7 +329,7 @@ func CreateSupportNetwork(c *Config) {
 	args := BuildCreateNetArgsForSupportNet(c.Support.CIDR, c.Support.Prefix, c.Support.V4CIDR)
 	_, err := DoCommand(SupportNetName, args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.Info("Prepared support network")
@@ -392,7 +392,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 
 	err := CreateConfigForDNS64(c)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	}
 
@@ -400,7 +400,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	args := BuildRunArgsForDNS64(c)
 	_, err = DoCommand("DNS64 container", args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(1).Info("DNS64 container (bind9) started")
@@ -410,7 +410,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	args = BuildGetInterfaceArgsForDNS64()
 	ifConfig, err := DoCommand("Get I/F config", args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(4).Info("Have eth0 info for DNS64 container")
@@ -425,7 +425,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	args = BuildV4AddrDelArgsForDNS64(v4Addr)
 	_, err = DoCommand("Delete IPv4 addr", args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(4).Info("Deleted IPv4 address in DNS64 container")
@@ -435,7 +435,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	args = BuildAddRouteArgsForDNS64(c)
 	_, err = DoCommand("Add IPv6 route", args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(4).Info("Have IPv6 route in DNS64 container")
@@ -456,7 +456,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 	args := BuildRunArgsForNAT64(c)
 	_, err := DoCommand("NAT64 container", args)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(err.Error())
 		os.Exit(1) // TODO: Rollback?
 	} else {
 		glog.V(1).Info("NAT64 container (tayga) started")
@@ -467,7 +467,7 @@ func PrepareNAT64Server(node *Node, c *Config) {
 		if err.Error() == "file exists" {
 			glog.V(1).Infof("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
 		} else {
-			glog.Fatal(err)
+			glog.Fatal(err.Error())
 			os.Exit(1) // TODO: Rollback?
 		}
 	} else {
@@ -493,7 +493,7 @@ func Prepare(name string, c *Config) {
 	if node.IsMaster || node.IsMinion {
 		err := PrepareClusterNode(&node, c)
 		if err != nil {
-			glog.Fatal(err)
+			glog.Fatal(err.Error())
 			os.Exit(1) // TODO: Rollback?
 		}
 	}

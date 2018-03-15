@@ -454,8 +454,8 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to create route")
 	}
-	expected := ""
-	if !strings.HasSuffix(err.Error(), expected) {
+	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
+	if err.Error() != expected {
 		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }

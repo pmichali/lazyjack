@@ -136,9 +136,8 @@ func ValidateToken(token string, ignoreMissing bool) error {
 	tokenRE := regexp.MustCompile("^[a-z0-9]{6}\\.[a-z0-9]{16}$")
 	if tokenRE.MatchString(token) {
 		return nil
-	} else {
-		return fmt.Errorf("Token is invalid %q", token)
 	}
+	return fmt.Errorf("Token is invalid %q", token)
 }
 
 func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {

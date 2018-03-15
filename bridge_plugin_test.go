@@ -100,3 +100,253 @@ func TestFailedCreateBridgeCNIConfigFile(t *testing.T) {
 		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
+
+func TestDoRouteOpsOnNodesAdd(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to add route on node: %s", err.Error())
+	}
+}
+
+func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to create route")
+	}
+	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
+	if err == nil {
+		t.Errorf("FAILED: Expected to not be able to create route - exists already")
+	}
+	expected := "Skipping - add route to fd00:40:0:0:20::/80 via fd00:100::20 as already exists"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestDoRouteOpsOnNodesDelete(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
+	if err != nil {
+		t.Errorf("FAILED: Expected to be able to delete route on node: %s", err.Error())
+	}
+}
+
+func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to delete route on node")
+	}
+	expected := "Unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure deleting route"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simNoRoute: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Prefix: "fd00:40:0:0",
+			Size:   80,
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "minion1",
+		Interface: "eth2",
+		IsMinion:  true,
+		ID:        20,
+	}
+
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
+	if err == nil {
+		t.Errorf("FAILED: Expected not to be able to delete route on node")
+	}
+	expected := "Skipping - delete route from fd00:40:0:0:10::/80 via fd00:100::10 as non-existent"
+	if err.Error() != expected {
+		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}

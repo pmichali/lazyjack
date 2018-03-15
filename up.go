@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -36,6 +37,8 @@ func SetupForPlugin(node *Node, c *Config) error {
 
 	err = CreateRoutesForPodNetwork(node, c)
 	if err != nil {
+		// Note: May get error, if route already exists. Since this is the
+		// last operation, it is OK to return, versus continuing here.
 		return err
 	}
 	glog.Infof("Set up for %s plugin", c.General.Plugin)
@@ -170,8 +173,13 @@ func BringUp(name string, c *Config) {
 
 	err := SetupForPlugin(&node, c)
 	if err != nil {
-		glog.Fatal(err)
-		os.Exit(1) // TODO: Rollback?
+		if strings.HasPrefix(err.Error(), "Skipping -") {
+			glog.Warning(err.Error())
+			// Will keep going...
+		} else {
+			glog.Fatal(err.Error())
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 
 	err = RestartKubeletService()

@@ -93,9 +93,7 @@ func (cb *ClosingBuffer) Close() (err error) {
 	return nil
 }
 
-func TestLoadConfig(t *testing.T) {
-	// Malformed config file
-
+func TestFailedBadYAMLLoadConfig(t *testing.T) {
 	badYAML := `# Simple YAML file with (invalid) tab character
 topology:
     good-host:
@@ -110,13 +108,14 @@ topology:
 	if err.Error() != "Failed to parse config: yaml: line 5: did not find expected key" {
 		t.Errorf("Error message is not correct for malformed YAML file (%s)", err.Error())
 	}
+}
 
-	// Legacy (partial) YAML
+func TestLegacyLoadConfig(t *testing.T) {
 	legacyYAML := `# Valid legacy yaml
 plugin: bridge
 `
-	stream = &ClosingBuffer{bytes.NewBufferString(legacyYAML)}
-	config, err = lazyjack.LoadConfig(stream)
+	stream := &ClosingBuffer{bytes.NewBufferString(legacyYAML)}
+	config, err := lazyjack.LoadConfig(stream)
 
 	if err != nil {
 		t.Errorf("Unexpected error, when reading config")
@@ -128,8 +127,9 @@ plugin: bridge
 	if config.Plugin != "bridge" {
 		t.Errorf("Missing plugin config")
 	}
+}
 
-	// Good config file
+func TestLoadConfig(t *testing.T) {
 	goodYAML := `# Valid YAML file
 general:
     plugin: bridge
@@ -156,8 +156,8 @@ dns64:
     cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"`
 
-	stream = &ClosingBuffer{bytes.NewBufferString(goodYAML)}
-	config, err = lazyjack.LoadConfig(stream)
+	stream := &ClosingBuffer{bytes.NewBufferString(goodYAML)}
+	config, err := lazyjack.LoadConfig(stream)
 
 	if err != nil {
 		t.Errorf("Unexpected error, when reading config")

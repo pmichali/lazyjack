@@ -21,6 +21,7 @@ type mockImpl struct {
 	simRouteAddFail  bool
 	simRouteExists   bool
 	simRouteDelFail  bool
+	simNoRoute       bool
 	simSetDownFail   bool
 	simLinkDelFail   bool
 }
@@ -39,14 +40,18 @@ func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, erro
 	// Will use the link index to create dummy addresses per link
 	var first *netlink.Addr
 	var second *netlink.Addr
+	var third *netlink.Addr
 	if family == nl.FAMILY_V4 {
 		first, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.2/16", link.Attrs().Index))
 		second, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.3/16", link.Attrs().Index))
+		third, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.4/16", link.Attrs().Index))
 	} else {
 		first, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::2/64", link.Attrs().Index))
 		second, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::3/64", link.Attrs().Index))
+		// To simulate mgmt IP address, which has node ID as last part of address
+		third, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:20::%d/64", link.Attrs().Index))
 	}
-	addrList := []netlink.Addr{*first, *second}
+	addrList := []netlink.Addr{*first, *second, *third}
 	return addrList, nil
 }
 
@@ -106,6 +111,9 @@ func (m *mockImpl) RouteAdd(route *netlink.Route) error {
 func (m *mockImpl) RouteDel(route *netlink.Route) error {
 	if m.simRouteDelFail {
 		return fmt.Errorf("Mock failure deleting route")
+	}
+	if m.simNoRoute {
+		return fmt.Errorf("no such process")
 	}
 	return nil
 }

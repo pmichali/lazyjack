@@ -62,14 +62,12 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				if op == "add" {
 					err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 					if err != nil && err.Error() == "file exists" {
-						glog.V(1).Infof("Skipping - %s route to %s via %s as already exists", op, dest, gw)
-						return nil
+						return fmt.Errorf("Skipping - %s route to %s via %s as already exists", op, dest, gw)
 					}
 				} else {
 					err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 					if err != nil && err.Error() == "no such process" {
-						glog.V(1).Infof("Skipping - %s route from %s via %s as non-existent", op, dest, gw)
-						return nil
+						return fmt.Errorf("Skipping - %s route from %s via %s as non-existent", op, dest, gw)
 					}
 				}
 				if err != nil {

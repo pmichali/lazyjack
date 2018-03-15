@@ -69,7 +69,7 @@ func TestSaveFileContents(t *testing.T) {
 	backup := TempFileName(path, ".bak")
 	err = ioutil.WriteFile(file, []byte("data"), 0777)
 	if err != nil {
-		t.Errorf("Test setup failure - unable to create temp file: %s")
+		t.Errorf("Test setup failure - unable to create temp file: %s", err.Error())
 	}
 
 	// Test normal
