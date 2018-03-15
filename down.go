@@ -13,17 +13,15 @@ func CleanupForPlugin(node *Node, c *Config) error {
 	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
 		return fmt.Errorf("Unable to remove routes for %s plugin: %s", c.General.Plugin, err.Error())
-	} else {
-		glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 	}
+	glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
 	err = os.RemoveAll(c.General.CNIArea)
 	if err != nil {
 		return fmt.Errorf("Unable to remove CNI config file and area: %s", err.Error())
-	} else {
-		glog.V(1).Info("Removed CNI config file and area")
 	}
+	glog.V(1).Info("Removed CNI config file and area")
 	glog.Infof("Cleaned up for %s plugin", c.General.Plugin)
 	return nil
 }

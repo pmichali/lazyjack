@@ -28,9 +28,8 @@ func SaveFileContents(contents []byte, file, backup string) error {
 		err := os.Rename(file, backup)
 		if err != nil {
 			return fmt.Errorf("Unable to backup existing file %s to %s: %s", file, backup, err.Error())
-		} else {
-			glog.V(4).Infof("Backed up existing %s to %s", file, backup)
 		}
+		glog.V(4).Infof("Backed up existing %s to %s", file, backup)
 	}
 	err = ioutil.WriteFile(file, contents, 0755)
 	if err != nil {
@@ -41,9 +40,8 @@ func SaveFileContents(contents []byte, file, backup string) error {
 					file, err.Error(), backup, err2.Error())
 			}
 			return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, err.Error())
-		} else {
-			return fmt.Errorf("Unable to save %s", file)
 		}
+		return fmt.Errorf("Unable to save %s", file)
 	}
 	glog.V(4).Infof("Saved %s", file)
 	return nil

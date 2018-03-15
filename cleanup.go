@@ -45,12 +45,10 @@ func RemoveDropInFile(c *Config) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("No kubelet drop-in file to remove")
-		} else {
-			return fmt.Errorf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
 		}
-	} else {
-		glog.V(4).Info("Removed kubelet drop-in file")
+		return fmt.Errorf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
 	}
+	glog.V(4).Info("Removed kubelet drop-in file")
 	return nil
 }
 

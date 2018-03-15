@@ -9,6 +9,8 @@ import (
 	"github.com/golang/glog"
 )
 
+// ResourceExists inspects to see if the resource is known
+// to docker.
 // Q: Should we check if it is running? If not, remove?
 func ResourceExists(r string) bool {
 	_, err := DoCommand(r, []string{"inspect", r})

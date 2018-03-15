@@ -27,9 +27,8 @@ func SetupForPlugin(node *Node, c *Config) error {
 	err := EnsureCNIAreaExists(c.General.CNIArea)
 	if err != nil {
 		return err
-	} else {
-		glog.V(4).Info("Created area for CNI config file")
 	}
+	glog.V(4).Info("Created area for CNI config file")
 	err = CreateBridgeCNIConfigFile(node, c)
 	if err != nil {
 		return err

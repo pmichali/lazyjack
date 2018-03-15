@@ -29,7 +29,8 @@ type RealImpl struct {
 	h *netlink.Handle
 }
 
-// Wrappers
+// Wrappers for the netlink library...
+
 func (r *RealImpl) AddrDel(link netlink.Link, addr *netlink.Addr) error {
 	return r.h.AddrDel(link, addr)
 }

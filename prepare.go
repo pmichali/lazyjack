@@ -23,7 +23,8 @@ func CreateKubeletDropInContents(c *Config) *bytes.Buffer {
 	return contents
 }
 
-// Override kubelet configuration, so that the correct address is used for DNS resolution.
+// CreateKubeletDropInFile creates a config file to override the kubelet
+// configuration, so that the correct address is used for DNS resolution.
 func CreateKubeletDropInFile(c *Config) error {
 	contents := CreateKubeletDropInContents(c)
 
@@ -381,6 +382,7 @@ func ParseIPv4Address(ifConfig string) string {
 	return ""
 }
 
+// PrepareDNS64Server starts up the bind9 DNS64 server.
 // NOTE: Will use existing container, if running
 func PrepareDNS64Server(node *Node, c *Config) {
 	glog.V(1).Info("Preparing DNS64")
@@ -443,6 +445,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 	glog.Info("Prepared DNS64 container")
 }
 
+// PrepareNAT64Server starts up the Tayga NAT64 server.
 // NOTE: Will use existing container, if running
 func PrepareNAT64Server(node *Node, c *Config) {
 	glog.V(1).Info("Preparing NAT64")

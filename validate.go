@@ -28,7 +28,7 @@ func ValidateCommand(command string) (string, error) {
 func ValidateHost(host string, config *Config) error {
 	_, ok := config.Topology[host]
 	if !ok {
-		return fmt.Errorf("Unable to find info for host %q in config file\n", host)
+		return fmt.Errorf("Unable to find info for host %q in config file", host)
 	}
 	return nil
 }
@@ -46,6 +46,7 @@ func ValidateUniqueIDs(c *Config) error {
 	return nil
 }
 
+// ValidateNodeOpModes checks that valid operational mode names are used.
 // NOTE: Side effect of saving the operating modes as flags, for easier use.
 func ValidateNodeOpModes(node *Node) error {
 	validModes := []string{"master", "minion", "dns64", "nat64"}
@@ -96,9 +97,12 @@ func ValidateNodeOpModes(node *Node) error {
 	return nil
 }
 
+// ValidateOpModesForAllNodes checks the operation mode for all nodes,
+// and ensures that there is exactly one master node. Note: Side effect
+// is storing node name in node struct for ease of access
+//
 // TODO: determine if allow duplicate DNS/NAT nodes
 // TODO: test missing DNS/NAT node
-// Note: Side effect is storing node name in node struct for ease of access
 func ValidateOpModesForAllNodes(c *Config) error {
 	numMasters := 0
 	for name, node := range c.Topology {
@@ -168,6 +172,7 @@ func ValidateCIDR(which, cidr string) error {
 	return nil
 }
 
+// ValidatePlugin ensures the plugin name is valid.
 // Side effect of storing legacy value into new field.
 func ValidatePlugin(c *Config) error {
 	// Look for legacy plugin first
@@ -198,7 +203,9 @@ func GetNetAndMask(input string) (string, int, error) {
 	return net, mask, nil
 }
 
-// TODO: Validate n overlaps in CIDRs
+// CalculateDerivedFields splits up CIDRs into prefix and size
+// for use later.
+// TODO: Validate no overlaps in CIDRs
 func CalculateDerivedFields(c *Config) error {
 	// Calculate derived fields
 	var err error
@@ -219,7 +226,7 @@ func CalculateDerivedFields(c *Config) error {
 	return nil
 }
 
-// SetupVaseAreas allows the configuration to hold the root for both
+// SetupBaseAreas allows the configuration to hold the root for both
 // the working files (overridable), and key configuration files. This
 // will allow the user to specify a different work area in the former
 // and for unit tests to specify a temp area for the latter.
@@ -242,6 +249,12 @@ func SetupHandleToExtLibs(c *Config) error {
 	return nil
 }
 
+// ValidateConfigContents checks contents of the config file.
+// Token and certificate hash validation is ignored during init
+// phase, which will generate these values. Side effect is that
+// base paths are set up based on defaults (unless overriden by
+// config file). The netlink library handle is set (allowing UTs
+// to override and mock that library).
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	if c == nil {
