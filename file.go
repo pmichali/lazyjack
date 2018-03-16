@@ -34,15 +34,19 @@ func SaveFileContents(contents []byte, file, backup string) error {
 	err = ioutil.WriteFile(file, contents, 0755)
 	if err != nil {
 		if exists {
-			err2 := os.Rename(backup, file)
-			if err2 != nil {
-				return fmt.Errorf("Unable to save updated %s (%s) AND unable to restore backup file %s (%s)",
-					file, err.Error(), backup, err2.Error())
-			}
-			return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, err.Error())
+			return RecoverFile(file, backup, err.Error())
 		}
 		return fmt.Errorf("Unable to save %s", file)
 	}
 	glog.V(4).Infof("Saved %s", file)
 	return nil
+}
+
+func RecoverFile(file, backup, saveErr string) error {
+	err := os.Rename(backup, file)
+	if err != nil {
+		return fmt.Errorf("Unable to save updated %s (%s) AND unable to restore backup file %s (%s)",
+			file, saveErr, backup, err.Error())
+	}
+	return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, saveErr)
 }
