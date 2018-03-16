@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
@@ -20,7 +21,7 @@ Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::a --cluster-domain=cluster
 `
 	actual := lazyjack.CreateKubeletDropInContents(c)
 	if actual.String() != expected {
-		t.Errorf("Kubelet drop-in contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+		t.Fatalf("Kubelet drop-in contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
 	}
 }
 
@@ -36,7 +37,7 @@ func TestCreateKubeletDropInFile(t *testing.T) {
 
 	err := lazyjack.CreateKubeletDropInFile(c)
 	if err != nil {
-		t.Errorf("FAILURE: Expected to be able to create drop-in file: %s", err.Error())
+		t.Fatalf("FAILURE: Expected to be able to create drop-in file: %s", err.Error())
 	}
 }
 
@@ -53,7 +54,7 @@ func TestFailureToCreateKubeletDropInFile(t *testing.T) {
 
 	err := lazyjack.CreateKubeletDropInFile(c)
 	if err == nil {
-		t.Errorf("FAILURE: Expected not to be able to create area for drop-in file")
+		t.Fatalf("FAILURE: Expected not to be able to create area for drop-in file")
 	}
 }
 
@@ -63,15 +64,15 @@ func TestBuildFileStructureForDNS(t *testing.T) {
 
 	err := lazyjack.BuildFileStructureForDNS(basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create DNS area in %q: %s", basePath, err.Error())
+		t.Fatalf("FAILED: Expected to be able to create DNS area in %q: %s", basePath, err.Error())
 	}
 	conf := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea)
 	if _, err := os.Stat(conf); os.IsNotExist(err) {
-		t.Errorf("FAILED: Config area was not created")
+		t.Fatalf("FAILED: Config area was not created")
 	}
 	cache := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64CacheArea)
 	if _, err := os.Stat(cache); os.IsNotExist(err) {
-		t.Errorf("FAILED: Cache area was not created")
+		t.Fatalf("FAILED: Cache area was not created")
 	}
 }
 
@@ -82,12 +83,12 @@ func TestFailingBuildFileStructureForDNS(t *testing.T) {
 	// Make it not readable, so that it cannot be removed
 	err := os.MkdirAll(basePath, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 
 	err = lazyjack.BuildFileStructureForDNS(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to create DNS area in %q", basePath)
+		t.Fatalf("FAILED: Expected not to be able to create DNS area in %q", basePath)
 	}
 }
 
@@ -115,7 +116,7 @@ func TestNamedConfContents(t *testing.T) {
 `
 	actual := lazyjack.CreateNamedConfContents(c)
 	if actual.String() != expected {
-		t.Errorf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+		t.Fatalf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
 	}
 }
 
@@ -136,11 +137,42 @@ func TestCreateConfigForDNS64(t *testing.T) {
 
 	err := lazyjack.CreateConfigForDNS64(c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create DNS64 config area and file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create DNS64 config area and file: %s", err.Error())
 	}
 	conf := filepath.Join(c.General.WorkArea, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea, lazyjack.DNS64NamedConf)
 	if _, err := os.Stat(conf); os.IsNotExist(err) {
-		t.Errorf("FAILED: Config file %q was not created", conf)
+		t.Fatalf("FAILED: Config file %q was not created", conf)
+	}
+}
+
+func TestFailedBuildTreeCreateConfigForDNS64(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	// Make it not readable, so that it cannot be removed
+	err := os.MkdirAll(basePath, 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
+	}
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		General: lazyjack.GeneralSettings{
+			WorkArea: basePath,
+		},
+	}
+
+	err = lazyjack.CreateConfigForDNS64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to create DNS64 config area")
+	}
+	expected := "Unable to create directory structure for DNS64"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -176,7 +208,7 @@ func TestParseIPv4AddressFromIfConfig(t *testing.T) {
 	for _, tc := range testCases {
 		actual := lazyjack.ParseIPv4Address(tc.ifConfig)
 		if actual != tc.expected {
-			t.Errorf("FAILED: [%s]. Expected %q, got %q", tc.name, tc.expected, actual)
+			t.Fatalf("FAILED: [%s]. Expected %q, got %q", tc.name, tc.expected, actual)
 		}
 	}
 }
@@ -201,7 +233,7 @@ func TestBuildNodeInfo(t *testing.T) {
 
 	ni := lazyjack.BuildNodeInfo(c)
 	if len(ni) != 3 {
-		t.Errorf("FAILURE: Expected three nodes")
+		t.Fatalf("FAILURE: Expected three nodes")
 	}
 	expected1st := lazyjack.NodeInfo{Name: "alpha", IP: "fd00:100::30", Seen: false}
 	expected2nd := lazyjack.NodeInfo{Name: "master", IP: "fd00:100::10", Seen: false}
@@ -251,7 +283,7 @@ func TestAddHostEntries(t *testing.T) {
 
 	err = lazyjack.AddHostEntries(c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to update hosts file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to update hosts file: %s", err.Error())
 	}
 }
 
@@ -485,7 +517,7 @@ func TestAddResolvConfEntry(t *testing.T) {
 
 	err = lazyjack.AddResolvConfEntry(c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to update resolv.conf file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to update resolv.conf file: %s", err.Error())
 	}
 }
 
@@ -511,10 +543,10 @@ func TestFindHostIPForNAT64(t *testing.T) {
 	}
 	gw, ok := lazyjack.FindHostIPForNAT64(c)
 	if !ok {
-		t.Errorf("Expected to find node with NAT64 server")
+		t.Fatalf("Expected to find node with NAT64 server")
 	}
 	if gw != "fd00:100::20" {
-		t.Errorf("Incorrect GW IP from node with NAT64 server")
+		t.Fatalf("Incorrect GW IP from node with NAT64 server")
 	}
 	bad := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
@@ -529,7 +561,7 @@ func TestFindHostIPForNAT64(t *testing.T) {
 	}
 	gw, ok = lazyjack.FindHostIPForNAT64(bad)
 	if ok {
-		t.Errorf("Expected no NAT64 server to be found")
+		t.Fatalf("Expected no NAT64 server to be found")
 	}
 }
 
@@ -569,7 +601,7 @@ apiServerExtraArgs:
 `
 	actual := string(lazyjack.CreateKubeAdmConfigContents(n, c))
 	if actual != expected {
-		t.Errorf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
+		t.Fatalf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
 	}
 }
 
@@ -597,7 +629,7 @@ func TestCreateKubeAdmConfFile(t *testing.T) {
 
 	err := lazyjack.CreateKubeAdmConfigFile(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create KubeAdm config file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create KubeAdm config file: %s", err.Error())
 	}
 }
 
@@ -627,7 +659,7 @@ func TestFailingCreateKubeAdmConfFile(t *testing.T) {
 
 	err := lazyjack.CreateKubeAdmConfigFile(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to create KubeAdm config file")
+		t.Fatalf("FAILED: Expected not to be able to create KubeAdm config file")
 	}
 }
 
@@ -647,7 +679,7 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
 	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create route: %s", err.Error())
 	}
 }
 
@@ -683,7 +715,7 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNonNATServer(t *testing.T) {
 	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(minionNode, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create route: %s", err.Error())
 	}
 }
 
@@ -719,11 +751,11 @@ func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
 	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(minionNode, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to find NAT server: %s", err.Error())
+		t.Fatalf("FAILED: Expected to not be able to find NAT server: %s", err.Error())
 	}
 	expected := "Unable to find node with NAT64 server configured"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -743,11 +775,11 @@ func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *tes
 	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create route")
+		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
 	expected := "Mock failure adding route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -767,7 +799,7 @@ func TestRouteExistsCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testin
 	}
 	err := lazyjack.CreateRouteToNAT64ServerForDNS64Subnet(masterNode, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create route: %s", err.Error())
 	}
 }
 
@@ -785,7 +817,7 @@ func TestSkipNAT64ServerForCreateRouteToSupportNetworkForOtherNodes(t *testing.T
 	}
 	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected no actions for NAT64/DNS64 server")
+		t.Fatalf("FAILED: Expected no actions for NAT64/DNS64 server")
 	}
 }
 
@@ -820,7 +852,7 @@ func TestCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 	}
 	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to add route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to add route: %s", err.Error())
 	}
 }
 
@@ -855,11 +887,11 @@ func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 	}
 	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to add route")
+		t.Fatalf("FAILED: Expected not to be able to add route")
 	}
 	expected := "Mock failure adding route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -894,7 +926,7 @@ func TestFailedRouteExistsCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 	}
 	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected existing route to pass: %s", err.Error())
+		t.Fatalf("FAILED: Expected existing route to pass: %s", err.Error())
 	}
 }
 
@@ -932,11 +964,11 @@ func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 	}
 	err := lazyjack.CreateRouteToSupportNetworkForOtherNodes(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to find NAT64/DNS64 server node")
+		t.Fatalf("FAILED: Expected not to be able to find NAT64/DNS64 server node")
 	}
 	expected := "Unable to find node with NAT64 server configured"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -1006,6 +1038,6 @@ func TestPrepareClusterNode(t *testing.T) {
 
 	err = lazyjack.PrepareClusterNode(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to prepare cluster node: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to prepare cluster node: %s", err.Error())
 	}
 }

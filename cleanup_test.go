@@ -179,7 +179,7 @@ func TestRevertEntries(t *testing.T) {
 
 	err = lazyjack.RevertEntries(src, backup)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to restore entry: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to restore entry: %s", err.Error())
 	}
 }
 
@@ -193,11 +193,11 @@ func TestFailingRevertEntries(t *testing.T) {
 
 	err := lazyjack.RevertEntries(src, backup)
 	if err == nil {
-		t.Errorf("FAILED: Expected to NOT be able to restore entry - missing source")
+		t.Fatalf("FAILED: Expected to NOT be able to restore entry - missing source")
 	}
 	expected := "Unable to read"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
 
 	// Create a valid source file
@@ -210,11 +210,11 @@ func TestFailingRevertEntries(t *testing.T) {
 	backup = srcArea
 	err = lazyjack.RevertEntries(src, backup)
 	if err == nil {
-		t.Errorf("FAILED: Expected to NOT be able to restore entry - read-only backup")
+		t.Fatalf("FAILED: Expected to NOT be able to restore entry - read-only backup")
 	}
 	expected = "Unable to backup"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -235,7 +235,7 @@ func TestRemoveDropInFile(t *testing.T) {
 	}
 	err = lazyjack.RemoveDropInFile(c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove kubelet drop in file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove kubelet drop in file: %s", err.Error())
 	}
 }
 
@@ -249,11 +249,11 @@ func TestFailedNoFileRemoveDropInFile(t *testing.T) {
 	}
 	err := lazyjack.RemoveDropInFile(c)
 	if err == nil {
-		t.Errorf("FAILED: Expected kubelet drop in file to be missing")
+		t.Fatalf("FAILED: Expected kubelet drop in file to be missing")
 	}
 	expected := "No kubelet drop-in file to remove"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -265,7 +265,7 @@ func TestFailedRemoveDropInFile(t *testing.T) {
 	systemdBase := filepath.Join(basePath, "dummy")
 	err := os.MkdirAll(systemdBase, 0700)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	// Create a dummy file that is not writeable
 	src := filepath.Join(systemdBase, lazyjack.KubeletDropInFile)
@@ -277,7 +277,7 @@ func TestFailedRemoveDropInFile(t *testing.T) {
 	// Make parent dir read-only, to prevent file removal for test.
 	err = os.Chmod(basePath, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	defer func() { os.Chmod(basePath, 0700) }()
 
@@ -286,11 +286,11 @@ func TestFailedRemoveDropInFile(t *testing.T) {
 	}
 	err = lazyjack.RemoveDropInFile(c)
 	if err == nil {
-		t.Errorf("FAILED: Expected kubelet drop in file removal to fail")
+		t.Fatalf("FAILED: Expected kubelet drop in file removal to fail")
 	}
 	expected := "Unable to remove kubelet drop-in file"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -312,7 +312,7 @@ func TestRemoveManagementIP(t *testing.T) {
 
 	err := lazyjack.RemoveManagementIP(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove management IP: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove management IP: %s", err.Error())
 	}
 }
 
@@ -334,11 +334,11 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 
 	err := lazyjack.RemoveManagementIP(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to remove management IP")
+		t.Fatalf("FAILED: Expected not to be able to remove management IP")
 	}
 	expected := "Unable to remove IP from management interface: Unable to delete ip \"2001:db8:20::10/64\" from interface \"eth1\""
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -360,7 +360,7 @@ func TestRevertFile(t *testing.T) {
 
 	err = lazyjack.RevertEtcAreaFile(c, "foo", "foo.bak")
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to revert file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to revert file: %s", err.Error())
 	}
 }
 
@@ -393,7 +393,7 @@ func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove route: %s", err.Error())
 	}
 }
 
@@ -426,11 +426,11 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to remove route")
+		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
 	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:5::200: Mock failure deleting route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -463,7 +463,7 @@ func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove route: %s", err.Error())
 	}
 }
 
@@ -497,11 +497,11 @@ func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to find NAT64 server")
+		t.Fatalf("FAILED: Expected not to be able to find NAT64 server")
 	}
 	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via : Unable to find node with NAT64 server"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -531,7 +531,7 @@ func TestRemoveRouteForNAT64(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForNAT64(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove route: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove route: %s", err.Error())
 	}
 }
 
@@ -561,11 +561,11 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForNAT64(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to remove route")
+		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
 	expected := "Unable to delete route to 2001:db8::/64 via 2001:db8:20::10: Mock failure deleting route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -596,11 +596,11 @@ func TestFailedNoNATRemoveRouteForNAT64(t *testing.T) {
 	}
 	err := lazyjack.RemoveRouteForNAT64(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to remove route")
+		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
 	expected := "Unable to delete route to 2001:db8::/64 via : Unable to find node with NAT64 server configured"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
 }
 
@@ -667,7 +667,7 @@ func TestCleanupClusterNode(t *testing.T) {
 
 	err = lazyjack.CleanupClusterNode(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to clean up cluster: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to clean up cluster: %s", err.Error())
 	}
 }
 
@@ -724,12 +724,12 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 
 	err := lazyjack.CleanupClusterNode(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to have multiple failures cleaning up node")
+		t.Fatalf("FAILED: Expected to have multiple failures cleaning up node")
 	}
 	// Check that each error message is seen
 	actual := strings.Split(err.Error(), ". ")
 	if len(actual) != 6 {
-		t.Errorf("FAILED: Expected 6 error strings, got %d", len(actual))
+		t.Fatalf("FAILED: Expected 6 error strings, got %d", len(actual))
 	}
 	expected := []*regexp.Regexp{
 		regexp.MustCompile("No kubelet drop-in file to remove"),

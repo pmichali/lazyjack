@@ -64,7 +64,7 @@ func TestEnsureCNIAreaExists(t *testing.T) {
 
 	err := lazyjack.EnsureCNIAreaExists(basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create CNI area in %q: %s", basePath, err.Error())
+		t.Fatalf("FAILED: Expected to be able to create CNI area in %q: %s", basePath, err.Error())
 	}
 }
 
@@ -76,17 +76,17 @@ func TestFailingEnsureCNIAreaExists(t *testing.T) {
 	cniBase := filepath.Join(basePath, "dummy")
 	err := os.MkdirAll(cniBase, 0700)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	err = os.Chmod(basePath, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	defer func() { os.Chmod(basePath, 0700) }()
 
 	err = lazyjack.EnsureCNIAreaExists(cniBase)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to create CNI area in %q", cniBase)
+		t.Fatalf("FAILED: Expected not to be able to create CNI area in %q", cniBase)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestCopyFile(t *testing.T) {
 
 	err = lazyjack.CopyFile("foo", srcArea, dstArea)
 	if err != nil {
-		t.Errorf("FAILURE: Expected to be able to copy file: %s", err.Error())
+		t.Fatalf("FAILURE: Expected to be able to copy file: %s", err.Error())
 	}
 }
 
@@ -124,11 +124,11 @@ func TestCopyFileFailures(t *testing.T) {
 	// No source file...
 	err := lazyjack.CopyFile("foo", srcArea, dstArea)
 	if err == nil {
-		t.Errorf("FAILURE: Expected not to be able to copy non-existing source file")
+		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
 	expected := "Unable to open source file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
 
 	// Create a valid source file
@@ -148,11 +148,64 @@ func TestCopyFileFailures(t *testing.T) {
 	// Unable to copy to dest...
 	err = lazyjack.CopyFile("foo", srcArea, dstArea)
 	if err == nil {
-		t.Errorf("FAILURE: Expected not to be able to copy non-existing source file")
+		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
 	expected = "Unable to open destination file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCopyFileNoSource(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	dstArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(dstArea, t)
+	defer HelperCleanupArea(dstArea, t)
+
+	err := lazyjack.CopyFile("foo", srcArea, dstArea)
+	if err == nil {
+		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
+	}
+	expected := "Unable to open source file \"foo\":"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCopyFileDestReadOnly(t *testing.T) {
+	srcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(srcArea, t)
+	defer HelperCleanupArea(srcArea, t)
+
+	dstArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(dstArea, t)
+	defer HelperCleanupArea(dstArea, t)
+
+	// Create a valid source file
+	filename := filepath.Join(srcArea, "foo")
+	err := ioutil.WriteFile(filename, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create source file for test")
+	}
+
+	// Create a file that is read-only, so that it cannot be overwritten
+	filename = filepath.Join(dstArea, "foo")
+	err = ioutil.WriteFile(filename, []byte("# empty file"), 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create dest file for test")
+	}
+
+	// Unable to copy to dest...
+	err = lazyjack.CopyFile("foo", srcArea, dstArea)
+	if err == nil {
+		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
+	}
+	expected := "Unable to open destination file \"foo\":"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
 }
 
@@ -178,15 +231,15 @@ func TestPlaceCertificateAndKeyForCA(t *testing.T) {
 
 	err = lazyjack.PlaceCertificateAndKeyForCA(basePath, dstPath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to copy certs from %q to %q: %s", basePath, dstPath, err.Error())
+		t.Fatalf("FAILED: Expected to be able to copy certs from %q to %q: %s", basePath, dstPath, err.Error())
 	}
 	certCopy := filepath.Join(dstPath, "ca.crt")
 	if _, err := os.Stat(certCopy); os.IsNotExist(err) {
-		t.Errorf("FAILED: ca.crt was not copied")
+		t.Fatalf("FAILED: ca.crt was not copied")
 	}
 	keyCopy := filepath.Join(dstPath, "ca.key")
 	if _, err := os.Stat(keyCopy); os.IsNotExist(err) {
-		t.Errorf("FAILED: ca.key was not copied")
+		t.Fatalf("FAILED: ca.key was not copied")
 	}
 }
 
@@ -214,17 +267,17 @@ func TestFailingPlaceCertificateAndKeyForCANotWriteabe(t *testing.T) {
 	dstPath := filepath.Join(dstArea, "dummy")
 	err = os.MkdirAll(dstArea, 0700)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	err = os.Chmod(dstArea, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	defer func() { os.Chmod(dstArea, 0700) }()
 
 	err = lazyjack.PlaceCertificateAndKeyForCA(basePath, dstPath)
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to copy certs from %q to %q", basePath, dstPath)
+		t.Fatalf("FAILED: Expected not to be able to copy certs from %q to %q", basePath, dstPath)
 	}
 }
 
@@ -245,7 +298,7 @@ func TestFailingPlaceCertificateAndKeyForCAMissingKeyFile(t *testing.T) {
 
 	err = lazyjack.PlaceCertificateAndKeyForCA(basePath, dstPath)
 	if err == nil {
-		t.Errorf("FAILED: Expected missing ca.key file for copy")
+		t.Fatalf("FAILED: Expected missing ca.key file for copy")
 	}
 }
 
@@ -266,7 +319,7 @@ func TestFailingPlaceCertificateAndKeyForCAMissingCrtFile(t *testing.T) {
 
 	err = lazyjack.PlaceCertificateAndKeyForCA(basePath, dstPath)
 	if err == nil {
-		t.Errorf("FAILED: Expected missing ca.crt file for copy")
+		t.Fatalf("FAILED: Expected missing ca.crt file for copy")
 	}
 }
 
@@ -286,7 +339,7 @@ func TestDetermineMasterNode(t *testing.T) {
 	}
 	n := lazyjack.DetermineMasterNode(c)
 	if n == nil {
-		t.Errorf("FAILED: Expected there to be a master node")
+		t.Fatalf("FAILED: Expected there to be a master node")
 	}
 
 	c = &lazyjack.Config{
@@ -301,7 +354,7 @@ func TestDetermineMasterNode(t *testing.T) {
 	}
 	n = lazyjack.DetermineMasterNode(c)
 	if n != nil {
-		t.Errorf("FAILED: Expected there NOT to be a master node")
+		t.Fatalf("FAILED: Expected there NOT to be a master node")
 	}
 
 }
@@ -347,7 +400,7 @@ func TestSetupForPlugin(t *testing.T) {
 
 	err := lazyjack.SetupForPlugin(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create config file and routes: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create config file and routes: %s", err.Error())
 	}
 }
 
@@ -359,11 +412,11 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 	cniBase := filepath.Join(basePath, "dummy")
 	err := os.MkdirAll(cniBase, 0700)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	err = os.Chmod(basePath, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	defer func() { os.Chmod(basePath, 0700) }()
 
@@ -403,11 +456,11 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 
 	err = lazyjack.SetupForPlugin(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create CNI area")
+		t.Fatalf("FAILED: Expected to not be able to create CNI area")
 	}
 	expected := "permission denied"
 	if !strings.HasSuffix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -452,10 +505,10 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 
 	err := lazyjack.SetupForPlugin(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create route")
+		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
 	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }

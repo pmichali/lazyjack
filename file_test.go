@@ -61,7 +61,7 @@ func TestSaveFileContents(t *testing.T) {
 	path := TempFileName(os.TempDir(), "-area")
 	err := os.MkdirAll(path, 0777)
 	if err != nil {
-		t.Errorf("Test setup failure - unable to create temp area: %s", err.Error())
+		t.Fatalf("Test setup failure - unable to create temp area: %s", err.Error())
 	} else {
 		defer os.RemoveAll(path)
 	}
@@ -69,18 +69,18 @@ func TestSaveFileContents(t *testing.T) {
 	backup := TempFileName(path, ".bak")
 	err = ioutil.WriteFile(file, []byte("data"), 0777)
 	if err != nil {
-		t.Errorf("Test setup failure - unable to create temp file: %s", err.Error())
+		t.Fatalf("Test setup failure - unable to create temp file: %s", err.Error())
 	}
 
 	// Test normal
 	err = lazyjack.SaveFileContents([]byte("data"), file, backup)
 	if err != nil {
-		t.Errorf("Expected save to succeed, but it failed: %s", err.Error())
+		t.Fatalf("Expected save to succeed, but it failed: %s", err.Error())
 	}
 
 	// Backup failed (cannot rename to a directory)
 	err = lazyjack.SaveFileContents([]byte("data"), file, os.TempDir())
 	if err == nil {
-		t.Errorf("Expected save to fail when backup file is bad - but it worked")
+		t.Fatalf("Expected save to fail when backup file is bad - but it worked")
 	}
 }

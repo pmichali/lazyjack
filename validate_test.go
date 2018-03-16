@@ -59,25 +59,25 @@ func TestValidateConfigFile(t *testing.T) {
 	// No file specified
 	cf, err := lazyjack.OpenConfigFile("")
 	if cf != nil {
-		t.Errorf("Did not expect to have config, with empty filename")
+		t.Fatalf("Did not expect to have config, with empty filename")
 	}
 	if err.Error() != "Unable to open config file \"\": open : no such file or directory" {
-		t.Errorf("Expected error message, when trying to open empty filename")
+		t.Fatalf("Expected error message, when trying to open empty filename")
 	}
 
 	// File does not exist
 	cf, err = lazyjack.OpenConfigFile("non-existing-file")
 	if cf != nil {
-		t.Errorf("Did not expect to have config, with non-existing filename")
+		t.Fatalf("Did not expect to have config, with non-existing filename")
 	}
 	if err.Error() != "Unable to open config file \"non-existing-file\": open non-existing-file: no such file or directory" {
-		t.Errorf("Expected error message, when trying to open non-existing filename")
+		t.Fatalf("Expected error message, when trying to open non-existing filename")
 	}
 
 	// Have a file
 	cf, err = lazyjack.OpenConfigFile("sample-config.yaml")
 	if cf == nil {
-		t.Errorf("Expected to open sample configuration file")
+		t.Fatalf("Expected to open sample configuration file")
 	} else {
 		cf.Close()
 	}
@@ -103,10 +103,10 @@ topology:
 	stream := &ClosingBuffer{bytes.NewBufferString(badYAML)}
 	config, err := lazyjack.LoadConfig(stream)
 	if config != nil {
-		t.Errorf("Should not have config loaded, if YAML is malformed")
+		t.Fatalf("Should not have config loaded, if YAML is malformed")
 	}
 	if err.Error() != "Failed to parse config: yaml: line 5: did not find expected key" {
-		t.Errorf("Error message is not correct for malformed YAML file (%s)", err.Error())
+		t.Fatalf("Error message is not correct for malformed YAML file (%s)", err.Error())
 	}
 }
 
@@ -118,14 +118,14 @@ plugin: bridge
 	config, err := lazyjack.LoadConfig(stream)
 
 	if err != nil {
-		t.Errorf("Unexpected error, when reading config")
+		t.Fatalf("Unexpected error, when reading config")
 	}
 	if config == nil {
-		t.Errorf("Should have a config")
+		t.Fatalf("Should have a config")
 	}
 	// Checking legacy location
 	if config.Plugin != "bridge" {
-		t.Errorf("Missing plugin config")
+		t.Fatalf("Missing plugin config")
 	}
 }
 
@@ -160,25 +160,25 @@ dns64:
 	config, err := lazyjack.LoadConfig(stream)
 
 	if err != nil {
-		t.Errorf("Unexpected error, when reading config")
+		t.Fatalf("Unexpected error, when reading config")
 	}
 	if config == nil {
-		t.Errorf("Should have a config")
+		t.Fatalf("Should have a config")
 	}
 
 	if config.General.Plugin != "bridge" {
-		t.Errorf("Missing plugin config")
+		t.Fatalf("Missing plugin config")
 	}
 	expected := "/override/path/for/work/area"
 	if config.General.WorkArea != expected {
-		t.Errorf("Override to work area is incorrect. Expected %q, got %q", expected, config.General.WorkArea)
+		t.Fatalf("Override to work area is incorrect. Expected %q, got %q", expected, config.General.WorkArea)
 	}
 	node, ok := config.Topology["my-master"]
 	if !ok {
-		t.Errorf("Expected to have configuration for my-master node")
+		t.Fatalf("Expected to have configuration for my-master node")
 	}
 	if node.Interface != "eth0" || node.ID != 2 || node.OperatingModes != "master dns64 nat64" {
-		t.Errorf("Incorrect config for node my-master (%+v)", node)
+		t.Fatalf("Incorrect config for node my-master (%+v)", node)
 	}
 
 	node, ok = config.Topology["my-minion"]
@@ -227,11 +227,11 @@ func TestNotUniqueIDs(t *testing.T) {
 	}
 	err := lazyjack.ValidateUniqueIDs(c)
 	if err == nil {
-		t.Errorf("Expected failure with duplicate IDs")
+		t.Fatalf("Expected failure with duplicate IDs")
 	}
 	// Order of node names is not guaranteed, so just check first part of msg
 	if !strings.HasPrefix(err.Error(), "Duplicate node ID 10 seen for node") {
-		t.Errorf("Error message is not correct (%s)", err.Error())
+		t.Fatalf("Error message is not correct (%s)", err.Error())
 	}
 }
 
@@ -249,7 +249,7 @@ func TestUniqueIDs(t *testing.T) {
 	}
 	err := lazyjack.ValidateUniqueIDs(c)
 	if err != nil {
-		t.Errorf("Should not be an error, as all IDs are unique")
+		t.Fatalf("Should not be an error, as all IDs are unique")
 	}
 }
 
@@ -358,9 +358,9 @@ func TestDuplicateMasters(t *testing.T) {
 
 	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
-		t.Errorf("Expected to see error, when configuration has duplicate master nodes")
+		t.Fatalf("Expected to see error, when configuration has duplicate master nodes")
 	} else if err.Error() != "Found multiple nodes with \"master\" operating mode" {
-		t.Errorf("Duplicate master nodes error message wrong (%s)", err.Error())
+		t.Fatalf("Duplicate master nodes error message wrong (%s)", err.Error())
 	}
 }
 
@@ -379,9 +379,9 @@ func TestNoMasterNode(t *testing.T) {
 
 	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
-		t.Errorf("Expected to see error, when configuration has no master node entry")
+		t.Fatalf("Expected to see error, when configuration has no master node entry")
 	} else if err.Error() != "No master node configuration" {
-		t.Errorf("No master node error message wrong (%s)", err.Error())
+		t.Fatalf("No master node error message wrong (%s)", err.Error())
 	}
 }
 
@@ -587,7 +587,6 @@ func TestValidateServiceCIDR(t *testing.T) {
 }
 
 func TestValidatePlugin(t *testing.T) {
-	// Try valid plugin
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Plugin: "bridge",
@@ -595,49 +594,53 @@ func TestValidatePlugin(t *testing.T) {
 	}
 	err := lazyjack.ValidatePlugin(c)
 	if err != nil {
-		t.Errorf("Expected valid plugin selection to work: %s", err.Error())
+		t.Fatalf("Expected valid plugin selection to work: %s", err.Error())
 	}
+}
 
-	// Try invalid plugin
-	c = &lazyjack.Config{
+func TestFailedInvalidValidatePlugin(t *testing.T) {
+	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Plugin: "bogus-plugin",
 		},
 	}
-	err = lazyjack.ValidatePlugin(c)
+	err := lazyjack.ValidatePlugin(c)
 	if err == nil {
-		t.Errorf("Expected invalid  plugin selection to fail: %s", c.General.Plugin)
+		t.Fatalf("Expected invalid  plugin selection to fail: %s", c.General.Plugin)
 	}
+}
 
-	// Try legacy plugin
-	c = &lazyjack.Config{
+func TestLegacyValidatePlugin(t *testing.T) {
+	c := &lazyjack.Config{
 		Plugin: "bridge",
 	}
-	err = lazyjack.ValidatePlugin(c)
+	err := lazyjack.ValidatePlugin(c)
 	if err != nil {
-		t.Errorf("Expected valid legacy plugin selection to work: %s", err.Error())
+		t.Fatalf("Expected valid legacy plugin selection to work: %s", err.Error())
 	}
 	if c.General.Plugin != "bridge" {
-		t.Errorf("Expected legacy plugin to be stored in new field. See %q", c.General.Plugin)
+		t.Fatalf("Expected legacy plugin to be stored in new field. See %q", c.General.Plugin)
 	}
+}
 
-	// Try invalid legacy plugin
-	c = &lazyjack.Config{
+func TestFailedInvalidLegacyValidatePlugin(t *testing.T) {
+	c := &lazyjack.Config{
 		Plugin: "bogus-legacy-plugin",
 	}
-	err = lazyjack.ValidatePlugin(c)
+	err := lazyjack.ValidatePlugin(c)
 	if err == nil {
-		t.Errorf("Expected invalid legacy plugin selection to fail: %s", c.Plugin)
+		t.Fatalf("Expected invalid legacy plugin selection to fail: %s", c.Plugin)
 	}
+}
 
-	// Try no plugin specified
-	c = &lazyjack.Config{}
-	err = lazyjack.ValidatePlugin(c)
+func TestFailedMissingValidatePlugin(t *testing.T) {
+	c := &lazyjack.Config{}
+	err := lazyjack.ValidatePlugin(c)
 	if err != nil {
-		t.Errorf("Expected config without plugin to work: %s", err.Error())
+		t.Fatalf("Expected config without plugin to work: %s", err.Error())
 	}
 	if c.General.Plugin != "bridge" {
-		t.Errorf("Expected default plugin to be used. See %q", c.General.Plugin)
+		t.Fatalf("Expected default plugin to be used. See %q", c.General.Plugin)
 	}
 }
 
@@ -652,37 +655,37 @@ func TestValidateHost(t *testing.T) {
 
 	err := lazyjack.ValidateHost("master", c)
 	if err != nil {
-		t.Errorf("Expected host to be found in config: %s", err.Error())
+		t.Fatalf("Expected host to be found in config: %s", err.Error())
 	}
 	err = lazyjack.ValidateHost("no-such-host", c)
 	if err == nil {
-		t.Errorf("Expected not to find non-existent host in config")
+		t.Fatalf("Expected not to find non-existent host in config")
 	}
 }
 
 func TestValidateConfigContents(t *testing.T) {
 	cf, err := lazyjack.OpenConfigFile("sample-config.yaml")
 	if err != nil {
-		t.Errorf("Test setup failure - unable to open sample config")
+		t.Fatalf("Test setup failure - unable to open sample config")
 	}
 
 	c, err := lazyjack.LoadConfig(cf)
 	if err != nil {
-		t.Errorf("Test setup failure - unable to load sample config")
+		t.Fatalf("Test setup failure - unable to load sample config")
 	}
 	err = lazyjack.ValidateConfigContents(c, true)
 	if err != nil {
-		t.Errorf("Expected to be able to validate sample config: %s", err.Error())
+		t.Fatalf("Expected to be able to validate sample config: %s", err.Error())
 	}
 }
 
 func TestNoConfigFileContents(t *testing.T) {
 	err := lazyjack.ValidateConfigContents(nil, true)
 	if err == nil {
-		t.Errorf("Expected failure, when no config file")
+		t.Fatalf("Expected failure, when no config file")
 	}
 	if err.Error() != "No configuration loaded" {
-		t.Errorf("Expected failure due to no config file, instead, got %q", err.Error())
+		t.Fatalf("Expected failure due to no config file, instead, got %q", err.Error())
 	}
 }
 
@@ -701,7 +704,7 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 
 	err := lazyjack.CalculateDerivedFields(c)
 	if err != nil {
-		t.Errorf("Expected derived fields parsed OK, but see error: %s", err.Error())
+		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
 	}
 	expectedMgmtPrefix := "fd00:20::"
 	if c.Mgmt.Prefix != expectedMgmtPrefix {
@@ -725,7 +728,7 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 	}
 }
 
-func TestCalculateDerivedFieldsFailures(t *testing.T) {
+func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
 			CIDR: "fd00::20::/64",
@@ -740,14 +743,16 @@ func TestCalculateDerivedFieldsFailures(t *testing.T) {
 
 	err := lazyjack.CalculateDerivedFields(c)
 	if err == nil {
-		t.Errorf("Expected failure with invalid management CIDR")
+		t.Fatalf("Expected failure with invalid management CIDR")
 	}
 	expectedMsg := "Invalid management network CIDR: invalid CIDR address: fd00::20::/64"
 	if err.Error() != expectedMsg {
-		t.Errorf("Expected error message %q, got %q", expectedMsg, err.Error())
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
+}
 
-	c = &lazyjack.Config{
+func TestFailedSuportCIDRCalculateDerivedFields(t *testing.T) {
+	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
 			CIDR: "fd00:20::/64",
 		},
@@ -759,16 +764,18 @@ func TestCalculateDerivedFieldsFailures(t *testing.T) {
 		},
 	}
 
-	err = lazyjack.CalculateDerivedFields(c)
+	err := lazyjack.CalculateDerivedFields(c)
 	if err == nil {
-		t.Errorf("Expected failure with invalid support CIDR")
+		t.Fatalf("Expected failure with invalid support CIDR")
 	}
-	expectedMsg = "Invalid support network CIDR: invalid CIDR address: fd00:10::/6a4"
+	expectedMsg := "Invalid support network CIDR: invalid CIDR address: fd00:10::/6a4"
 	if err.Error() != expectedMsg {
-		t.Errorf("Expected error message %q, got %q", expectedMsg, err.Error())
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
+}
 
-	c = &lazyjack.Config{
+func TestFailedDNS64CalculateDerivedFields(t *testing.T) {
+	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
 			CIDR: "fd00:20::/64",
 		},
@@ -780,12 +787,12 @@ func TestCalculateDerivedFieldsFailures(t *testing.T) {
 		},
 	}
 
-	err = lazyjack.CalculateDerivedFields(c)
+	err := lazyjack.CalculateDerivedFields(c)
 	if err == nil {
-		t.Errorf("Expected failure with invalid DNS64 CIDR")
+		t.Fatalf("Expected failure with invalid DNS64 CIDR")
 	}
-	expectedMsg = "Invalid DNS64 CIDR: invalid CIDR address: fd00:10:64:ff9b::96"
+	expectedMsg := "Invalid DNS64 CIDR: invalid CIDR address: fd00:10:64:ff9b::96"
 	if err.Error() != expectedMsg {
-		t.Errorf("Expected error message %q, got %q", expectedMsg, err.Error())
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
 }

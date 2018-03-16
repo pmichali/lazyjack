@@ -15,7 +15,7 @@ func TestCreateCertKeyArea(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	err := lazyjack.CreateCertKeyArea(basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create area %q: %s", basePath, err.Error())
+		t.Fatalf("FAILED: Expected to be able to create area %q: %s", basePath, err.Error())
 	}
 	HelperCleanupArea(basePath, t)
 }
@@ -26,13 +26,13 @@ func TestFailureToCreateCertKeyArea(t *testing.T) {
 	// Make it not readable, so that it cannot be removed
 	err := os.MkdirAll(basePath, 0400)
 	if err != nil {
-		t.Errorf("ERROR: Test setup failure: %s", err.Error())
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
 	defer HelperCleanupArea(basePath, t)
 
 	err = lazyjack.CreateCertKeyArea(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to clear out old %q as part of creating area", basePath)
+		t.Fatalf("FAILED: Expected to not be able to clear out old %q as part of creating area", basePath)
 	}
 }
 
@@ -41,7 +41,7 @@ func TestBuildArgsForCAKey(t *testing.T) {
 	actual := strings.Join(args, " ")
 	expected := "genrsa -out /tmp/lazyjack/certs/ca.key 2048"
 	if actual != expected {
-		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+		t.Fatalf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestFailingCreateKeyForCA(t *testing.T) {
 	// Path does not exist to store key
 	err := lazyjack.CreateKeyForCA(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected that CA key could not be created")
+		t.Fatalf("FAILED: Expected that CA key could not be created")
 	}
 }
 
@@ -60,7 +60,7 @@ func TestBuildArgsForCACert(t *testing.T) {
 	actual := strings.Join(args, " ")
 	expected := "req -x509 -new -nodes -key /tmp/lazyjack/certs/ca.key -subj /CN=fd00:100::2 -days 10000 -out /tmp/lazyjack/certs/ca.crt"
 	if actual != expected {
-		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+		t.Fatalf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestFailingCreateCertificateForCA(t *testing.T) {
 	// No input key and no area to write certificate
 	err := lazyjack.CreateCertificateForCA("fd00:100::", 2, basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected that CA cert could not be created")
+		t.Fatalf("FAILED: Expected that CA cert could not be created")
 	}
 }
 
@@ -79,7 +79,7 @@ func TestBuildArgsForX509Cert(t *testing.T) {
 	actual := strings.Join(args, " ")
 	expected := "x509 -pubkey -in /tmp/lazyjack/certs/ca.crt"
 	if actual != expected {
-		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+		t.Fatalf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestFailCreateX509CertForCA(t *testing.T) {
 	// No input file and no area to write X509 cert
 	err := lazyjack.CreateX509CertForCA(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected that X509 cert could not be created")
+		t.Fatalf("FAILED: Expected that X509 cert could not be created")
 	}
 }
 
@@ -98,7 +98,7 @@ func TestBuildArgsForRSA(t *testing.T) {
 	actual := strings.Join(args, " ")
 	expected := "rsa -pubin -in /tmp/lazyjack/certs/ca.x509 -outform der -out /tmp/lazyjack/certs/ca.rsa"
 	if actual != expected {
-		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+		t.Fatalf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestFailingCreateRSAForCA(t *testing.T) {
 	// No input file and no area to write RSA
 	err := lazyjack.CreateRSAForCA(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected that RSA could not be created")
+		t.Fatalf("FAILED: Expected that RSA could not be created")
 	}
 }
 
@@ -117,7 +117,7 @@ func TestBuildArgsForCADigest(t *testing.T) {
 	actual := strings.Join(args, " ")
 	expected := "dgst -sha256 -hex /tmp/lazyjack/certs/ca.rsa"
 	if actual != expected {
-		t.Errorf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
+		t.Fatalf("FAILED: Arguments don't match. Expected %q, got %q", expected, actual)
 	}
 }
 
@@ -171,7 +171,7 @@ func TestFailingCreateDigestForCA(t *testing.T) {
 	// No input file and no area to write digest
 	_, err := lazyjack.CreateDigestForCA(basePath)
 	if err == nil {
-		t.Errorf("FAILED: Expected that CA digest could not be created")
+		t.Fatalf("FAILED: Expected that CA digest could not be created")
 	}
 }
 
@@ -183,15 +183,15 @@ func TestCreatingAllCertsAndKeys(t *testing.T) {
 
 	err := lazyjack.CreateKeyForCA(basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create CA key: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create CA key: %s", err.Error())
 	}
 	err = lazyjack.CreateCertificateForCA("fd00:100::", 2, basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create CA cert: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create CA cert: %s", err.Error())
 	}
 	_, err = lazyjack.CreateCertficateHashForCA(basePath)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create X509 cert, RSA, digest, and hash: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create X509 cert, RSA, digest, and hash: %s", err.Error())
 	}
 }
 
@@ -307,14 +307,14 @@ func TestInitializeMaster(t *testing.T) {
 
 	err := lazyjack.Initialize("master", c, configFile)
 	if err != nil {
-		t.Errorf("FAILED: Unable to initialize: %s", err.Error())
+		t.Fatalf("FAILED: Unable to initialize: %s", err.Error())
 	}
 	contents, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		t.Errorf("FAILED: Unable to read config file, after processing: %s", err.Error())
+		t.Fatalf("FAILED: Unable to read config file, after processing: %s", err.Error())
 	}
 	if !bytes.Contains(contents, []byte("token:")) || !bytes.Contains(contents, []byte("token-cert-hash:")) {
-		t.Errorf("FAILED: Expected config file to have token and cert")
+		t.Fatalf("FAILED: Expected config file to have token and cert")
 	}
 }
 
@@ -331,15 +331,15 @@ func TestInitializeMinion(t *testing.T) {
 
 	err := lazyjack.Initialize("minion-1", c, configFile)
 	if err != nil {
-		t.Errorf("FAILED: Unable to initialize: %s", err.Error())
+		t.Fatalf("FAILED: Unable to initialize: %s", err.Error())
 	}
 	// Should not modify config file on minion
 	contents, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		t.Errorf("FAILED: Unable to read config file, after processing: %s", err.Error())
+		t.Fatalf("FAILED: Unable to read config file, after processing: %s", err.Error())
 	}
 	if bytes.Contains(contents, []byte("token:")) || bytes.Contains(contents, []byte("token-cert-hash:")) {
-		t.Errorf("FAILED: Expected config file to not have been modified for minion")
+		t.Fatalf("FAILED: Expected config file to not have been modified for minion")
 	}
 }
 
@@ -357,7 +357,7 @@ func TestFailingInitialize(t *testing.T) {
 	bogusConfigFile := filepath.Join(basePath, "no-such-config.yaml")
 	err := lazyjack.Initialize("master", c, bogusConfigFile)
 	if err == nil {
-		t.Errorf("FAILED: Should not have been able to initialize, when config file is missing")
+		t.Fatalf("FAILED: Should not have been able to initialize, when config file is missing")
 	}
 }
 

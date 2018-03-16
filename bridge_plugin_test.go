@@ -42,7 +42,7 @@ func TestBridgeCNIConfigContents(t *testing.T) {
 `
 	actual := lazyjack.CreateBridgeCNIConfContents(n, c)
 	if actual.String() != expected {
-		t.Errorf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
+		t.Fatalf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
 }
 
@@ -64,7 +64,7 @@ func TestCreateBridgeCNIConfigFile(t *testing.T) {
 
 	err := lazyjack.CreateBridgeCNIConfigFile(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to create CNI config file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create CNI config file: %s", err.Error())
 	}
 }
 
@@ -93,11 +93,11 @@ func TestFailedCreateBridgeCNIConfigFile(t *testing.T) {
 
 	err = lazyjack.CreateBridgeCNIConfigFile(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create CNI config file")
+		t.Fatalf("FAILED: Expected to not be able to create CNI config file")
 	}
 	expected := "Unable to create CNI config for bridge plugin"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -136,7 +136,7 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to add route on node: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to add route on node: %s", err.Error())
 	}
 }
 
@@ -175,11 +175,11 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create route")
+		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
 	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -218,11 +218,11 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to create route - exists already")
+		t.Fatalf("FAILED: Expected to not be able to create route - exists already")
 	}
 	expected := "Skipping - add route to fd00:40:0:0:20::/80 via fd00:100::20 as already exists"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -261,7 +261,7 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to delete route on node: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to delete route on node: %s", err.Error())
 	}
 }
 
@@ -300,11 +300,11 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to delete route on node")
+		t.Fatalf("FAILED: Expected not to be able to delete route on node")
 	}
 	expected := "Unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure deleting route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
@@ -343,10 +343,10 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
 	if err == nil {
-		t.Errorf("FAILED: Expected not to be able to delete route on node")
+		t.Fatalf("FAILED: Expected not to be able to delete route on node")
 	}
 	expected := "Skipping - delete route from fd00:40:0:0:10::/80 via fd00:100::10 as non-existent"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }

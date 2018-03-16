@@ -58,7 +58,7 @@ func TestCleanupForPlugin(t *testing.T) {
 
 	err = lazyjack.CleanupForPlugin(n, c)
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to clean up for plugin: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to clean up for plugin: %s", err.Error())
 	}
 }
 
@@ -110,11 +110,11 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 
 	err = lazyjack.CleanupForPlugin(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to remove route")
+		t.Fatalf("FAILED: Expected to not be able to remove route")
 	}
 	expected := "Unable to remove routes for bridge plugin: Unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure deleting route"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -169,11 +169,11 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 
 	err = lazyjack.CleanupForPlugin(n, c)
 	if err == nil {
-		t.Errorf("FAILED: Expected to not be able to remove CNI config area")
+		t.Fatalf("FAILED: Expected to not be able to remove CNI config area")
 	}
 	expected := "Unable to remove CNI config file and area"
 	if !strings.HasPrefix(err.Error(), expected) {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -181,7 +181,7 @@ func TestRemoveBridge(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
 	err := nm.RemoveBridge("br0")
 	if err != nil {
-		t.Errorf("FAILED: Expected to be able to remove bridge: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to remove bridge: %s", err.Error())
 	}
 }
 
@@ -189,11 +189,11 @@ func TestFailedLinkDownRemoveBridge(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
-		t.Errorf("FAILED: Expected to fail bringing link down")
+		t.Fatalf("FAILED: Expected to fail bringing link down")
 	}
 	expected := "Unable to shut down interface \"br0\""
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -201,11 +201,11 @@ func TestFailedLinkDeleteRemoveBridge(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkDelFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
-		t.Errorf("FAILED: Expected to fail deleting link")
+		t.Fatalf("FAILED: Expected to fail deleting link")
 	}
 	expected := "Unable to delete interface \"br0\""
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
 
@@ -213,10 +213,10 @@ func TestFailedAllRemoveBridge(t *testing.T) {
 	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true, simLinkDelFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
-		t.Errorf("FAILED: Expected to fail bringing link down and deleting link")
+		t.Fatalf("FAILED: Expected to fail bringing link down and deleting link")
 	}
 	expected := "Unable to bring link down (Unable to shut down interface \"br0\"), nor remove link (Unable to delete interface \"br0\")"
 	if err.Error() != expected {
-		t.Errorf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
 }
