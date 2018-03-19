@@ -322,7 +322,7 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 }
 
 func CreateSupportNetwork(c *Config) {
-	if ResourceExists(SupportNetName) {
+	if c.General.Hyper.ResourceExists(SupportNetName) {
 		glog.V(1).Infof("Skipping - support network already exists")
 		return
 	}
@@ -387,7 +387,7 @@ func ParseIPv4Address(ifConfig string) string {
 func PrepareDNS64Server(node *Node, c *Config) {
 	glog.V(1).Info("Preparing DNS64")
 
-	if ResourceExists("bind9") {
+	if c.General.Hyper.ResourceExists("bind9") {
 		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists on %s", node.Name)
 		return
 	}
@@ -450,7 +450,7 @@ func PrepareDNS64Server(node *Node, c *Config) {
 func PrepareNAT64Server(node *Node, c *Config) {
 	glog.V(1).Info("Preparing NAT64")
 
-	if ResourceExists("tayga") {
+	if c.General.Hyper.ResourceExists("tayga") {
 		glog.V(1).Infof("Skipping - NAT64 container (tayga) already exists")
 		return
 	}

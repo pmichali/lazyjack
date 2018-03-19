@@ -9,10 +9,12 @@ import (
 	"github.com/golang/glog"
 )
 
+type Docker struct{}
+
 // ResourceExists inspects to see if the resource is known
 // to docker.
 // Q: Should we check if it is running? If not, remove?
-func ResourceExists(r string) bool {
+func (d *Docker) ResourceExists(r string) bool {
 	_, err := DoCommand(r, []string{"inspect", r})
 	if err != nil {
 		glog.V(4).Infof("No %q resource", r)
@@ -38,7 +40,7 @@ func BuildRunArgsForDNS64(c *Config) []string {
 	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
 	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", conf)
 	cmdList := []string{
-		"run", "-d", "--name", "bind9", "--hostname", "bind9", "--label", "lazyjack",
+		"run", "-d", "--name", DNS64Name, "--hostname", DNS64Name, "--label", "lazyjack",
 		"--privileged=true", "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
 		"--sysctl", "net.ipv6.conf.all.forwarding=1",
@@ -61,13 +63,10 @@ func BuildAddRouteArgsForDNS64(c *Config) []string {
 	}
 }
 
-func RemoveDNS64Container() error {
-	if ResourceExists("bind9") {
-		args := []string{"rm", "-f", "bind9"}
-		_, err := DoCommand("bind9", args)
-		return err
-	}
-	return nil
+func (d *Docker) DeleteContainer(name string) error {
+	args := []string{"rm", "-f", name}
+	_, err := DoCommand(name, args)
+	return err
 }
 
 func BuildRunArgsForNAT64(c *Config) []string {
@@ -85,15 +84,6 @@ func BuildRunArgsForNAT64(c *Config) []string {
 	return cmdList
 }
 
-func RemoveNAT64Container() error {
-	if ResourceExists("tayga") {
-		args := []string{"rm", "-f", "tayga"}
-		_, err := DoCommand("tayga", args)
-		return err
-	}
-	return nil
-}
-
 func BuildCreateNetArgsForSupportNet(cidr, subnet, v4cidr string) []string {
 	args := []string{"network", "create", "--ipv6"}
 	subnetOption := fmt.Sprintf("--subnet=\"%s\"", cidr)
@@ -103,6 +93,12 @@ func BuildCreateNetArgsForSupportNet(cidr, subnet, v4cidr string) []string {
 	return args
 }
 
-func BuildDeleteNetArgsForSupportNet() []string {
-	return []string{"network", "rm", SupportNetName}
+func BuildDeleteNetArgsFor(name string) []string {
+	return []string{"network", "rm", name}
+}
+
+func (d *Docker) DeleteNetwork(name string) error {
+	args := BuildDeleteNetArgsFor(name)
+	_, err := DoCommand("SupportNetName", args)
+	return err
 }

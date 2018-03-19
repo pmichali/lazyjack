@@ -240,12 +240,13 @@ func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 	c.General.K8sCertArea = cert
 }
 
-func SetupHandleToExtLibs(c *Config) error {
+func SetupHandles(c *Config) error {
 	handle, err := netlink.NewHandle()
 	if err != nil {
 		return fmt.Errorf("Internal Error - unable to access networking package: %s", err.Error())
 	}
 	c.General.NetMgr = &NetManager{Mgr: &RealImpl{h: handle}}
+	c.General.Hyper = &Docker{}
 	return nil
 }
 
@@ -292,7 +293,7 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 
-	err = SetupHandleToExtLibs(c)
+	err = SetupHandles(c)
 	if err != nil {
 		return err
 	}

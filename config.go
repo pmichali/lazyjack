@@ -65,6 +65,7 @@ type GeneralSettings struct {
 	CNIArea       string // Internal
 	K8sCertArea   string // Internal
 	NetMgr        *NetManager // Internal
+	Hyper         Hypervisor // Internal
 }
 
 type Config struct {
@@ -87,11 +88,14 @@ const (
 	CertArea           = "certs"
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
+	DNS64Name      = "bind9"
 	DNS64BaseArea  = "bind9"
 	DNS64ConfArea  = "conf"
 	DNS64CacheArea = "cache"
 	DNS64NamedConf = "named.conf"
 
+	NAT64Name = "tayga"
+	
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "20-extra-dns-args.conf"
 

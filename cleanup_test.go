@@ -745,3 +745,384 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveContainer(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{},
+		},
+	}
+	err := lazyjack.RemoveContainer("foo", c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to remove container: %v", err)
+	}
+}
+
+func TestFailedRemoveContainer(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simDeleteContainerFail: true},
+		},
+	}
+	err := lazyjack.RemoveContainer("foo", c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to remove container")
+	}
+	expected := "Unable to remove \"foo\" container: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestSkippedRemoveContainer(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNotExists: true},
+		},
+	}
+	err := lazyjack.RemoveContainer("foo", c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to remove non-existing container")
+	}
+	expected := "Skipping - No \"foo\" container exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCleanupDNS64Server(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{},
+			WorkArea: basePath,
+		},
+	}
+	err := lazyjack.CleanupDNS64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to clean up DNS64 server: %v", err)
+	}
+}
+
+func TestFailedDeleteCleanupDNS64Server(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{simDeleteContainerFail: true},
+			WorkArea: basePath,
+		},
+	}
+	err := lazyjack.CleanupDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to delete DNS64 server")
+	}
+	expected := "Unable to remove \"bind9\" container: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveAreaCleanupDNS64Server(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(basePath, t)
+	defer HelperCleanupArea(basePath, t)
+
+	HelperMakeReadOnly(basePath, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{},
+			WorkArea: basePath,
+		},
+	}
+	err := lazyjack.CleanupDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to delete work area")
+	}
+	expected := "Unable to remove DNS64 file structure"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCleanupNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:  &MockHypervisor{},
+			NetMgr: nm,
+		},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+		},
+	}
+	err := lazyjack.CleanupNAT64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to clean up NAT64 server: %v", err)
+	}
+}
+
+func TestFailedDeleteCleanupNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:  &MockHypervisor{simDeleteContainerFail: true},
+			NetMgr: nm,
+		},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+		},
+	}
+	err := lazyjack.CleanupNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to delete NAT64 server")
+	}
+	expected := "Unable to remove \"tayga\" container: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedDeleteRouteCleanupNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:  &MockHypervisor{},
+			NetMgr: nm,
+		},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+		},
+	}
+	err := lazyjack.CleanupNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to delete route for NAT64 server")
+	}
+	expected := "Mock failure deleting route"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCleanupSupportNetwork(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{},
+		},
+	}
+
+	err := lazyjack.CleanupSupportNetwork(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to cleanup support network: %s", err.Error())
+	}
+}
+
+func TestSkippedNonExistsCleanupSupportNetwork(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNotExists: true},
+		},
+	}
+	err := lazyjack.CleanupSupportNetwork(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected support network to not exist")
+	}
+	expected := "Skipping - support network does not exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedCleanupSupportNetwork(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simDeleteNetFail: true},
+		},
+	}
+
+	err := lazyjack.CleanupSupportNetwork(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail deleting support network")
+	}
+	expected := "Unable to remove support network: Mock fail delete of network"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestCleanup(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	// Create hosts and resolv.conf files
+	src := filepath.Join(etcArea, lazyjack.EtcHostsFile)
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create hosts file for test")
+	}
+	src = filepath.Join(etcArea, lazyjack.EtcResolvConfFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
+	}
+
+	systemArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(systemArea, t)
+	defer HelperCleanupArea(systemArea, t)
+
+	src = filepath.Join(systemArea, lazyjack.KubeletDropInFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create drop-in file for test")
+	}
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+				IsMaster:      true,
+				Interface:     "eth1",
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Hyper:       &MockHypervisor{},
+			NetMgr:      nm,
+			WorkArea:    basePath,
+			EtcArea:     etcArea,
+			SystemdArea: systemArea,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+			ServerIP:      "2001:db8:5::200",
+		},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+			CIDR:   "2001:db8::/64",
+		},
+	}
+
+	err = lazyjack.Cleanup("master", c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to clean up: %v", err)
+	}
+}
+
+func TestFailedCleanup(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	etcArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(etcArea, t)
+	defer HelperCleanupArea(etcArea, t)
+
+	// Create hosts and resolv.conf files
+	src := filepath.Join(etcArea, lazyjack.EtcHostsFile)
+	err := ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create hosts file for test")
+	}
+	src = filepath.Join(etcArea, lazyjack.EtcResolvConfFile)
+	err = ioutil.WriteFile(src, []byte("# dummy file"), 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
+	}
+
+	systemArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(systemArea, t)
+	defer HelperCleanupArea(systemArea, t)
+
+	// Missing drop-in file in system area to cause failure
+
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID:            10,
+				IsNAT64Server: true,
+				IsDNS64Server: true,
+				IsMaster:      true,
+				Interface:     "eth1",
+			},
+			"minion": {
+				ID: 20,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simDeleteContainerFail: true,
+				simDeleteNetFail:       true,
+			},
+			NetMgr:      nm,
+			WorkArea:    basePath,
+			EtcArea:     etcArea,
+			SystemdArea: systemArea,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "2001:db8:20::",
+			Size:   64,
+		},
+		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+			ServerIP:      "2001:db8:5::200",
+		},
+		Support: lazyjack.SupportNetwork{
+			V4CIDR: "172.20.0.0/16",
+			CIDR:   "2001:db8::/64",
+		},
+	}
+
+	err = lazyjack.Cleanup("master", c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to have failure cleaning up")
+	}
+
+	actual := strings.Split(err.Error(), ". ")
+	if len(actual) != 4 {
+		t.Fatalf("FAILED: Expected 4 error strings, got %d (%v)", len(actual), actual)
+	}
+	expected := []*regexp.Regexp{
+		regexp.MustCompile("No kubelet drop-in file to remove"),
+		regexp.MustCompile("Unable to remove \"bind9\" container: Mock fail delete of container"),
+		regexp.MustCompile("Unable to remove \"tayga\" container: Mock fail delete of container"),
+		regexp.MustCompile("Unable to remove support network: Mock fail delete of network"),
+	}
+	for i, _ := range actual {
+		if !expected[i].MatchString(actual[i]) {
+			t.Errorf("FAILED: Expected reason to match pattern %q, got %q", expected[i].String(), actual[i])
+		}
+	}
+}

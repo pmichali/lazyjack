@@ -109,7 +109,10 @@ func main() {
 	case "down":
 		lazyjack.TearDown(*host, config)
 	case "clean":
-		lazyjack.Cleanup(*host, config)
+		err := lazyjack.Cleanup(*host, config)
+		if err != nil {
+			glog.Warning(err.Error())
+		}
 	default:
 		fmt.Printf("Unknown command %q\n", command)
 		os.Exit(1)

@@ -80,7 +80,7 @@ func TestFailingBuildFileStructureForDNS(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	defer HelperCleanupArea(basePath, t)
 
-	// Make it not readable, so that it cannot be removed
+	// Make it not writeable, so that it cannot be removed
 	err := os.MkdirAll(basePath, 0400)
 	if err != nil {
 		t.Fatalf("ERROR: Test setup failure: %s", err.Error())

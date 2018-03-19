@@ -164,81 +164,116 @@ func CleanupClusterNode(node *Node, c *Config) error {
 	return nil
 }
 
-func CleanupDNS64Server(node *Node, c *Config) {
-	glog.V(1).Info("Cleaning DNS64")
-	err := RemoveDNS64Container()
+func RemoveContainer(name string, c *Config) error {
+	if !c.General.Hyper.ResourceExists(name) {
+		return fmt.Errorf("Skipping - No %q container exists", name)
+	}
+	err := c.General.Hyper.DeleteContainer(name)
 	if err != nil {
-		glog.Warning("Unable to remove DNS64 container")
-	} else {
-		glog.V(1).Info("Removed DNS64 container")
+		return fmt.Errorf("Unable to remove %q container: %s", name, err.Error())
+	}
+	glog.V(4).Info("Removed %q container", name)
+	return nil
+}
+
+func CleanupDNS64Server(c *Config) error {
+	glog.V(1).Info("Cleaning DNS64")
+	var all []string
+	var err error
+	err = RemoveContainer(DNS64Name, c)
+	if err != nil {
+		all = append(all, err.Error())
 	}
 
 	d := filepath.Join(c.General.WorkArea, DNS64BaseArea)
 	err = os.RemoveAll(d)
 	if err != nil {
-		glog.Warning("Unable to remove DNS64 file structure")
+		msg := fmt.Sprintf("Unable to remove DNS64 file structure: %s", err.Error())
+		all = append(all, msg)
 	} else {
-		glog.V(1).Info("Removed DNS64 file structure")
+		glog.V(4).Info("Removed DNS64 file structure")
 	}
+
 	// Will leave V4 default route
+
 	glog.Info("Cleaned DNS64")
+	if len(all) > 0 {
+		return fmt.Errorf(strings.Join(all, ". "))
+	}
+	return nil
 }
 
-func CleanupNAT64Server(node *Node, c *Config) {
+func CleanupNAT64Server(c *Config) error {
 	glog.V(1).Info("Cleaning NAT64")
 
-	err := c.General.NetMgr.DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	var all []string
+	var err error
+	err = c.General.NetMgr.DeleteRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
-		glog.Warning(err.Error())
+		all = append(all, err.Error())
 	} else {
 		glog.V(1).Info("Removed local IPv4 route to NAT64 container")
 	}
 
-	err = RemoveNAT64Container()
+	err = RemoveContainer(NAT64Name, c)
 	if err != nil {
-		glog.Warning("Unable to remove NAT64 container")
-	} else {
-		glog.V(1).Info("Removed NAT64 container")
+		all = append(all, err.Error())
 	}
+
 	// Will leave default V4 route
+
 	glog.Info("Cleaned NAT64")
+	if len(all) > 0 {
+		return fmt.Errorf(strings.Join(all, ". "))
+	}
+	return nil
 }
 
-func CleanupSupportNetwork() error {
-	if !ResourceExists(SupportNetName) {
+func CleanupSupportNetwork(c *Config) error {
+	if !c.General.Hyper.ResourceExists(SupportNetName) {
 		return fmt.Errorf("Skipping - support network does not exists")
 	}
 
-	args := BuildDeleteNetArgsForSupportNet()
-	_, err := DoCommand("SupportNetName", args)
+	err := c.General.Hyper.DeleteNetwork(SupportNetName)
 	if err != nil {
-		return fmt.Errorf("Unable to remove support network")
+		return fmt.Errorf("Unable to remove support network: %s", err.Error())
 	}
 	glog.Info("Cleaned support network")
 	return nil
 }
 
-func Cleanup(name string, c *Config) {
+func Cleanup(name string, c *Config) error {
 	node := c.Topology[name]
+	var all []string
 	var err error
 	glog.Infof("Cleaning %q", name)
 	if node.IsMaster || node.IsMinion {
 		err = CleanupClusterNode(&node, c)
 		if err != nil {
-			glog.Warning(err.Error())
+			all = append(all, err.Error())
 		}
 	}
 	if node.IsDNS64Server {
-		CleanupDNS64Server(&node, c)
+		err = CleanupDNS64Server(c)
+		if err != nil {
+			all = append(all, err.Error())
+		}
 	}
 	if node.IsNAT64Server {
-		CleanupNAT64Server(&node, c)
+		err = CleanupNAT64Server(c)
+		if err != nil {
+			all = append(all, err.Error())
+		}
 	}
 	if node.IsDNS64Server || node.IsNAT64Server {
-		err = CleanupSupportNetwork()
+		err = CleanupSupportNetwork(c)
 		if err != nil {
-			glog.Warning(err.Error())
+			all = append(all, err.Error())
 		}
 	}
 	glog.Infof("Node %q cleaned", name)
+	if len(all) > 0 {
+		return fmt.Errorf(strings.Join(all, ". "))
+	}
+	return nil
 }

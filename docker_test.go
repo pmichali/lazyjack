@@ -32,8 +32,8 @@ func TestBuildCreateSupportNetArgs(t *testing.T) {
 	}
 }
 
-func TestBuildDeleteSupportNetArgs(t *testing.T) {
-	list := lazyjack.BuildDeleteNetArgsForSupportNet()
+func TestBuildDeleteNetArgs(t *testing.T) {
+	list := lazyjack.BuildDeleteNetArgsFor(lazyjack.SupportNetName)
 	actual := strings.Join(list, " ")
 	expected := "network rm support_net"
 	if actual != expected {
