@@ -42,7 +42,7 @@ func TestBuildDeleteNetArgs(t *testing.T) {
 }
 
 func TestBuildGetInterfaceArgs(t *testing.T) {
-	list := lazyjack.BuildGetInterfaceArgsForDNS64()
+	list := lazyjack.BuildGetInterfaceArgs("bind9", "eth0")
 	actual := strings.Join(list, " ")
 	expected := "exec bind9 ip addr list eth0"
 	if actual != expected {
@@ -51,7 +51,7 @@ func TestBuildGetInterfaceArgs(t *testing.T) {
 }
 
 func TestBuildAddrDeleteArgs(t *testing.T) {
-	list := lazyjack.BuildV4AddrDelArgsForDNS64("172.18.0.2/16")
+	list := lazyjack.BuildV4AddrDelArgs("bind9", "172.18.0.2/16")
 	actual := strings.Join(list, " ")
 	expected := "exec bind9 ip addr del 172.18.0.2/16 dev eth0"
 	if actual != expected {
@@ -60,17 +60,7 @@ func TestBuildAddrDeleteArgs(t *testing.T) {
 }
 
 func TestBuildAddRouteForDNS64Args(t *testing.T) {
-	c := &lazyjack.Config{
-		DNS64: lazyjack.DNS64Config{
-			CIDR:       "fd00:10:64:ff9b::/96",
-			CIDRPrefix: "fd00:10:64:ff9b::",
-		},
-		NAT64: lazyjack.NAT64Config{
-			ServerIP: "fd00:10::200",
-		},
-	}
-
-	list := lazyjack.BuildAddRouteArgsForDNS64(c)
+	list := lazyjack.BuildAddRouteArgs("bind9", "fd00:10:64:ff9b::/96", "fd00:10::200")
 	actual := strings.Join(list, " ")
 	expected := "exec bind9 ip -6 route add fd00:10:64:ff9b::/96 via fd00:10::200"
 	if actual != expected {

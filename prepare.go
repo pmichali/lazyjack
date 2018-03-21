@@ -322,7 +322,7 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 }
 
 func CreateSupportNetwork(c *Config) {
-	if c.General.Hyper.ResourceExists(SupportNetName) {
+	if c.General.Hyper.ResourceExists(SupportNetName, false) {
 		glog.V(1).Infof("Skipping - support network already exists")
 		return
 	}
@@ -382,119 +382,166 @@ func ParseIPv4Address(ifConfig string) string {
 	return ""
 }
 
-// PrepareDNS64Server starts up the bind9 DNS64 server.
-// NOTE: Will use existing container, if running
-func PrepareDNS64Server(node *Node, c *Config) {
+func EnsureDNS64Server(c *Config) (err error) {
 	glog.V(1).Info("Preparing DNS64")
 
-	if c.General.Hyper.ResourceExists("bind9") {
-		glog.V(1).Infof("Skipping - DNS64 container (bind9) already exists on %s", node.Name)
-		return
+	if c.General.Hyper.ResourceExists(DNS64Name, true) {
+		err = fmt.Errorf("Skipping - DNS64 container (%s) already exists", DNS64Name)
+		glog.V(1).Info(err.Error())
+		return err
+	}
+	err = c.General.Hyper.DeleteContainer(DNS64Name)
+	if err != nil {
+		return fmt.Errorf("Unable to ensure no old container exists: %v", err)
 	}
 
-	err := CreateConfigForDNS64(c)
+	err = CreateConfigForDNS64(c)
 	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
+		return err
 	}
 
 	// Run DNS64 (bind9) container
 	args := BuildRunArgsForDNS64(c)
-	_, err = DoCommand("DNS64 container", args)
-	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(1).Info("DNS64 container (bind9) started")
+	err = c.General.Hyper.RunContainer("DNS64 container", args)
+	if err == nil {
+		glog.V(1).Info("DNS64 container (%s) started", DNS64Name)
 	}
-
-	// Remove IPv4 address, so only an IPv6 address in DNS64 container
-	args = BuildGetInterfaceArgsForDNS64()
-	ifConfig, err := DoCommand("Get I/F config", args)
-	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(4).Info("Have eth0 info for DNS64 container")
-	}
-	v4Addr := ParseIPv4Address(ifConfig)
-	if v4Addr == "" {
-		glog.Fatal("Unable to find IPv4 address on eth0 of DNS64 container")
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(4).Infof("Have IPv4 address (%s) for DNS64 container", v4Addr)
-	}
-	args = BuildV4AddrDelArgsForDNS64(v4Addr)
-	_, err = DoCommand("Delete IPv4 addr", args)
-	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(4).Info("Deleted IPv4 address in DNS64 container")
-	}
-
-	// Create a route in container to NAT64 server, for synthesized IPv6 addresses
-	args = BuildAddRouteArgsForDNS64(c)
-	_, err = DoCommand("Add IPv6 route", args)
-	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(4).Info("Have IPv6 route in DNS64 container")
-	}
-	glog.Info("Prepared DNS64 container")
+	return err
 }
 
-// PrepareNAT64Server starts up the Tayga NAT64 server.
-// NOTE: Will use existing container, if running
-func PrepareNAT64Server(node *Node, c *Config) {
-	glog.V(1).Info("Preparing NAT64")
+// RemoveIPv4AddressOnDNS64Server removes IPv4 address in container,
+// so there is only an IPv6 address.
+func RemoveIPv4AddressOnDNS64Server(c *Config) (err error) {
+	ifConfig, err := c.General.Hyper.GetInterfaceConfig(DNS64Name, "eth0")
+	if err != nil {
+		return err
+	}
+	glog.V(4).Info("Have eth0 info for DNS64 container")
 
-	if c.General.Hyper.ResourceExists("tayga") {
-		glog.V(1).Infof("Skipping - NAT64 container (tayga) already exists")
-		return
+	v4Addr := ParseIPv4Address(ifConfig)
+	if v4Addr == "" {
+		return fmt.Errorf("Unable to find IPv4 address on eth0 of DNS64 container")
+	}
+	glog.V(4).Infof("Have IPv4 address (%s) for DNS64 container", v4Addr)
+
+	err = c.General.Hyper.DeleteV4Address(DNS64Name, v4Addr)
+	if err == nil {
+		glog.V(4).Info("Deleted IPv4 address in DNS64 container")
+	}
+	return err
+}
+
+func AddRouteForDNS64Network(c *Config) error {
+	// Create a route in container to NAT64 server, for synthesized IPv6 addresses
+	err := c.General.Hyper.AddV6Route(DNS64Name, c.DNS64.CIDR, c.NAT64.ServerIP)
+	if err != nil {
+		if err.Error() == "file exists" {
+			err = fmt.Errorf("Skipping - add route to %s via %s as already exists", c.DNS64.CIDR, c.NAT64.ServerIP)
+			glog.V(1).Infof(err.Error())
+		}
+		return err
+	}
+	glog.V(4).Info("Have IPv6 route in DNS64 container")
+	return err
+}
+
+// PrepareDNS64Server starts up the bind9 DNS64 server.
+// NOTE: Will use existing container, if running
+func PrepareDNS64Server(c *Config) error {
+	err := EnsureDNS64Server(c)
+	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+		return err
+	}
+
+	err = RemoveIPv4AddressOnDNS64Server(c)
+	if err != nil {
+		return err
+	}
+
+	err = AddRouteForDNS64Network(c)
+	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+		return err
+	}
+	glog.Info("Prepared DNS64 container")
+	return nil
+}
+
+func EnsureNAT64Server(c *Config) (err error) {
+	glog.V(1).Info("Preparing NAT64")
+	if c.General.Hyper.ResourceExists(NAT64Name, true) {
+		err = fmt.Errorf("Skipping - NAT64 container (%s) already exists", NAT64Name)
+		glog.V(1).Info(err.Error())
+		return err
+	}
+	err = c.General.Hyper.DeleteContainer(NAT64Name)
+	if err != nil {
+		return fmt.Errorf("Unable to ensure no old container exists: %v", err)
 	}
 
 	// Run NAT64 (tayga) container
 	args := BuildRunArgsForNAT64(c)
-	_, err := DoCommand("NAT64 container", args)
+	err = c.General.Hyper.RunContainer("NAT64 container", args)
 	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.V(1).Info("NAT64 container (tayga) started")
+		return err
 	}
+	glog.V(1).Info("NAT64 container (%s) started", NAT64Name)
+	return nil
+}
 
-	err = c.General.NetMgr.AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
+func EnsureRouteToNAT64(c *Config) error {
+	err := c.General.NetMgr.AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		if err.Error() == "file exists" {
-			glog.V(1).Infof("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
-		} else {
-			glog.Fatal(err.Error())
-			os.Exit(1) // TODO: Rollback?
+			err = fmt.Errorf("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+			glog.V(1).Infof(err.Error())
 		}
-	} else {
-		glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
+		return err
 	}
-	glog.Info("Prepared NAT64 server")
+	glog.V(1).Info("Local IPv4 route added pointing to NAT64 container")
+	return nil
+}
+
+// PrepareNAT64Server starts up the Tayga NAT64 server.
+// NOTE: Will use existing container, if running
+func PrepareNAT64Server(c *Config) error {
+	err := EnsureNAT64Server(c)
+	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+		return err
+	}
+
+	err = EnsureRouteToNAT64(c)
+	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+		return err
+	}
+	glog.Info("Prepared NAT64 container")
+	return nil
 }
 
 func Prepare(name string, c *Config) {
 	node := c.Topology[name]
 	glog.Infof("Preparing %q", name)
+	var err error
 	// TODO: Verify docker version OK (17.03, others?), else warn...
 	if node.IsDNS64Server || node.IsNAT64Server {
 		// TODO: Verify that node has default IPv4 route
 		CreateSupportNetwork(c)
 	}
 	if node.IsDNS64Server {
-		PrepareDNS64Server(&node, c)
+		err = PrepareDNS64Server(c)
+		if err != nil {
+			glog.Fatal(err.Error())
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 	if node.IsNAT64Server {
-		PrepareNAT64Server(&node, c)
+		err = PrepareNAT64Server(c)
+		if err != nil {
+			glog.Fatal(err.Error())
+			os.Exit(1) // TODO: Rollback?
+		}
 	}
 	if node.IsMaster || node.IsMinion {
-		err := PrepareClusterNode(&node, c)
+		err = PrepareClusterNode(&node, c)
 		if err != nil {
 			glog.Fatal(err.Error())
 			os.Exit(1) // TODO: Rollback?

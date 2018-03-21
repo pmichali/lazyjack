@@ -80,15 +80,21 @@ func TestFailingBuildFileStructureForDNS(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	defer HelperCleanupArea(basePath, t)
 
-	// Make it not writeable, so that it cannot be removed
-	err := os.MkdirAll(basePath, 0400)
+	// Set work area a level lower, so that we can make parent read-only, preventing deletion
+	workArea := filepath.Join(basePath, "dummy")
+	err := os.MkdirAll(workArea, 0700)
 	if err != nil {
 		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
 	}
+	err = os.Chmod(basePath, 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
+	}
+	defer func() { os.Chmod(basePath, 0700) }()
 
-	err = lazyjack.BuildFileStructureForDNS(basePath)
+	err = lazyjack.BuildFileStructureForDNS(workArea)
 	if err == nil {
-		t.Fatalf("FAILED: Expected not to be able to create DNS area in %q", basePath)
+		t.Fatalf("FAILED: Expected not to be able to create DNS area in %q", workArea)
 	}
 }
 
@@ -1039,5 +1045,595 @@ func TestPrepareClusterNode(t *testing.T) {
 	err = lazyjack.PrepareClusterNode(n, c)
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to prepare cluster node: %s", err.Error())
+	}
+}
+
+func TestNotExistsEnsureDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{simNotExists: true},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err := lazyjack.EnsureDNS64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to run DNS64 container: %v", err)
+	}
+}
+
+func TestNotRunningNotRunningEnsureDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{simNotExists: true},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err := lazyjack.EnsureDNS64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to run DNS64 container: %v", err)
+	}
+}
+
+func TestSkipRunningEnsureDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err := lazyjack.EnsureDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected DNS64 container to already be running")
+	}
+	expected := "Skipping - DNS64 container (bind9) already exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotRunning:          true,
+				simDeleteContainerFail: true,
+			},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err := lazyjack.EnsureDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail deleting old DNS64 container")
+	}
+	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedConfigCreateEnsureDNS64Server(t *testing.T) {
+	basePath := TempFileName(os.TempDir(), "-area")
+	defer HelperCleanupArea(basePath, t)
+
+	// Set work area a level lower, so that we can make parent read-only, preventing deletion
+	workArea := filepath.Join(basePath, "dummy")
+	err := os.MkdirAll(workArea, 0700)
+	if err != nil {
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
+	}
+	err = os.Chmod(basePath, 0400)
+	if err != nil {
+		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
+	}
+	defer func() { os.Chmod(basePath, 0700) }()
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{simNotExists: true},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err = lazyjack.EnsureDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail to create config for DNS64")
+	}
+	expected := "Unable to create directory structure for DNS64"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRunEnsureDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotRunning: true,
+				simRunFailed:  true,
+			},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+	}
+	err := lazyjack.EnsureDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail running DNS64 container")
+	}
+	expected := "Mock fail to run container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRemoveIPv4AddressOnDNS64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{},
+		},
+	}
+	err := lazyjack.RemoveIPv4AddressOnDNS64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to remove IPv4 address: %v", err)
+	}
+}
+
+func TestFailedFindAddressRemoveIPv4AddressOnDNS64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNoV4Interface: true},
+		},
+	}
+	err := lazyjack.RemoveIPv4AddressOnDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail finding IPv4 address")
+	}
+	expected := "Unable to find IPv4 address on eth0 of DNS64 container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedGetConfigRemoveIPv4AddressOnDNS64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simInterfaceGetFail: true},
+		},
+	}
+	err := lazyjack.RemoveIPv4AddressOnDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
+	}
+	expected := "Mock fail getting interface info"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveIPv4AddressOnDNS64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simDeleteInterfaceFail: true},
+		},
+	}
+	err := lazyjack.RemoveIPv4AddressOnDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
+	}
+	expected := "Mock fail delete of IP"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestAddRouteForDNS64Network(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{},
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		DNS64: lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+	}
+	err := lazyjack.AddRouteForDNS64Network(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to add V6 route: %v", err)
+	}
+}
+
+func TestFailedAddRouteForDNS64Network(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simAddRouteFail: true},
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		DNS64: lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+	}
+	err := lazyjack.AddRouteForDNS64Network(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
+	}
+	expected := "Mock fail add route"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedExistingRouteForDNS64Network(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simRouteExists: true},
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+		DNS64: lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
+	}
+	err := lazyjack.AddRouteForDNS64Network(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
+	}
+	expected := "Mock route already exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestPrepareDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:    &MockHypervisor{simNotExists: true},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+	}
+	err := lazyjack.PrepareDNS64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to prepare DNS64 server: %v", err)
+	}
+}
+
+func TestFailRunPrepareDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotExists: true,
+				simRunFailed: true,
+			},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+	}
+	err := lazyjack.PrepareDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail running DNS64 container")
+	}
+	expected := "Mock fail to run container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedIPDeletePrepareDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotExists:           true,
+				simDeleteInterfaceFail: true,
+			},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+	}
+	err := lazyjack.PrepareDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
+	}
+	expected := "Mock fail delete of IP"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRouteAddPrepareDNS64Server(t *testing.T) {
+	workArea := TempFileName(os.TempDir(), "-area")
+	HelperSetupArea(workArea, t)
+	defer HelperCleanupArea(workArea, t)
+
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotExists:    true,
+				simAddRouteFail: true,
+			},
+			WorkArea: workArea,
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
+	}
+	err := lazyjack.PrepareDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
+	}
+	expected := "Mock fail add route"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestNotExistsEnsureNAT64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNotExists: true},
+		},
+	}
+	err := lazyjack.EnsureNAT64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to run NAT64 container: %v", err)
+	}
+}
+
+func TestNotRunningNotRunningEnsureNAT64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNotRunning: true},
+		},
+	}
+	err := lazyjack.EnsureNAT64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to run NAT64 container: %v", err)
+	}
+}
+
+func TestSkipRunningEnsureNAT64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{},
+		},
+	}
+	err := lazyjack.EnsureNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected NAT64 container to already be running")
+	}
+	expected := "Skipping - NAT64 container (tayga) already exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveOldEnsureNAT64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotRunning:          true,
+				simDeleteContainerFail: true,
+			},
+		},
+	}
+	err := lazyjack.EnsureNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
+	}
+	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRunEnsureNAT64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotRunning: true,
+				simRunFailed:  true,
+			},
+		},
+	}
+	err := lazyjack.EnsureNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail running NAT64 container")
+	}
+	expected := "Mock fail to run container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestEnsureRouteToNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.EnsureRouteToNAT64(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to create routes: %v", err)
+	}
+}
+
+func TestFailedEnsureRouteToNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.EnsureRouteToNAT64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to create route")
+	}
+	expected := "Mock failure adding route"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestSkippingEnsureRouteToNAT64(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.EnsureRouteToNAT64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected route to already exist")
+	}
+	expected := "Skipping - add route to 172.18.0.128/25 via 172.18.0.200 as already exists"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestPrepareNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:  &MockHypervisor{simNotExists: true},
+			NetMgr: nm,
+		},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.PrepareNAT64Server(c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to prepare NAT64 container: %v", err)
+	}
+}
+
+func TestFailRunPrepareNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simNotExists:           true,
+				simDeleteContainerFail: true,
+			},
+			NetMgr: nm,
+		},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.PrepareNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
+	}
+	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailRouteAddPrepareNAT64Server(t *testing.T) {
+	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper:  &MockHypervisor{},
+			NetMgr: nm,
+		},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		NAT64: lazyjack.NAT64Config{
+			V4MappingCIDR: "172.18.0.128/25",
+			V4MappingIP:   "172.18.0.200",
+		},
+	}
+	err := lazyjack.PrepareNAT64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to create route")
+	}
+	expected := "Mock failure adding route"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }

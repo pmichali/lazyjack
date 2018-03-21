@@ -12,15 +12,21 @@ import (
 type Docker struct{}
 
 // ResourceExists inspects to see if the resource is known
-// to docker.
-// Q: Should we check if it is running? If not, remove?
-func (d *Docker) ResourceExists(r string) bool {
-	_, err := DoCommand(r, []string{"inspect", r})
+// to docker. Optionally, will check if running.
+func (d *Docker) ResourceExists(r string, requireRunning bool) bool {
+	output, err := DoCommand(r, []string{"inspect", r})
 	if err != nil {
 		glog.V(4).Infof("No %q resource", r)
 		return false
 	}
 	glog.V(4).Infof("Resource %q exists", r)
+	if requireRunning {
+		if !strings.Contains(output, "\"Running\": true") {
+			glog.V(4).Infof("Resource %q is NOT running", r)
+			return false
+		}
+		glog.V(4).Infof("Resource %q is running", r)
+	}
 	return true
 }
 
@@ -49,18 +55,35 @@ func BuildRunArgsForDNS64(c *Config) []string {
 	return cmdList
 }
 
-func BuildGetInterfaceArgsForDNS64() []string {
-	return []string{"exec", "bind9", "ip", "addr", "list", "eth0"}
+func BuildGetInterfaceArgs(container, ifName string) []string {
+	return []string{"exec", container, "ip", "addr", "list", ifName}
 }
 
-func BuildV4AddrDelArgsForDNS64(ip string) []string {
-	return []string{"exec", "bind9", "ip", "addr", "del", ip, "dev", "eth0"}
+func (d *Docker) GetInterfaceConfig(name, ifName string) (string, error) {
+	args := BuildGetInterfaceArgs(name, ifName)
+	return DoCommand("Get I/F config", args)
 }
 
-func BuildAddRouteArgsForDNS64(c *Config) []string {
+func BuildV4AddrDelArgs(container, ip string) []string {
+	return []string{"exec", container, "ip", "addr", "del", ip, "dev", "eth0"}
+}
+
+func (d *Docker) DeleteV4Address(container, ip string) error {
+	args := BuildV4AddrDelArgs(container, ip)
+	_, err := DoCommand("Delete IPv4 addr", args)
+	return err
+}
+
+func BuildAddRouteArgs(container, dest, via string) []string {
 	return []string{
-		"exec", "bind9", "ip", "-6", "route", "add", c.DNS64.CIDR, "via", c.NAT64.ServerIP,
+		"exec", container, "ip", "-6", "route", "add", dest, "via", via,
 	}
+}
+
+func (d *Docker) AddV6Route(container, dest, via string) error {
+	args := BuildAddRouteArgs(container, dest, via)
+	_, err := DoCommand("Add IPv6 route", args)
+	return err
 }
 
 func (d *Docker) DeleteContainer(name string) error {
@@ -73,7 +96,7 @@ func BuildRunArgsForNAT64(c *Config) []string {
 	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s", c.DNS64.CIDR)
 	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
 	cmdList := []string{
-		"run", "-d", "--name", "tayga", "--hostname", "tayga", "--label", "lazyjack",
+		"run", "-d", "--name", NAT64Name, "--hostname", NAT64Name, "--label", "lazyjack",
 		"--privileged=true", "--ip", c.NAT64.V4MappingIP, "--ip6", c.NAT64.ServerIP,
 		"--dns", c.DNS64.RemoteV4Server, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
@@ -82,6 +105,11 @@ func BuildRunArgsForNAT64(c *Config) []string {
 		"--net", SupportNetName, "danehans/tayga:latest",
 	}
 	return cmdList
+}
+
+func (d *Docker) RunContainer(name string, args []string) error {
+	_, err := DoCommand(name, args)
+	return err
 }
 
 func BuildCreateNetArgsForSupportNet(cidr, subnet, v4cidr string) []string {
