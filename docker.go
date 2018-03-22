@@ -112,13 +112,19 @@ func (d *Docker) RunContainer(name string, args []string) error {
 	return err
 }
 
-func BuildCreateNetArgsForSupportNet(cidr, subnet, v4cidr string) []string {
+func BuildCreateNetArgsFor(name, cidr, v4cidr, gw string) []string {
 	args := []string{"network", "create", "--ipv6"}
 	subnetOption := fmt.Sprintf("--subnet=\"%s\"", cidr)
 	v4SubnetOption := fmt.Sprintf("--subnet=%s", v4cidr)
-	gw := fmt.Sprintf("--gateway=\"%s1\"", subnet)
-	args = append(args, subnetOption, v4SubnetOption, gw, SupportNetName)
+	gwOption := fmt.Sprintf("--gateway=\"%s1\"", gw)
+	args = append(args, subnetOption, v4SubnetOption, gwOption, name)
 	return args
+}
+
+func (d *Docker) CreateNetwork(name, cidr, v4cidr, gw string) error {
+	args := BuildCreateNetArgsFor(name, cidr, v4cidr, gw)
+	_, err := DoCommand(name, args)
+	return err
 }
 
 func BuildDeleteNetArgsFor(name string) []string {

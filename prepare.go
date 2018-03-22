@@ -321,20 +321,19 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 	return contents
 }
 
-func CreateSupportNetwork(c *Config) {
+func CreateSupportNetwork(c *Config) (err error) {
 	if c.General.Hyper.ResourceExists(SupportNetName, false) {
-		glog.V(1).Infof("Skipping - support network already exists")
-		return
+		err = fmt.Errorf("Skipping - support network already exists")
+		glog.V(1).Infof(err.Error())
+		return err
 	}
 
-	args := BuildCreateNetArgsForSupportNet(c.Support.CIDR, c.Support.Prefix, c.Support.V4CIDR)
-	_, err := DoCommand(SupportNetName, args)
+	err = c.General.Hyper.CreateNetwork(SupportNetName, c.Support.CIDR, c.Support.V4CIDR, c.Support.Prefix)
 	if err != nil {
-		glog.Fatal(err.Error())
-		os.Exit(1) // TODO: Rollback?
-	} else {
-		glog.Info("Prepared support network")
+		return err
 	}
+	glog.Info("Prepared support network")
+	return nil
 }
 
 func BuildFileStructureForDNS(base string) error {
@@ -517,35 +516,38 @@ func PrepareNAT64Server(c *Config) error {
 	return nil
 }
 
-func Prepare(name string, c *Config) {
+func Prepare(name string, c *Config) error {
 	node := c.Topology[name]
 	glog.Infof("Preparing %q", name)
 	var err error
+
 	// TODO: Verify docker version OK (17.03, others?), else warn...
+
 	if node.IsDNS64Server || node.IsNAT64Server {
 		// TODO: Verify that node has default IPv4 route
-		CreateSupportNetwork(c)
+		err = CreateSupportNetwork(c)
+		if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+			return err
+		}
 	}
 	if node.IsDNS64Server {
 		err = PrepareDNS64Server(c)
 		if err != nil {
-			glog.Fatal(err.Error())
-			os.Exit(1) // TODO: Rollback?
+			return err
 		}
 	}
 	if node.IsNAT64Server {
 		err = PrepareNAT64Server(c)
 		if err != nil {
-			glog.Fatal(err.Error())
-			os.Exit(1) // TODO: Rollback?
+			return err
 		}
 	}
 	if node.IsMaster || node.IsMinion {
 		err = PrepareClusterNode(&node, c)
 		if err != nil {
-			glog.Fatal(err.Error())
-			os.Exit(1) // TODO: Rollback?
+			return err
 		}
 	}
 	glog.Infof("Prepared node %q", name)
+	return nil
 }

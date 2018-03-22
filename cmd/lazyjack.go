@@ -41,6 +41,8 @@ func FlushLogs() {
 }
 
 func main() {
+	var err error
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] {init|prepare|up|down|clean|version}\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
@@ -97,13 +99,17 @@ func main() {
 
 	switch command {
 	case "init":
-		err := lazyjack.Initialize(*host, config, *configFile)
+		err = lazyjack.Initialize(*host, config, *configFile)
 		if err != nil {
 			glog.Errorf(err.Error())
 			os.Exit(1)
 		}
 	case "prepare":
-		lazyjack.Prepare(*host, config)
+		err = lazyjack.Prepare(*host, config)
+		if err != nil {
+			glog.Errorf(err.Error())
+			os.Exit(1)
+		}
 	case "up":
 		lazyjack.BringUp(*host, config)
 	case "down":

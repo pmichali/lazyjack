@@ -13,6 +13,7 @@ type MockHypervisor struct {
 	simDeleteInterfaceFail bool
 	simAddRouteFail        bool
 	simRouteExists         bool
+	simCreateNetFail       bool
 }
 
 func (mh *MockHypervisor) ResourceExists(r string, requireRunning bool) bool {
@@ -81,7 +82,14 @@ func (mh *MockHypervisor) AddV6Route(container, dest, via string) error {
 		return fmt.Errorf("Mock fail add route")
 	}
 	if mh.simRouteExists {
-		return fmt.Errorf("Mock route already exists")
+		return fmt.Errorf("file exists")
+	}
+	return nil
+}
+
+func (mh *MockHypervisor) CreateNetwork(name, cidr, v4cidr, gw string) error {
+	if mh.simCreateNetFail {
+		return fmt.Errorf("Mock fail create of network")
 	}
 	return nil
 }

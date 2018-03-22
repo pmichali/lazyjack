@@ -24,9 +24,9 @@ func TestBuildDockerArgsForDNS64(t *testing.T) {
 }
 
 func TestBuildCreateSupportNetArgs(t *testing.T) {
-	list := lazyjack.BuildCreateNetArgsForSupportNet("fd00:10::/64", "fd00:10::", "172.18.0.0/16")
+	list := lazyjack.BuildCreateNetArgsFor("test_net", "fd00:10::/64", "172.18.0.0/16", "fd00:10::")
 	actual := strings.Join(list, " ")
-	expected := "network create --ipv6 --subnet=\"fd00:10::/64\" --subnet=172.18.0.0/16 --gateway=\"fd00:10::1\" support_net"
+	expected := "network create --ipv6 --subnet=\"fd00:10::/64\" --subnet=172.18.0.0/16 --gateway=\"fd00:10::1\" test_net"
 	if actual != expected {
 		t.Fatalf("FAILED: Building support net create args. Expected %q, got %q", expected, actual)
 	}

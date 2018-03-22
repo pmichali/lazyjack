@@ -56,16 +56,16 @@ type Node struct {
 }
 
 type GeneralSettings struct {
-	Plugin        string `yaml:"plugin"`
-	Token         string `yaml:"token"`           // Internal
-	TokenCertHash string `yaml:"token-cert-hash"` // Internal
-	WorkArea      string `yaml:"work-area"`
-	SystemdArea   string // Internal
-	EtcArea       string // Internal
-	CNIArea       string // Internal
-	K8sCertArea   string // Internal
+	Plugin        string      `yaml:"plugin"`
+	Token         string      `yaml:"token"`           // Internal
+	TokenCertHash string      `yaml:"token-cert-hash"` // Internal
+	WorkArea      string      `yaml:"work-area"`
+	SystemdArea   string      // Internal
+	EtcArea       string      // Internal
+	CNIArea       string      // Internal
+	K8sCertArea   string      // Internal
 	NetMgr        *NetManager // Internal
-	Hyper         Hypervisor // Internal
+	Hyper         Hypervisor  // Internal
 }
 
 type Config struct {
@@ -95,7 +95,7 @@ const (
 	DNS64NamedConf = "named.conf"
 
 	NAT64Name = "tayga"
-	
+
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	KubeletDropInFile  = "20-extra-dns-args.conf"
 
