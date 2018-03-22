@@ -16,15 +16,15 @@ func BuildNodeCIDR(prefix string, node, mask int) string {
 func (n *NetManager) AddAddressToLink(ip, intf string) error {
 	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", intf)
+		return fmt.Errorf("unable to find interface %q", intf)
 	}
 	addr, err := n.Mgr.ParseAddr(ip)
 	if err != nil {
-		return fmt.Errorf("Malformed address %q", ip)
+		return fmt.Errorf("malformed address %q", ip)
 	}
 	err = n.Mgr.AddrReplace(link, addr)
 	if err != nil {
-		return fmt.Errorf("Unable to add ip %q to interface %q", ip, intf)
+		return fmt.Errorf("unable to add ip %q to interface %q", ip, intf)
 	}
 	glog.V(1).Infof("Added ip %q to interface %q", ip, intf)
 	return nil
@@ -49,19 +49,19 @@ func (n *NetManager) AddressExistsOnLink(addr *netlink.Addr, link netlink.Link) 
 func (n *NetManager) RemoveAddressFromLink(ip, intf string) error {
 	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", intf)
+		return fmt.Errorf("unable to find interface %q", intf)
 	}
 	addr, err := n.Mgr.ParseAddr(ip)
 	if err != nil {
-		return fmt.Errorf("Malformed address to delete %q", ip)
+		return fmt.Errorf("malformed address to delete %q", ip)
 	}
 	if !n.AddressExistsOnLink(addr, link) {
-		return fmt.Errorf("Skipping - address %q does not exist on interface %q", ip, intf)
+		return fmt.Errorf("skipping - address %q does not exist on interface %q", ip, intf)
 	}
 
 	err = n.Mgr.AddrDel(link, addr)
 	if err != nil {
-		return fmt.Errorf("Unable to delete ip %q from interface %q", ip, intf)
+		return fmt.Errorf("unable to delete ip %q from interface %q", ip, intf)
 	}
 	glog.V(1).Infof("Removed ip %q from interface %q", ip, intf)
 	return nil
@@ -74,7 +74,7 @@ func (n *NetManager) FindLinkIndexForCIDR(cidr string) (int, error) {
 	}
 	links, _ := n.Mgr.LinkList()
 	if len(links) == 0 {
-		return 0, fmt.Errorf("No links on system")
+		return 0, fmt.Errorf("no links on system")
 	}
 	for _, link := range links {
 		addrs, _ := n.Mgr.AddrList(link, nl.FAMILY_V4)
@@ -85,17 +85,17 @@ func (n *NetManager) FindLinkIndexForCIDR(cidr string) (int, error) {
 			}
 		}
 	}
-	return 0, fmt.Errorf("Unable to find interface for CIDR %q", cidr)
+	return 0, fmt.Errorf("unable to find interface for CIDR %q", cidr)
 }
 
 func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	_, cidr, err := net.ParseCIDR(destStr)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse destination CIDR %q: %s", destStr, err.Error())
+		return nil, fmt.Errorf("unable to parse destination CIDR %q: %v", destStr, err)
 	}
 	gw := net.ParseIP(gwStr)
 	if gw == nil {
-		return nil, fmt.Errorf("Unable to parse gateway IP %q", gwStr)
+		return nil, fmt.Errorf("unable to parse gateway IP %q", gwStr)
 	}
 	route := &netlink.Route{Dst: cidr, Gw: gw, LinkIndex: index}
 	return route, nil
@@ -139,7 +139,7 @@ func (n *NetManager) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Adding route for %s via %s using interface %s", dest, gw, intf)
 	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", intf)
+		return fmt.Errorf("unable to find interface %q", intf)
 	}
 	index := link.Attrs().Index
 	route, err := BuildRoute(dest, gw, index)
@@ -153,7 +153,7 @@ func (n *NetManager) DeleteRouteUsingInterfaceName(dest, gw, intf string) error 
 	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
 	link, err := n.Mgr.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("Skipping - Unable to find interface %q to delete route", intf)
+		return fmt.Errorf("skipping - Unable to find interface %q to delete route", intf)
 	}
 	index := link.Attrs().Index
 	route, err := BuildRoute(dest, gw, index)
@@ -167,11 +167,11 @@ func (n *NetManager) BringLinkDown(name string) error {
 	glog.V(4).Infof("Bringing down interface %q", name)
 	link, err := n.Mgr.LinkByName(name)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", name)
+		return fmt.Errorf("unable to find interface %q", name)
 	}
 	err = n.Mgr.LinkSetDown(link)
 	if err != nil {
-		return fmt.Errorf("Unable to shut down interface %q", name)
+		return fmt.Errorf("unable to shut down interface %q", name)
 	}
 	glog.V(1).Infof("Interface %q brought down", name)
 	return nil
@@ -181,11 +181,11 @@ func (n *NetManager) DeleteLink(name string) error {
 	glog.V(4).Infof("Deleting interface %q", name)
 	link, err := n.Mgr.LinkByName(name)
 	if err != nil {
-		return fmt.Errorf("Unable to find interface %q", name)
+		return fmt.Errorf("unable to find interface %q", name)
 	}
 	err = n.Mgr.LinkDel(link)
 	if err != nil {
-		return fmt.Errorf("Unable to delete interface %q", name)
+		return fmt.Errorf("unable to delete interface %q", name)
 	}
 	glog.V(1).Infof("Deleted interface %q", name)
 	return nil

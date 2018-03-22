@@ -15,11 +15,11 @@ func CreateCertKeyArea(base string) error {
 	area := filepath.Join(base, CertArea)
 	err := os.RemoveAll(area)
 	if err != nil {
-		return fmt.Errorf("Unable to clear out certificate area: %s", err.Error())
+		return fmt.Errorf("unable to clear out certificate area: %v", err)
 	}
 	err = os.MkdirAll(area, 0700)
 	if err != nil {
-		return fmt.Errorf("Unable to create area for certificates (%s): %s", area, err.Error())
+		return fmt.Errorf("unable to create area for certificates (%s): %v", area, err)
 	}
 	glog.V(1).Infof("Created area for certificates")
 	return nil
@@ -34,7 +34,7 @@ func CreateKeyForCA(base string) error {
 	args := BuildArgsForCAKey(base)
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
-		return fmt.Errorf("Unable to create CA key: %s", err.Error())
+		return fmt.Errorf("unable to create CA key: %v", err)
 	}
 	glog.Infof("Created CA key")
 	return nil
@@ -55,7 +55,7 @@ func CreateCertificateForCA(mgmtPrefix string, id int, base string) error {
 	args := BuildArgsForCACert(mgmtPrefix, id, base)
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
-		return fmt.Errorf("Unable to create CA certificate: %s", err.Error())
+		return fmt.Errorf("unable to create CA certificate: %v", err)
 	}
 	glog.Infof("Created CA certificate")
 	return nil
@@ -74,11 +74,11 @@ func CreateX509CertForCA(base string) error {
 	args := BuildArgsForX509Cert(base)
 	output, err := DoExecCommand("openssl", args)
 	if err != nil || len(output) == 0 {
-		return fmt.Errorf("Unable to create X509 cert: %s", err.Error())
+		return fmt.Errorf("unable to create X509 cert: %v", err)
 	}
 	err = ioutil.WriteFile(filepath.Join(base, CertArea, "ca.x509"), []byte(output), 0644)
 	if err != nil {
-		return fmt.Errorf("Unable to save X509 cert for CA: %s", err.Error())
+		return fmt.Errorf("unable to save X509 cert for CA: %v", err)
 	}
 	glog.V(1).Infof("Built CA X509 certificate")
 	return nil
@@ -98,7 +98,7 @@ func CreateRSAForCA(base string) error {
 	args := BuildArgsForRSA(base)
 	_, err := DoExecCommand("openssl", args)
 	if err != nil {
-		return fmt.Errorf("Unable to create RSA key for CA: %s", err.Error())
+		return fmt.Errorf("unable to create RSA key for CA: %v", err)
 	}
 	glog.V(1).Infof("Built RSA key for CA")
 	return nil
@@ -115,7 +115,7 @@ func ExtractDigest(input string) (string, error) {
 	glog.V(4).Infof("Parsing digest info %q", input)
 	parts := strings.Split(input, " ")
 	if len(parts) != 2 {
-		return "", fmt.Errorf("Unable to parse digest info for CA key")
+		return "", fmt.Errorf("unable to parse digest info for CA key")
 	}
 	hash := strings.TrimSpace(parts[1])
 	err := ValidateTokenCertHash(hash, true)
@@ -131,7 +131,7 @@ func CreateDigestForCA(base string) (string, error) {
 	args := BuildArgsForCADigest(base)
 	output, err := DoExecCommand("openssl", args)
 	if err != nil {
-		return "", fmt.Errorf("Unable to create CA digest: %s", err.Error())
+		return "", fmt.Errorf("unable to create CA digest: %v", err)
 	}
 	return ExtractDigest(output)
 }
@@ -153,7 +153,7 @@ func ExtractToken(input string) (string, error) {
 	token := strings.TrimSpace(input)
 	err := ValidateToken(token, false)
 	if err != nil {
-		return "", fmt.Errorf("Internal error, token is malformed: %s", err.Error())
+		return "", fmt.Errorf("internal error, token is malformed: %v", err)
 	}
 	glog.V(1).Infof("Created shared token (%s)", token)
 	return token, nil
@@ -164,7 +164,7 @@ func CreateToken() (string, error) {
 	args := []string{"token", "generate"}
 	token, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		return "", fmt.Errorf("Unable to create shared token: %s", err.Error())
+		return "", fmt.Errorf("unable to create shared token: %v", err)
 	}
 	return ExtractToken(token)
 }
@@ -205,7 +205,7 @@ func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte 
 func OpenPermissions(name string) error {
 	err := os.Chmod(name, 0777)
 	if err != nil {
-		return fmt.Errorf("Unable to open permissions on %q: %s", name, err.Error())
+		return fmt.Errorf("unable to open permissions on %q: %v", name, err)
 	}
 	return nil
 }

@@ -12,7 +12,7 @@ func GetFileContents(file string) ([]byte, error) {
 	glog.V(4).Infof("Reading %s contents", file)
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
-		err = fmt.Errorf("Unable to read %s: %s", file, err.Error())
+		err = fmt.Errorf("unable to read %s: %v", file, err)
 	}
 	return contents, err
 }
@@ -27,7 +27,7 @@ func SaveFileContents(contents []byte, file, backup string) error {
 	if exists {
 		err := os.Rename(file, backup)
 		if err != nil {
-			return fmt.Errorf("Unable to backup existing file %s to %s: %s", file, backup, err.Error())
+			return fmt.Errorf("unable to backup existing file %s to %s: %v", file, backup, err)
 		}
 		glog.V(4).Infof("Backed up existing %s to %s", file, backup)
 	}
@@ -36,7 +36,7 @@ func SaveFileContents(contents []byte, file, backup string) error {
 		if exists {
 			return RecoverFile(file, backup, err.Error())
 		}
-		return fmt.Errorf("Unable to save %s", file)
+		return fmt.Errorf("unable to save %s", file)
 	}
 	glog.V(4).Infof("Saved %s", file)
 	return nil
@@ -45,8 +45,8 @@ func SaveFileContents(contents []byte, file, backup string) error {
 func RecoverFile(file, backup, saveErr string) error {
 	err := os.Rename(backup, file)
 	if err != nil {
-		return fmt.Errorf("Unable to save updated %s (%s) AND unable to restore backup file %s (%s)",
-			file, saveErr, backup, err.Error())
+		return fmt.Errorf("unable to save updated %s (%s) AND unable to restore backup file %s (%v)",
+			file, saveErr, backup, err)
 	}
-	return fmt.Errorf("Unable to save updated %s (%s), but restored from backup", file, saveErr)
+	return fmt.Errorf("unable to save updated %s (%s), but restored from backup", file, saveErr)
 }

@@ -95,7 +95,7 @@ func TestFailedCreateBridgeCNIConfigFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create CNI config file")
 	}
-	expected := "Unable to create CNI config for bridge plugin"
+	expected := "unable to create CNI config for bridge plugin"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
@@ -177,7 +177,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
-	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
+	expected := "unable to add pod network route for fd00:40:0:0:20::/80 to minion1: mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -220,7 +220,7 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create route - exists already")
 	}
-	expected := "Skipping - add route to fd00:40:0:0:20::/80 via fd00:100::20 as already exists"
+	expected := "skipping - add route to fd00:40:0:0:20::/80 via fd00:100::20 as already exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -302,7 +302,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete route on node")
 	}
-	expected := "Unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure deleting route"
+	expected := "unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -345,7 +345,7 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete route on node")
 	}
-	expected := "Skipping - delete route from fd00:40:0:0:10::/80 via fd00:100::10 as non-existent"
+	expected := "skipping - delete route from fd00:40:0:0:10::/80 via fd00:100::10 as non-existent"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}

@@ -161,7 +161,7 @@ func TestFailCreateSupportNetwork(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected create support network to fail")
 	}
-	expected := "Mock fail create of network"
+	expected := "mock fail create of network"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -182,7 +182,7 @@ func TestSkippingCreateSupportNetwork(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected support network to already exist")
 	}
-	expected := "Skipping - support network already exists"
+	expected := "skipping - support network already exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -238,7 +238,7 @@ func TestFailedBuildTreeCreateConfigForDNS64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to create DNS64 config area")
 	}
-	expected := "Unable to create directory structure for DNS64"
+	expected := "unable to create directory structure for DNS64"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -821,7 +821,7 @@ func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find NAT server: %s", err.Error())
 	}
-	expected := "Unable to find node with NAT64 server configured"
+	expected := "unable to find node with NAT64 server configured"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -845,7 +845,7 @@ func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *tes
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -957,7 +957,7 @@ func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to add route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1034,7 +1034,7 @@ func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to find NAT64/DNS64 server node")
 	}
-	expected := "Unable to find node with NAT64 server configured"
+	expected := "unable to find node with NAT64 server configured"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1174,7 +1174,7 @@ func TestSkipRunningEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected DNS64 container to already be running")
 	}
-	expected := "Skipping - DNS64 container (bind9) already running"
+	expected := "skipping - DNS64 container (bind9) already running"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1202,7 +1202,7 @@ func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old DNS64 container")
 	}
-	expected := "Unable to remove existing (non-running) DNS64 container: Mock fail delete of container"
+	expected := "unable to remove existing (non-running) DNS64 container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1239,7 +1239,7 @@ func TestFailedConfigCreateEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail to create config for DNS64")
 	}
-	expected := "Unable to create directory structure for DNS64"
+	expected := "unable to create directory structure for DNS64"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1267,7 +1267,7 @@ func TestFailedRunEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail running DNS64 container")
 	}
-	expected := "Mock fail to run container"
+	expected := "mock fail to run container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1295,7 +1295,7 @@ func TestFailedFindAddressRemoveIPv4AddressOnDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail finding IPv4 address")
 	}
-	expected := "Unable to find IPv4 address on eth0 of DNS64 container"
+	expected := "unable to find IPv4 address on eth0 of DNS64 container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1311,7 +1311,7 @@ func TestFailedGetConfigRemoveIPv4AddressOnDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
 	}
-	expected := "Mock fail getting interface info"
+	expected := "mock fail getting interface info"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1327,7 +1327,7 @@ func TestFailedRemoveIPv4AddressOnDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
 	}
-	expected := "Mock fail delete of IP"
+	expected := "mock fail delete of IP"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1359,7 +1359,7 @@ func TestFailedAddRouteForDNS64Network(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
 	}
-	expected := "Mock fail add route"
+	expected := "mock fail add route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1377,7 +1377,7 @@ func TestFailedExistingRouteForDNS64Network(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
 	}
-	expected := "Skipping - add route to fd00:10:64:ff9b::/96 via fd00:10::200 as already exists"
+	expected := "skipping - add route to fd00:10:64:ff9b::/96 via fd00:10::200 as already exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1430,7 +1430,7 @@ func TestFailRunPrepareDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail running DNS64 container")
 	}
-	expected := "Mock fail to run container"
+	expected := "mock fail to run container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1460,7 +1460,7 @@ func TestFailedIPDeletePrepareDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail removing IPv4 address")
 	}
-	expected := "Mock fail delete of IP"
+	expected := "mock fail delete of IP"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1490,7 +1490,7 @@ func TestFailedRouteAddPrepareDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail adding IPv6 route")
 	}
-	expected := "Mock fail add route"
+	expected := "mock fail add route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1530,7 +1530,7 @@ func TestSkipRunningEnsureNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected NAT64 container to already be running")
 	}
-	expected := "Skipping - NAT64 container (tayga) already running"
+	expected := "skipping - NAT64 container (tayga) already running"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1548,7 +1548,7 @@ func TestFailedRemoveOldEnsureNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
 	}
-	expected := "Unable to remove existing (non-running) NAT64 container: Mock fail delete of container"
+	expected := "unable to remove existing (non-running) NAT64 container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1566,7 +1566,7 @@ func TestFailedRunEnsureNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail running NAT64 container")
 	}
-	expected := "Mock fail to run container"
+	expected := "mock fail to run container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1602,7 +1602,7 @@ func TestFailedEnsureRouteToNAT64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to create route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1622,7 +1622,7 @@ func TestSkippingEnsureRouteToNAT64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected route to already exist")
 	}
-	expected := "Skipping - add route to 172.18.0.128/25 via 172.18.0.200 as already exists"
+	expected := "skipping - add route to 172.18.0.128/25 via 172.18.0.200 as already exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1666,7 +1666,7 @@ func TestFailRunPrepareNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
 	}
-	expected := "Unable to remove existing (non-running) NAT64 container: Mock fail delete of container"
+	expected := "unable to remove existing (non-running) NAT64 container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1689,7 +1689,7 @@ func TestFailRouteAddPrepareNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to create route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1791,7 +1791,7 @@ func TestFailSupportNetCreatePrepare(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail creating support network")
 	}
-	expected := "Mock fail create of network"
+	expected := "mock fail create of network"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1833,7 +1833,7 @@ func TestFailPrepDNS64Prepare(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail run of DNS64 service")
 	}
-	expected := "Mock fail to run container"
+	expected := "mock fail to run container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1880,7 +1880,7 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail prep of NAT64 route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1945,9 +1945,8 @@ func TestFailClusterNodePrepare(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail prep node cluster")
 	}
-	expected := "Unable to read"
+	expected := "unable to read"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
-
 }

@@ -57,7 +57,7 @@ func TestGetFileContents(t *testing.T) {
 	if err == nil {
 		t.Errorf("FAILED: Expected to not be able to read non-existent file")
 	}
-	expected := "Unable to read /etc/no-such-file: open /etc/no-such-file: no such file or directory"
+	expected := "unable to read /etc/no-such-file: open /etc/no-such-file: no such file or directory"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -100,7 +100,7 @@ func TestFailedSaveFileContents(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected save to fail during backup of original file")
 	}
-	expected := "Unable to backup existing file"
+	expected := "unable to backup existing file"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -122,7 +122,7 @@ func TestRecoverFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected recovery to fail")
 	}
-	expected := regexp.MustCompile("Unable to save updated .* [(]unable to write file[)], but restored from backup")
+	expected := regexp.MustCompile("unable to save updated .* [(]unable to write file[)], but restored from backup")
 	if !expected.MatchString(err.Error()) {
 		t.Fatalf("FAILED: Expected match to pattern %q, got %q", expected, err.Error())
 	}
@@ -144,7 +144,7 @@ func TestFailedRecoverFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected recovery to fail")
 	}
-	expected := regexp.MustCompile("Unable to save updated /tmp [(]unable to write file[)] AND unable to restore backup file .* [(]rename .* /tmp: file exists[)]")
+	expected := regexp.MustCompile("unable to save updated /tmp [(]unable to write file[)] AND unable to restore backup file .* [(]rename .* /tmp: file exists[)]")
 	if !expected.MatchString(err.Error()) {
 		t.Fatalf("FAILED: Expected match to pattern %q, got %q", expected, err.Error())
 	}

@@ -43,7 +43,7 @@ func CreateBridgeCNIConfigFile(node *Node, c *Config) error {
 	filename := filepath.Join(c.General.CNIArea, CNIConfFile)
 	err := ioutil.WriteFile(filename, contents.Bytes(), 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create CNI config for bridge plugin: %s", err.Error())
+		return fmt.Errorf("unable to create CNI config for bridge plugin: %v", err)
 	}
 	return nil
 }
@@ -62,16 +62,16 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				if op == "add" {
 					err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 					if err != nil && err.Error() == "file exists" {
-						return fmt.Errorf("Skipping - %s route to %s via %s as already exists", op, dest, gw)
+						return fmt.Errorf("skipping - %s route to %s via %s as already exists", op, dest, gw)
 					}
 				} else {
 					err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 					if err != nil && err.Error() == "no such process" {
-						return fmt.Errorf("Skipping - %s route from %s via %s as non-existent", op, dest, gw)
+						return fmt.Errorf("skipping - %s route from %s via %s as non-existent", op, dest, gw)
 					}
 				}
 				if err != nil {
-					return fmt.Errorf("Unable to %s pod network route for %s to %s: %s", op, dest, n.Name, err.Error())
+					return fmt.Errorf("unable to %s pod network route for %s to %s: %v", op, dest, n.Name, err)
 				}
 				glog.V(1).Infof("Did pod network %s route for %s to %s", op, dest, n.Name)
 			}

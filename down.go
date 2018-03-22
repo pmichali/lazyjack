@@ -12,14 +12,14 @@ func CleanupForPlugin(node *Node, c *Config) error {
 
 	err := RemoveRoutesForPodNetwork(node, c)
 	if err != nil {
-		return fmt.Errorf("Unable to remove routes for %s plugin: %s", c.General.Plugin, err.Error())
+		return fmt.Errorf("unable to remove routes for %s plugin: %v", c.General.Plugin, err)
 	}
 	glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
 	err = os.RemoveAll(c.General.CNIArea)
 	if err != nil {
-		return fmt.Errorf("Unable to remove CNI config file and area: %s", err.Error())
+		return fmt.Errorf("unable to remove CNI config file and area: %v", err)
 	}
 	glog.V(1).Info("Removed CNI config file and area")
 	glog.Infof("Cleaned up for %s plugin", c.General.Plugin)
@@ -30,7 +30,7 @@ func StopKubernetes() error {
 	args := []string{"reset"}
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		glog.Warningf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
+		glog.Warningf("unable to %s Kubernetes cluster: %v", args[0], err)
 		os.Exit(1)
 	}
 	glog.V(1).Infof("Kubernetes %s output: %s", args[0], output)
@@ -54,7 +54,7 @@ func (n *NetManager) RemoveBridge(name string) error {
 	} else if err2 == nil {
 		return err
 	}
-	return fmt.Errorf("Unable to bring link down (%s), nor remove link (%s)", err.Error(), err2.Error())
+	return fmt.Errorf("unable to bring link down (%v), nor remove link (%v)", err, err2)
 }
 
 func TearDown(name string, c *Config) {
@@ -73,7 +73,7 @@ func TearDown(name string, c *Config) {
 
 	err := StopKubernetes()
 	if err != nil {
-		glog.Warningf("Unable to reset cluster: %s", err.Error())
+		glog.Warningf("unable to reset cluster: %v", err)
 	}
 
 	// Leave kubeadm.conf, in case user customized it.
@@ -85,7 +85,7 @@ func TearDown(name string, c *Config) {
 
 	err = c.General.NetMgr.RemoveBridge("br0")
 	if err != nil {
-		glog.Warningf("Unable to remove br0 bridge: %s", err.Error())
+		glog.Warningf("unable to remove br0 bridge: %v", err)
 	}
 
 	glog.Infof("Node %q tore down", name)

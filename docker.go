@@ -31,7 +31,7 @@ func DoCommand(name string, args []string) (string, error) {
 	c := exec.Command("docker", args...)
 	output, err := c.Output()
 	if err != nil {
-		return "", fmt.Errorf("Docker %q failed for %q: %s (%s)", cmd, name, err.Error(), output)
+		return "", fmt.Errorf("docker %q failed for %q: %v (%s)", cmd, name, err, output)
 	}
 	glog.V(4).Infof("Docker %q successful for %q", cmd, name)
 	return string(output), nil

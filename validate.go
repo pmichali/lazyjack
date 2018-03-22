@@ -14,7 +14,7 @@ import (
 
 func ValidateCommand(command string) (string, error) {
 	if command == "" {
-		return "", fmt.Errorf("Missing command")
+		return "", fmt.Errorf("missing command")
 	}
 	validCommands := []string{"init", "prepare", "up", "down", "clean", "version"}
 	for _, c := range validCommands {
@@ -22,13 +22,13 @@ func ValidateCommand(command string) (string, error) {
 			return c, nil
 		}
 	}
-	return "", fmt.Errorf("Unknown command %q", command)
+	return "", fmt.Errorf("unknown command %q", command)
 }
 
 func ValidateHost(host string, config *Config) error {
 	_, ok := config.Topology[host]
 	if !ok {
-		return fmt.Errorf("Unable to find info for host %q in config file", host)
+		return fmt.Errorf("unable to find info for host %q in config file", host)
 	}
 	return nil
 }
@@ -38,7 +38,7 @@ func ValidateUniqueIDs(c *Config) error {
 	IDs := make(map[int]string)
 	for name, node := range c.Topology {
 		if first, seen := IDs[node.ID]; seen {
-			return fmt.Errorf("Duplicate node ID %d seen for node %q and %q", node.ID, first, name)
+			return fmt.Errorf("duplicate node ID %d seen for node %q and %q", node.ID, first, name)
 		}
 		IDs[node.ID] = name
 		glog.V(4).Infof("Node %q has ID %d", name, node.ID)
@@ -79,20 +79,20 @@ func ValidateNodeOpModes(node *Node) error {
 			}
 		}
 		if !found {
-			return fmt.Errorf("Invalid operating mode %q for %q", op, node.Name)
+			return fmt.Errorf("invalid operating mode %q for %q", op, node.Name)
 		}
 	}
 	if !anyModes {
-		return fmt.Errorf("Missing operating mode for %q", node.Name)
+		return fmt.Errorf("missing operating mode for %q", node.Name)
 	}
 	if node.IsMaster && node.IsMinion {
-		return fmt.Errorf("Invalid combination of modes for %q", node.Name)
+		return fmt.Errorf("invalid combination of modes for %q", node.Name)
 	}
 	if node.IsDNS64Server && !node.IsNAT64Server {
-		return fmt.Errorf("Missing %q mode for %q", "nat64", node.Name)
+		return fmt.Errorf("missing %q mode for %q", "nat64", node.Name)
 	}
 	if !node.IsDNS64Server && node.IsNAT64Server {
-		return fmt.Errorf("Missing %q mode for %q", "dns64", node.Name)
+		return fmt.Errorf("missing %q mode for %q", "dns64", node.Name)
 	}
 	return nil
 }
@@ -115,12 +115,12 @@ func ValidateOpModesForAllNodes(c *Config) error {
 			numMasters++
 		}
 		if numMasters > 1 {
-			return fmt.Errorf("Found multiple nodes with \"master\" operating mode")
+			return fmt.Errorf("found multiple nodes with \"master\" operating mode")
 		}
 		c.Topology[name] = node // Update the map with new value
 	}
 	if numMasters == 0 {
-		return fmt.Errorf("No master node configuration")
+		return fmt.Errorf("no master node configuration")
 	}
 
 	glog.V(4).Info("All nodes have valid operating modes")
@@ -132,16 +132,16 @@ func ValidateToken(token string, ignoreMissing bool) error {
 		if ignoreMissing {
 			return nil
 		}
-		return fmt.Errorf("Missing token in config file")
+		return fmt.Errorf("missing token in config file")
 	}
 	if len(token) != 23 {
-		return fmt.Errorf("Invalid token length (%d)", len(token))
+		return fmt.Errorf("invalid token length (%d)", len(token))
 	}
 	tokenRE := regexp.MustCompile("^[a-z0-9]{6}\\.[a-z0-9]{16}$")
 	if tokenRE.MatchString(token) {
 		return nil
 	}
-	return fmt.Errorf("Token is invalid %q", token)
+	return fmt.Errorf("token is invalid %q", token)
 }
 
 func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
@@ -149,25 +149,25 @@ func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 		if ignoreMissing {
 			return nil
 		}
-		return fmt.Errorf("Missing token certificate hash in config file")
+		return fmt.Errorf("missing token certificate hash in config file")
 	}
 	if len(certHash) != 64 {
-		return fmt.Errorf("Invalid token certificate hash length (%d)", len(certHash))
+		return fmt.Errorf("invalid token certificate hash length (%d)", len(certHash))
 	}
 	hashRE := regexp.MustCompile("^[a-fA-F0-9]{64}$")
 	if !hashRE.MatchString(certHash) {
-		return fmt.Errorf("Token certificate hash is invalid %q", certHash)
+		return fmt.Errorf("token certificate hash is invalid %q", certHash)
 	}
 	return nil
 }
 
 func ValidateCIDR(which, cidr string) error {
 	if cidr == "" {
-		return fmt.Errorf("Config missing %s CIDR", which)
+		return fmt.Errorf("config missing %s CIDR", which)
 	}
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return fmt.Errorf("Unable to parse %s CIDR (%s)", which, cidr)
+		return fmt.Errorf("unable to parse %s CIDR (%s)", which, cidr)
 	}
 	return nil
 }
@@ -188,7 +188,7 @@ func ValidatePlugin(c *Config) error {
 		return nil
 	}
 	if plugin != "bridge" {
-		return fmt.Errorf("Plugin %q not supported", plugin)
+		return fmt.Errorf("plugin %q not supported", plugin)
 	}
 	return nil
 }
@@ -211,17 +211,17 @@ func CalculateDerivedFields(c *Config) error {
 	var err error
 	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
 	if err != nil {
-		return fmt.Errorf("Invalid management network CIDR: %s", err.Error())
+		return fmt.Errorf("invalid management network CIDR: %v", err)
 	}
 
 	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
 	if err != nil {
-		return fmt.Errorf("Invalid support network CIDR: %s", err.Error())
+		return fmt.Errorf("invalid support network CIDR: %v", err)
 	}
 
 	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
 	if err != nil {
-		return fmt.Errorf("Invalid DNS64 CIDR: %s", err.Error())
+		return fmt.Errorf("invalid DNS64 CIDR: %v", err)
 	}
 	return nil
 }
@@ -243,7 +243,7 @@ func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 func SetupHandles(c *Config) error {
 	handle, err := netlink.NewHandle()
 	if err != nil {
-		return fmt.Errorf("Internal Error - unable to access networking package: %s", err.Error())
+		return fmt.Errorf("internal Error - unable to access networking package: %v", err)
 	}
 	c.General.NetMgr = &NetManager{Mgr: &RealImpl{h: handle}}
 	c.General.Hyper = &Docker{}
@@ -259,7 +259,7 @@ func SetupHandles(c *Config) error {
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	if c == nil {
-		return fmt.Errorf("No configuration loaded")
+		return fmt.Errorf("no configuration loaded")
 	}
 	err := ValidateToken(c.General.Token, ignoreMissing)
 	if err != nil {
@@ -322,7 +322,7 @@ func OpenConfigFile(configFile string) (io.ReadCloser, error) {
 
 	cf, err := os.Open(configFile)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to open config file %q: %s", configFile, err.Error())
+		return nil, fmt.Errorf("unable to open config file %q: %v", configFile, err)
 	}
 	return cf, nil
 }

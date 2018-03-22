@@ -15,7 +15,7 @@ func DoExecCommand(cmd string, args []string) (string, error) {
 	c := exec.Command(cmd, args...)
 	output, err := c.Output()
 	if err != nil {
-		return "", fmt.Errorf("Failed running %q with args %q: %s (%s)", cmd, a, err.Error(), output)
+		return "", fmt.Errorf("failed running %q with args %q: %v (%s)", cmd, a, err, output)
 	}
 	glog.V(4).Infof("Command %q with args %q successful", cmd, a)
 	return string(output), nil

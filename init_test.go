@@ -138,13 +138,13 @@ func TestExtractingDigest(t *testing.T) {
 			name:        "no hash in output",
 			input:       "SHA256(/tmp/lazyjack/certs/ca.rsa)=",
 			expected:    "",
-			expectedErr: "Unable to parse digest info for CA key",
+			expectedErr: "unable to parse digest info for CA key",
 		},
 		{
 			name:        "hash invalid",
 			input:       "SHA256(/tmp/lazyjack/certs/ca.rsa)= 134319a0d3333de4c2dd0f23d9a7647952e301ad81c56e2b016c6d636e44524",
 			expected:    "",
-			expectedErr: "Invalid token certificate hash length (63)",
+			expectedErr: "invalid token certificate hash length (63)",
 		},
 	}
 	for _, tc := range testCases {
@@ -219,7 +219,7 @@ func TestExtractToken(t *testing.T) {
 			name:        "token invalid",
 			input:       "bad-token-value",
 			expected:    "7aee33.05f81856d78346bd",
-			expectedErr: "Internal error, token is malformed: Invalid token length (15)",
+			expectedErr: "internal error, token is malformed: invalid token length (15)",
 		},
 	}
 	for _, tc := range testCases {

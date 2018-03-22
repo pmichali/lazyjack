@@ -47,14 +47,14 @@ func SetupForPlugin(node *Node, c *Config) error {
 func RestartKubeletService() error {
 	_, err := DoExecCommand("systemctl", []string{"daemon-reload"})
 	if err != nil {
-		glog.Fatalf("Unable to reload daemons: %s", err.Error())
+		glog.Fatalf("unable to reload daemons: %v", err)
 		os.Exit(1)
 	}
 	glog.V(1).Info("Reloaded daemons")
 
 	_, err = DoExecCommand("systemctl", []string{"restart", "kubelet"})
 	if err != nil {
-		glog.Fatalf("Unable to restart kubelet service: %s", err.Error())
+		glog.Fatalf("unable to restart kubelet service: %v", err)
 		os.Exit(1)
 	}
 	glog.V(1).Info("Restarted kubelet service")
@@ -84,28 +84,28 @@ func CopyFile(name, src, dst string) (err error) {
 	glog.V(4).Infof("Copying %s/%s to %s/%s", src, name, dst, name)
 	s, err := os.Open(filepath.Join(src, name))
 	if err != nil {
-		return fmt.Errorf("Unable to open source file %q: %s", name, err.Error())
+		return fmt.Errorf("unable to open source file %q: %v", name, err)
 	}
 	defer s.Close()
 
 	d, err := os.Create(filepath.Join(dst, name))
 	if err != nil {
-		return fmt.Errorf("Unable to open destination file %q: %s", name, err.Error())
+		return fmt.Errorf("unable to open destination file %q: %v", name, err)
 	}
 	defer func() {
 		cerr := d.Close()
 		if err == nil && cerr != nil {
-			err = fmt.Errorf("Unable to close destination file %q: %s", name, cerr.Error())
+			err = fmt.Errorf("unable to close destination file %q: %v", name, cerr)
 		}
 	}()
 
 	_, err = io.Copy(d, s)
 	if err != nil {
-		return fmt.Errorf("Unable to copy %q from %q to %q: %s", name, src, dst, err.Error())
+		return fmt.Errorf("unable to copy %q from %q to %q: %v", name, src, dst, err)
 	}
 	err = d.Sync()
 	if err != nil {
-		return fmt.Errorf("Unable to flush data to destination file %q: %s", name, err.Error())
+		return fmt.Errorf("unable to flush data to destination file %q: %v", name, err)
 	}
 	return
 }
@@ -115,7 +115,7 @@ func PlaceCertificateAndKeyForCA(workBase, dst string) error {
 	src := filepath.Join(workBase, CertArea)
 	err := os.MkdirAll(dst, 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create area for Kubernetes certificates (%s): %s", dst, err.Error())
+		return fmt.Errorf("unable to create area for Kubernetes certificates (%s): %v", dst, err)
 	}
 	err = CopyFile("ca.crt", src, dst)
 	if err != nil {
@@ -140,7 +140,7 @@ func DetermineMasterNode(c *Config) *Node {
 func StartKubernetes(n *Node, c *Config) error {
 	master := DetermineMasterNode(c)
 	if master == nil {
-		return fmt.Errorf("Unable to determine master node")
+		return fmt.Errorf("unable to determine master node")
 	}
 
 	args := BuildKubeAdmCommand(n, master, c)
@@ -148,7 +148,7 @@ func StartKubernetes(n *Node, c *Config) error {
 	glog.Infof("Starting Kubernetes on %s... (please wait)", n.Name)
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		glog.Fatalf("Unable to %s Kubernetes cluster: %s", args[0], err.Error())
+		glog.Fatalf("unable to %s Kubernetes cluster: %v", args[0], err)
 		os.Exit(1)
 	}
 	glog.V(1).Info("Kubernetes %s output: %s", args[0], output)
@@ -172,7 +172,7 @@ func BringUp(name string, c *Config) {
 
 	err := SetupForPlugin(&node, c)
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "Skipping -") {
+		if strings.HasPrefix(err.Error(), "skipping -") {
 			glog.Warning(err.Error())
 			// Will keep going...
 		} else {

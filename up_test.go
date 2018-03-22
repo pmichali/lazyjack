@@ -126,7 +126,7 @@ func TestCopyFileFailures(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
-	expected := "Unable to open source file \"foo\":"
+	expected := "unable to open source file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
@@ -150,7 +150,7 @@ func TestCopyFileFailures(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
-	expected = "Unable to open destination file \"foo\":"
+	expected = "unable to open destination file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
@@ -169,7 +169,7 @@ func TestCopyFileNoSource(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
-	expected := "Unable to open source file \"foo\":"
+	expected := "unable to open source file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
@@ -203,7 +203,7 @@ func TestCopyFileDestReadOnly(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILURE: Expected not to be able to copy non-existing source file")
 	}
-	expected := "Unable to open destination file \"foo\":"
+	expected := "unable to open destination file \"foo\":"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILURE: Expected error message %q, got %q", expected, err.Error())
 	}
@@ -507,7 +507,7 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create route")
 	}
-	expected := "Unable to add pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure adding route"
+	expected := "unable to add pod network route for fd00:40:0:0:20::/80 to minion1: mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}

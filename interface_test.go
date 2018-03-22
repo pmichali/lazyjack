@@ -28,14 +28,14 @@ type mockImpl struct {
 
 func (m *mockImpl) AddrDel(link netlink.Link, addr *netlink.Addr) error {
 	if m.simDeleteFail {
-		return fmt.Errorf("Mock failure to delete address")
+		return fmt.Errorf("mock failure to delete address")
 	}
 	return nil
 }
 
 func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, error) {
 	if m.simAddrListFail {
-		return []netlink.Addr{}, fmt.Errorf("Mock failure to list addresses")
+		return []netlink.Addr{}, fmt.Errorf("mock failure to list addresses")
 	}
 	// Will use the link index to create dummy addresses per link
 	var first *netlink.Addr
@@ -57,14 +57,14 @@ func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, erro
 
 func (m *mockImpl) AddrReplace(link netlink.Link, addr *netlink.Addr) error {
 	if m.simReplaceFail {
-		return fmt.Errorf("Mock failure to replace address")
+		return fmt.Errorf("mock failure to replace address")
 	}
 	return nil
 }
 
 func (m *mockImpl) LinkByName(name string) (netlink.Link, error) {
 	if m.simLookupFail {
-		return nil, fmt.Errorf("Mock failure to find link")
+		return nil, fmt.Errorf("mock failure to find link")
 	}
 	// Calc index based on interface name, using last digit * 10.
 	// For example "eth2" -> 2*10 = 20.
@@ -76,7 +76,7 @@ func (m *mockImpl) LinkByName(name string) (netlink.Link, error) {
 
 func (m *mockImpl) LinkList() ([]netlink.Link, error) {
 	if m.simLinkListFail {
-		return []netlink.Link{}, fmt.Errorf("Mock failure to list addresses")
+		return []netlink.Link{}, fmt.Errorf("mock failure to list addresses")
 	}
 	// Making a dummy list of two entries with indexes 20 and 30. The dummy addresses
 	// we create for some tests, will use the index as part of the IP.
@@ -89,7 +89,7 @@ func (m *mockImpl) LinkList() ([]netlink.Link, error) {
 
 func (m *mockImpl) ParseAddr(s string) (*netlink.Addr, error) {
 	if m.simParseAddrFail {
-		return nil, fmt.Errorf("Mock failure to parse address")
+		return nil, fmt.Errorf("mock failure to parse address")
 	}
 	return netlink.ParseAddr(s)
 }
@@ -100,7 +100,7 @@ func (m *mockImpl) ParseIPNet(s string) (*net.IPNet, error) {
 
 func (m *mockImpl) RouteAdd(route *netlink.Route) error {
 	if m.simRouteAddFail {
-		return fmt.Errorf("Mock failure adding route")
+		return fmt.Errorf("mock failure adding route")
 	}
 	if m.simRouteExists {
 		return fmt.Errorf("file exists")
@@ -110,7 +110,7 @@ func (m *mockImpl) RouteAdd(route *netlink.Route) error {
 
 func (m *mockImpl) RouteDel(route *netlink.Route) error {
 	if m.simRouteDelFail {
-		return fmt.Errorf("Mock failure deleting route")
+		return fmt.Errorf("mock failure deleting route")
 	}
 	if m.simNoRoute {
 		return fmt.Errorf("no such process")
@@ -120,14 +120,14 @@ func (m *mockImpl) RouteDel(route *netlink.Route) error {
 
 func (m *mockImpl) LinkSetDown(link netlink.Link) error {
 	if m.simSetDownFail {
-		return fmt.Errorf("Mock failure set link down")
+		return fmt.Errorf("mock failure set link down")
 	}
 	return nil
 }
 
 func (m *mockImpl) LinkDel(link netlink.Link) error {
 	if m.simLinkDelFail {
-		return fmt.Errorf("Mock failure link delete")
+		return fmt.Errorf("mock failure link delete")
 	}
 	return nil
 }
@@ -155,7 +155,7 @@ func TestFailedLookupForAddAddressToLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
 	}
-	expectedErr := "Unable to find interface \"eth1\""
+	expectedErr := "unable to find interface \"eth1\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -167,7 +167,7 @@ func TestFailedParseForAddAddressToLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
 	}
-	expectedErr := "Malformed address \"2001::db8::10/64\""
+	expectedErr := "malformed address \"2001::db8::10/64\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -179,7 +179,7 @@ func TestFailedReplaceForAddAddressToLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
 	}
-	expectedErr := "Unable to add ip \"2001:db8::10/64\" to interface \"eth1\""
+	expectedErr := "unable to add ip \"2001:db8::10/64\" to interface \"eth1\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -224,7 +224,7 @@ func TestLookupFailedForRemoveAddressFromLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected that link does not exist")
 	}
-	expectedErr := "Unable to find interface \"eth3\""
+	expectedErr := "unable to find interface \"eth3\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -236,7 +236,7 @@ func TestParseFailedForRemoveAddressFromLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected that address is invalid")
 	}
-	expectedErr := "Malformed address to delete \"2001:db8::30::2/64\""
+	expectedErr := "malformed address to delete \"2001:db8::30::2/64\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -248,7 +248,7 @@ func TestNotFoundForRemoveAddressFromLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected failure - no match for address")
 	}
-	expectedErr := "Skipping - address \"2001:db8:50::2/64\" does not exist on interface \"eth2\""
+	expectedErr := "skipping - address \"2001:db8:50::2/64\" does not exist on interface \"eth2\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -268,7 +268,7 @@ func TestFailedDeleteForRemoveAddressFromLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected failure to remove address")
 	}
-	expectedErr := "Unable to delete ip \"2001:db8:30::2/64\" from interface \"eth3\""
+	expectedErr := "unable to delete ip \"2001:db8:30::2/64\" from interface \"eth3\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -303,7 +303,7 @@ func TestFailedNoLinkFindLinkIndexForCIDR(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected no links")
 	}
-	expectedErr := "No links on system"
+	expectedErr := "no links on system"
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -315,7 +315,7 @@ func TestFailedAddrNotFoundFindLinkIndexForCIDR(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to find address on any links")
 	}
-	expectedErr := "Unable to find interface for CIDR \"172.50.0.0/16\""
+	expectedErr := "unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}
@@ -346,7 +346,7 @@ func TestFailedParseCIDRBuildRoute(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail due to bad CIDR")
 	}
-	expected := "Unable to parse destination CIDR \"2001:db8::20::2/64\": invalid CIDR address: 2001:db8::20::2/64"
+	expected := "unable to parse destination CIDR \"2001:db8::20::2/64\": invalid CIDR address: 2001:db8::20::2/64"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -357,7 +357,7 @@ func TestFailedParseIPBuildRoute(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail due to bad GW IP")
 	}
-	expected := "Unable to parse gateway IP \"2001::db8:20::1\""
+	expected := "unable to parse gateway IP \"2001::db8:20::1\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -377,7 +377,7 @@ func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -389,7 +389,7 @@ func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
-	expected := "Unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
+	expected := "unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -401,7 +401,7 @@ func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index from support net CIDR")
 	}
-	expected := "Unable to find interface for CIDR \"172.50.0.0/16\""
+	expected := "unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -421,7 +421,7 @@ func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
 	}
-	expected := "Mock failure deleting route"
+	expected := "mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -445,7 +445,7 @@ func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index from support net CIDR")
 	}
-	expected := "Unable to find interface for CIDR \"172.50.0.0/16\""
+	expected := "unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -481,7 +481,7 @@ func TestFailedAddRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
-	expected := "Mock failure adding route"
+	expected := "mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -493,7 +493,7 @@ func TestFailedBadCIDRAddRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
-	expected := "Unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
+	expected := "unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -505,7 +505,7 @@ func TestFailedNotFoundAddRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index for link")
 	}
-	expected := "Unable to find interface \"eth3\""
+	expected := "unable to find interface \"eth3\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -537,7 +537,7 @@ func TestFailedDeleteRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
 	}
-	expected := "Mock failure deleting route"
+	expected := "mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -549,7 +549,7 @@ func TestFailedBadCIDRDeleteRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
 	}
-	expected := "Unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
+	expected := "unable to parse destination CIDR \"2001:db8::30::2/64\": invalid CIDR address: 2001:db8::30::2/64"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -561,7 +561,7 @@ func TestFailedNotFoundDeleteRouteUsingInterfaceName(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index for link")
 	}
-	expected := "Skipping - Unable to find interface \"eth3\" to delete route"
+	expected := "skipping - Unable to find interface \"eth3\" to delete route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -581,7 +581,7 @@ func TestFailedBringLinkDown(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to bring link down")
 	}
-	expected := "Unable to shut down interface \"br0\""
+	expected := "unable to shut down interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -593,7 +593,7 @@ func TestFailedNotFoundBringLinkDown(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find link to bring down")
 	}
-	expected := "Unable to find interface \"br0\""
+	expected := "unable to find interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -613,7 +613,7 @@ func TestFailedDeleteLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete link")
 	}
-	expected := "Unable to delete interface \"br0\""
+	expected := "unable to delete interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -625,7 +625,7 @@ func TestFailedNotFoundDeleteLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find link to delete")
 	}
-	expected := "Unable to find interface \"br0\""
+	expected := "unable to find interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}

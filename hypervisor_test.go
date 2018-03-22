@@ -32,28 +32,28 @@ func (mh *MockHypervisor) ResourceState(r string) string {
 
 func (mh *MockHypervisor) DeleteNetwork(string) error {
 	if mh.simDeleteNetFail {
-		return fmt.Errorf("Mock fail delete of network")
+		return fmt.Errorf("mock fail delete of network")
 	}
 	return nil
 }
 
 func (mh *MockHypervisor) DeleteContainer(name string) error {
 	if mh.simDeleteContainerFail {
-		return fmt.Errorf("Mock fail delete of container")
+		return fmt.Errorf("mock fail delete of container")
 	}
 	return nil
 }
 
 func (mh *MockHypervisor) RunContainer(name string, args []string) error {
 	if mh.simRunFailed {
-		return fmt.Errorf("Mock fail to run container")
+		return fmt.Errorf("mock fail to run container")
 	}
 	return nil
 }
 
 func (mh *MockHypervisor) GetInterfaceConfig(name, ifName string) (string, error) {
 	if mh.simInterfaceGetFail {
-		return "", fmt.Errorf("Mock fail getting interface info")
+		return "", fmt.Errorf("mock fail getting interface info")
 	}
 	ifConfig := `39139: eth0@if39140: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
     link/ether 02:42:ac:12:00:02 brd ff:ff:ff:ff:ff:ff
@@ -76,14 +76,14 @@ func (mh *MockHypervisor) GetInterfaceConfig(name, ifName string) (string, error
 
 func (mh *MockHypervisor) DeleteV4Address(container, ip string) error {
 	if mh.simDeleteInterfaceFail {
-		return fmt.Errorf("Mock fail delete of IP")
+		return fmt.Errorf("mock fail delete of IP")
 	}
 	return nil
 }
 
 func (mh *MockHypervisor) AddV6Route(container, dest, via string) error {
 	if mh.simAddRouteFail {
-		return fmt.Errorf("Mock fail add route")
+		return fmt.Errorf("mock fail add route")
 	}
 	if mh.simRouteExists {
 		return fmt.Errorf("exit status 2")
@@ -93,7 +93,7 @@ func (mh *MockHypervisor) AddV6Route(container, dest, via string) error {
 
 func (mh *MockHypervisor) CreateNetwork(name, cidr, v4cidr, gw string) error {
 	if mh.simCreateNetFail {
-		return fmt.Errorf("Mock fail create of network")
+		return fmt.Errorf("mock fail create of network")
 	}
 	return nil
 }

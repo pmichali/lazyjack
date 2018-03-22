@@ -30,7 +30,7 @@ func CreateKubeletDropInFile(c *Config) error {
 
 	err := os.MkdirAll(c.General.SystemdArea, 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create area for kubelet drop-in file: %s", err.Error())
+		return fmt.Errorf("unable to create area for kubelet drop-in file: %v", err)
 	}
 	dropIn := filepath.Join(c.General.SystemdArea, KubeletDropInFile)
 	err = ioutil.WriteFile(dropIn, contents.Bytes(), 0755)
@@ -220,7 +220,7 @@ func CreateRouteToNAT64ServerForDNS64Subnet(node *Node, c *Config) (err error) {
 	} else {
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
-			return fmt.Errorf("Unable to find node with NAT64 server configured")
+			return fmt.Errorf("unable to find node with NAT64 server configured")
 		}
 		err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 	}
@@ -240,7 +240,7 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 		dest := c.Support.CIDR
 		gw, ok := FindHostIPForNAT64(c)
 		if !ok {
-			return fmt.Errorf("Unable to find node with NAT64 server configured")
+			return fmt.Errorf("unable to find node with NAT64 server configured")
 		}
 		err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)
 		if err != nil {
@@ -323,7 +323,7 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 
 func CreateSupportNetwork(c *Config) (err error) {
 	if c.General.Hyper.ResourceState(SupportNetName) == ResourceExists {
-		err = fmt.Errorf("Skipping - support network already exists")
+		err = fmt.Errorf("skipping - support network already exists")
 		glog.V(1).Infof(err.Error())
 		return err
 	}
@@ -358,14 +358,14 @@ func BuildFileStructureForDNS(base string) error {
 func CreateConfigForDNS64(c *Config) error {
 	err := BuildFileStructureForDNS(c.General.WorkArea)
 	if err != nil {
-		return fmt.Errorf("Unable to create directory structure for DNS64: %s", err.Error())
+		return fmt.Errorf("unable to create directory structure for DNS64: %v", err)
 	}
 
 	contents := CreateNamedConfContents(c)
 	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
 	err = ioutil.WriteFile(conf, contents.Bytes(), 0755)
 	if err != nil {
-		return fmt.Errorf("Unable to create named.conf for DNS64: %s", err.Error())
+		return fmt.Errorf("unable to create named.conf for DNS64: %v", err)
 	}
 
 	glog.V(1).Infof("Created DNS64 config file")
@@ -386,14 +386,14 @@ func EnsureDNS64Server(c *Config) (err error) {
 
 	state := c.General.Hyper.ResourceState(DNS64Name)
 	if state == ResourceRunning {
-		err = fmt.Errorf("Skipping - DNS64 container (%s) already running", DNS64Name)
+		err = fmt.Errorf("skipping - DNS64 container (%s) already running", DNS64Name)
 		glog.V(1).Info(err.Error())
 		return err
 	}
 	if state == ResourceExists {
 		err = c.General.Hyper.DeleteContainer(DNS64Name)
 		if err != nil {
-			return fmt.Errorf("Unable to remove existing (non-running) DNS64 container: %v", err)
+			return fmt.Errorf("unable to remove existing (non-running) DNS64 container: %v", err)
 		}
 	}
 
@@ -422,7 +422,7 @@ func RemoveIPv4AddressOnDNS64Server(c *Config) (err error) {
 
 	v4Addr := ParseIPv4Address(ifConfig)
 	if v4Addr == "" {
-		return fmt.Errorf("Unable to find IPv4 address on eth0 of DNS64 container")
+		return fmt.Errorf("unable to find IPv4 address on eth0 of DNS64 container")
 	}
 	glog.V(4).Infof("Have IPv4 address (%s) for DNS64 container", v4Addr)
 
@@ -438,7 +438,7 @@ func AddRouteForDNS64Network(c *Config) error {
 	err := c.General.Hyper.AddV6Route(DNS64Name, c.DNS64.CIDR, c.NAT64.ServerIP)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 2") {
-			err = fmt.Errorf("Skipping - add route to %s via %s as already exists", c.DNS64.CIDR, c.NAT64.ServerIP)
+			err = fmt.Errorf("skipping - add route to %s via %s as already exists", c.DNS64.CIDR, c.NAT64.ServerIP)
 			glog.V(1).Infof(err.Error())
 		}
 		return err
@@ -451,17 +451,17 @@ func AddRouteForDNS64Network(c *Config) error {
 // NOTE: Will use existing container, if running
 func PrepareDNS64Server(c *Config) error {
 	err := EnsureDNS64Server(c)
-	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+	if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
 		return err
 	}
 
 	err = RemoveIPv4AddressOnDNS64Server(c)
-	if err != nil && !strings.HasPrefix(err.Error(), "Unable to find IPv4 address") {
+	if err != nil && !strings.HasPrefix(err.Error(), "unable to find IPv4 address") {
 		return err
 	}
 
 	err = AddRouteForDNS64Network(c)
-	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+	if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
 		return err
 	}
 	glog.Info("Prepared DNS64 container")
@@ -472,14 +472,14 @@ func EnsureNAT64Server(c *Config) (err error) {
 	glog.V(1).Info("Preparing NAT64")
 	state := c.General.Hyper.ResourceState(NAT64Name)
 	if state == ResourceRunning {
-		err = fmt.Errorf("Skipping - NAT64 container (%s) already running", NAT64Name)
+		err = fmt.Errorf("skipping - NAT64 container (%s) already running", NAT64Name)
 		glog.V(1).Info(err.Error())
 		return err
 	}
 	if state == ResourceExists {
 		err = c.General.Hyper.DeleteContainer(NAT64Name)
 		if err != nil {
-			return fmt.Errorf("Unable to remove existing (non-running) NAT64 container: %v", err)
+			return fmt.Errorf("unable to remove existing (non-running) NAT64 container: %v", err)
 		}
 	}
 
@@ -497,7 +497,7 @@ func EnsureRouteToNAT64(c *Config) error {
 	err := c.General.NetMgr.AddRouteUsingSupportNetInterface(c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP, c.Support.V4CIDR)
 	if err != nil {
 		if err.Error() == "file exists" {
-			err = fmt.Errorf("Skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
+			err = fmt.Errorf("skipping - add route to %s via %s as already exists", c.NAT64.V4MappingCIDR, c.NAT64.V4MappingIP)
 			glog.V(1).Infof(err.Error())
 		}
 		return err
@@ -510,12 +510,12 @@ func EnsureRouteToNAT64(c *Config) error {
 // NOTE: Will use existing container, if running
 func PrepareNAT64Server(c *Config) error {
 	err := EnsureNAT64Server(c)
-	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+	if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
 		return err
 	}
 
 	err = EnsureRouteToNAT64(c)
-	if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+	if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
 		return err
 	}
 	glog.Info("Prepared NAT64 container")
@@ -532,7 +532,7 @@ func Prepare(name string, c *Config) error {
 	if node.IsDNS64Server || node.IsNAT64Server {
 		// TODO: Verify that node has default IPv4 route
 		err = CreateSupportNetwork(c)
-		if err != nil && !strings.HasPrefix(err.Error(), "Skipping") {
+		if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
 			return err
 		}
 	}

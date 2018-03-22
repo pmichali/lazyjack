@@ -27,7 +27,7 @@ func RevertEntries(file, backup string) error {
 	glog.V(4).Infof("Cleaning %s file", file)
 	contents, err := GetFileContents(file)
 	if err != nil {
-		return fmt.Errorf("Unable to read file %s to revert: %s", file, err.Error())
+		return fmt.Errorf("unable to read file %s to revert: %v", file, err)
 	}
 	contents = RevertConfigInfo(contents, file)
 	err = SaveFileContents(contents, file, backup)
@@ -44,9 +44,9 @@ func RemoveDropInFile(c *Config) error {
 	err := os.Remove(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("No kubelet drop-in file to remove")
+			return fmt.Errorf("no kubelet drop-in file to remove")
 		}
-		return fmt.Errorf("Unable to remove kubelet drop-in file (%s): %s", file, err.Error())
+		return fmt.Errorf("unable to remove kubelet drop-in file (%s): %s", file, err.Error())
 	}
 	glog.V(4).Info("Removed kubelet drop-in file")
 	return nil
@@ -56,7 +56,7 @@ func RemoveManagementIP(node *Node, c *Config) error {
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
 	err := c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
-		return fmt.Errorf("Unable to remove IP from management interface: %s", err.Error())
+		return fmt.Errorf("unable to remove IP from management interface: %v", err)
 	}
 	glog.V(4).Info("Removed IP address from management interface")
 	return nil
@@ -86,13 +86,13 @@ func RemoveRouteForDNS64(node *Node, c *Config) error {
 	} else {
 		gw, ok = FindHostIPForNAT64(c)
 		if !ok {
-			err = fmt.Errorf("Unable to find node with NAT64 server")
+			err = fmt.Errorf("unable to find node with NAT64 server")
 		} else {
 			err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
+		return fmt.Errorf("unable to delete route to %s via %s: %v", dest, gw, err)
 	}
 	glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
 	return nil
@@ -107,12 +107,12 @@ func RemoveRouteForNAT64(node *Node, c *Config) error {
 	var err error
 	gw, ok = FindHostIPForNAT64(c)
 	if !ok {
-		err = fmt.Errorf("Unable to find node with NAT64 server configured")
+		err = fmt.Errorf("unable to find node with NAT64 server configured")
 	} else {
 		err = c.General.NetMgr.DeleteRouteUsingInterfaceName(dest, gw, node.Interface)
 	}
 	if err != nil {
-		return fmt.Errorf("Unable to delete route to %s via %s: %s", dest, gw, err.Error())
+		return fmt.Errorf("unable to delete route to %s via %s: %v", dest, gw, err)
 	}
 	glog.V(4).Infof("Deleted route to %s via %s", dest, gw)
 	return nil
@@ -166,11 +166,11 @@ func CleanupClusterNode(node *Node, c *Config) error {
 
 func RemoveContainer(name string, c *Config) error {
 	if c.General.Hyper.ResourceState(name) == ResourceNotPresent {
-		return fmt.Errorf("Skipping - No %q container exists", name)
+		return fmt.Errorf("skipping - No %q container exists", name)
 	}
 	err := c.General.Hyper.DeleteContainer(name)
 	if err != nil {
-		return fmt.Errorf("Unable to remove %q container: %s", name, err.Error())
+		return fmt.Errorf("unable to remove %q container: %v", name, err)
 	}
 	glog.V(4).Info("Removed %q container", name)
 	return nil
@@ -188,7 +188,7 @@ func CleanupDNS64Server(c *Config) error {
 	d := filepath.Join(c.General.WorkArea, DNS64BaseArea)
 	err = os.RemoveAll(d)
 	if err != nil {
-		msg := fmt.Sprintf("Unable to remove DNS64 file structure: %s", err.Error())
+		msg := fmt.Sprintf("unable to remove DNS64 file structure: %v", err)
 		all = append(all, msg)
 	} else {
 		glog.V(4).Info("Removed DNS64 file structure")
@@ -231,12 +231,12 @@ func CleanupNAT64Server(c *Config) error {
 
 func CleanupSupportNetwork(c *Config) error {
 	if c.General.Hyper.ResourceState(SupportNetName) == ResourceNotPresent {
-		return fmt.Errorf("Skipping - support network does not exists")
+		return fmt.Errorf("skipping - support network does not exists")
 	}
 
 	err := c.General.Hyper.DeleteNetwork(SupportNetName)
 	if err != nil {
-		return fmt.Errorf("Unable to remove support network: %s", err.Error())
+		return fmt.Errorf("unable to remove support network: %v", err)
 	}
 	glog.Info("Cleaned support network")
 	return nil

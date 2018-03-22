@@ -112,7 +112,7 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to remove route")
 	}
-	expected := "Unable to remove routes for bridge plugin: Unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: Mock failure deleting route"
+	expected := "unable to remove routes for bridge plugin: unable to delete pod network route for fd00:40:0:0:20::/80 to minion1: mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
@@ -171,7 +171,7 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to remove CNI config area")
 	}
-	expected := "Unable to remove CNI config file and area"
+	expected := "unable to remove CNI config file and area"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
@@ -191,7 +191,7 @@ func TestFailedLinkDownRemoveBridge(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail bringing link down")
 	}
-	expected := "Unable to shut down interface \"br0\""
+	expected := "unable to shut down interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
@@ -203,7 +203,7 @@ func TestFailedLinkDeleteRemoveBridge(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting link")
 	}
-	expected := "Unable to delete interface \"br0\""
+	expected := "unable to delete interface \"br0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}
@@ -215,7 +215,7 @@ func TestFailedAllRemoveBridge(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail bringing link down and deleting link")
 	}
-	expected := "Unable to bring link down (Unable to shut down interface \"br0\"), nor remove link (Unable to delete interface \"br0\")"
+	expected := "unable to bring link down (unable to shut down interface \"br0\"), nor remove link (unable to delete interface \"br0\")"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}

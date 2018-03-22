@@ -19,13 +19,13 @@ func TestValidateCommand(t *testing.T) {
 			name:        "Missing command",
 			command:     "",
 			expected:    "",
-			expectedStr: "Missing command",
+			expectedStr: "missing command",
 		},
 		{
 			name:        "Unknown command",
 			command:     "foo",
 			expected:    "",
-			expectedStr: "Unknown command \"foo\"",
+			expectedStr: "unknown command \"foo\"",
 		},
 		{
 			name:        "Valid command",
@@ -61,7 +61,7 @@ func TestValidateConfigFile(t *testing.T) {
 	if cf != nil {
 		t.Fatalf("Did not expect to have config, with empty filename")
 	}
-	if err.Error() != "Unable to open config file \"\": open : no such file or directory" {
+	if err.Error() != "unable to open config file \"\": open : no such file or directory" {
 		t.Fatalf("Expected error message, when trying to open empty filename")
 	}
 
@@ -70,7 +70,7 @@ func TestValidateConfigFile(t *testing.T) {
 	if cf != nil {
 		t.Fatalf("Did not expect to have config, with non-existing filename")
 	}
-	if err.Error() != "Unable to open config file \"non-existing-file\": open non-existing-file: no such file or directory" {
+	if err.Error() != "unable to open config file \"non-existing-file\": open non-existing-file: no such file or directory" {
 		t.Fatalf("Expected error message, when trying to open non-existing filename")
 	}
 
@@ -230,7 +230,7 @@ func TestNotUniqueIDs(t *testing.T) {
 		t.Fatalf("Expected failure with duplicate IDs")
 	}
 	// Order of node names is not guaranteed, so just check first part of msg
-	if !strings.HasPrefix(err.Error(), "Duplicate node ID 10 seen for node") {
+	if !strings.HasPrefix(err.Error(), "duplicate node ID 10 seen for node") {
 		t.Fatalf("Error message is not correct (%s)", err.Error())
 	}
 }
@@ -292,34 +292,34 @@ func TestOperatingModesOnNode(t *testing.T) {
 		{
 			name:        "No modes specified",
 			opMode:      "",
-			expectedStr: "Missing operating mode for \"test-node\"",
+			expectedStr: "missing operating mode for \"test-node\"",
 		},
 		{
 			name:        "No modes specified",
 			opMode:      "   ",
-			expectedStr: "Missing operating mode for \"test-node\"",
+			expectedStr: "missing operating mode for \"test-node\"",
 		},
 		{
 			name:        "Unknown mode",
 			opMode:      "monster",
-			expectedStr: "Invalid operating mode \"monster\" for \"test-node\"",
+			expectedStr: "invalid operating mode \"monster\" for \"test-node\"",
 		},
 		{
 			name:        "Master and minion",
 			opMode:      "minion master",
-			expectedStr: "Invalid combination of modes for \"test-node\"",
+			expectedStr: "invalid combination of modes for \"test-node\"",
 		},
 		// Don't currently support just DNS or just NAT
 		// TODO: Decide if should allow DNS only/NAT only
 		{
 			name:        "Missing DNS64",
 			opMode:      "nat64",
-			expectedStr: "Missing \"dns64\" mode for \"test-node\"",
+			expectedStr: "missing \"dns64\" mode for \"test-node\"",
 		},
 		{
 			name:        "Missing NAT64",
 			opMode:      "dns64",
-			expectedStr: "Missing \"nat64\" mode for \"test-node\"",
+			expectedStr: "missing \"nat64\" mode for \"test-node\"",
 		},
 	}
 
@@ -359,7 +359,7 @@ func TestDuplicateMasters(t *testing.T) {
 	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
 		t.Fatalf("Expected to see error, when configuration has duplicate master nodes")
-	} else if err.Error() != "Found multiple nodes with \"master\" operating mode" {
+	} else if err.Error() != "found multiple nodes with \"master\" operating mode" {
 		t.Fatalf("Duplicate master nodes error message wrong (%s)", err.Error())
 	}
 }
@@ -380,7 +380,7 @@ func TestNoMasterNode(t *testing.T) {
 	err := lazyjack.ValidateOpModesForAllNodes(c)
 	if err == nil {
 		t.Fatalf("Expected to see error, when configuration has no master node entry")
-	} else if err.Error() != "No master node configuration" {
+	} else if err.Error() != "no master node configuration" {
 		t.Fatalf("No master node error message wrong (%s)", err.Error())
 	}
 }
@@ -399,17 +399,17 @@ func TestBootstrapToken(t *testing.T) {
 		{
 			name:      "Missing/empty token",
 			input:     "",
-			errString: "Missing token in config file",
+			errString: "missing token in config file",
 		},
 		{
 			name:      "Wrong length",
 			input:     "7aee33.05f81856d78346b",
-			errString: "Invalid token length (22)",
+			errString: "invalid token length (22)",
 		},
 		{
 			name:      "Invalid value",
 			input:     "ABCDEF.hasbadcharacters",
-			errString: "Token is invalid \"ABCDEF.hasbadcharacters\"",
+			errString: "token is invalid \"ABCDEF.hasbadcharacters\"",
 		},
 	}
 	ignoreMissing := false
@@ -441,17 +441,17 @@ func TestTokenCertificateHash(t *testing.T) {
 		{
 			name:      "Missing/empty cert hash",
 			input:     "",
-			errString: "Missing token certificate hash in config file",
+			errString: "missing token certificate hash in config file",
 		},
 		{
 			name:      "Wrong length",
 			input:     "123456789012345678901234567890123456789012345678901234567890abc",
-			errString: "Invalid token certificate hash length (63)",
+			errString: "invalid token certificate hash length (63)",
 		},
 		{
 			name:      "Invalid value",
 			input:     "123456789012345678901234567890123456789012345678hasbadcharacters",
-			errString: "Token certificate hash is invalid \"123456789012345678901234567890123456789012345678hasbadcharacters\"",
+			errString: "token certificate hash is invalid \"123456789012345678901234567890123456789012345678hasbadcharacters\"",
 		},
 	}
 	ignoreMissing := false
@@ -552,22 +552,22 @@ func TestValidateServiceCIDR(t *testing.T) {
 		{
 			name:        "Missing mask",
 			cidr:        "fd00:30::",
-			expectedStr: "Unable to parse test CIDR (fd00:30::)",
+			expectedStr: "unable to parse test CIDR (fd00:30::)",
 		},
 		{
 			name:        "Missing mask value",
 			cidr:        "fd00:30::/",
-			expectedStr: "Unable to parse test CIDR (fd00:30::/)",
+			expectedStr: "unable to parse test CIDR (fd00:30::/)",
 		},
 		{
 			name:        "Bad IP",
 			cidr:        "fd00::30::/110",
-			expectedStr: "Unable to parse test CIDR (fd00::30::/110)",
+			expectedStr: "unable to parse test CIDR (fd00::30::/110)",
 		},
 		{
 			name:        "No CIDR",
 			cidr:        "",
-			expectedStr: "Config missing test CIDR",
+			expectedStr: "config missing test CIDR",
 		},
 	}
 	for _, tc := range testCases {
@@ -684,7 +684,7 @@ func TestNoConfigFileContents(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure, when no config file")
 	}
-	if err.Error() != "No configuration loaded" {
+	if err.Error() != "no configuration loaded" {
 		t.Fatalf("Expected failure due to no config file, instead, got %q", err.Error())
 	}
 }
@@ -745,7 +745,7 @@ func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid management CIDR")
 	}
-	expectedMsg := "Invalid management network CIDR: invalid CIDR address: fd00::20::/64"
+	expectedMsg := "invalid management network CIDR: invalid CIDR address: fd00::20::/64"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -768,7 +768,7 @@ func TestFailedSuportCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid support CIDR")
 	}
-	expectedMsg := "Invalid support network CIDR: invalid CIDR address: fd00:10::/6a4"
+	expectedMsg := "invalid support network CIDR: invalid CIDR address: fd00:10::/6a4"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -791,7 +791,7 @@ func TestFailedDNS64CalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid DNS64 CIDR")
 	}
-	expectedMsg := "Invalid DNS64 CIDR: invalid CIDR address: fd00:10:64:ff9b::96"
+	expectedMsg := "invalid DNS64 CIDR: invalid CIDR address: fd00:10:64:ff9b::96"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}

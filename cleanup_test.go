@@ -195,7 +195,7 @@ func TestFailingRevertEntries(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to NOT be able to restore entry - missing source")
 	}
-	expected := "Unable to read"
+	expected := "unable to read"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
@@ -212,7 +212,7 @@ func TestFailingRevertEntries(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to NOT be able to restore entry - read-only backup")
 	}
-	expected = "Unable to backup"
+	expected = "unable to backup"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
@@ -251,7 +251,7 @@ func TestFailedNoFileRemoveDropInFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected kubelet drop in file to be missing")
 	}
-	expected := "No kubelet drop-in file to remove"
+	expected := "no kubelet drop-in file to remove"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -288,7 +288,7 @@ func TestFailedRemoveDropInFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected kubelet drop in file removal to fail")
 	}
-	expected := "Unable to remove kubelet drop-in file"
+	expected := "unable to remove kubelet drop-in file"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected reason to start with %q, got %q", expected, err.Error())
 	}
@@ -336,7 +336,7 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove management IP")
 	}
-	expected := "Unable to remove IP from management interface: Unable to delete ip \"2001:db8:20::10/64\" from interface \"eth1\""
+	expected := "unable to remove IP from management interface: unable to delete ip \"2001:db8:20::10/64\" from interface \"eth1\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -428,7 +428,7 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
-	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:5::200: Mock failure deleting route"
+	expected := "unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:5::200: mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -499,7 +499,7 @@ func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to find NAT64 server")
 	}
-	expected := "Unable to delete route to 2001:db8:64:ff9b::/96 via : Unable to find node with NAT64 server"
+	expected := "unable to delete route to 2001:db8:64:ff9b::/96 via : unable to find node with NAT64 server"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -563,7 +563,7 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
-	expected := "Unable to delete route to 2001:db8::/64 via 2001:db8:20::10: Mock failure deleting route"
+	expected := "unable to delete route to 2001:db8::/64 via 2001:db8:20::10: mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -598,7 +598,7 @@ func TestFailedNoNATRemoveRouteForNAT64(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove route")
 	}
-	expected := "Unable to delete route to 2001:db8::/64 via : Unable to find node with NAT64 server configured"
+	expected := "unable to delete route to 2001:db8::/64 via : unable to find node with NAT64 server configured"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -732,12 +732,12 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 		t.Fatalf("FAILED: Expected 6 error strings, got %d", len(actual))
 	}
 	expected := []*regexp.Regexp{
-		regexp.MustCompile("No kubelet drop-in file to remove"),
-		regexp.MustCompile("Unable to remove IP from management interface: Unable to delete ip \"2001:db8:20::20/64\" from interface \"eth2\""),
-		regexp.MustCompile("Unable to read file .+/hosts to revert: Unable to read .+/hosts: open .+/hosts: no such file or directory"),
-		regexp.MustCompile("Unable to read file .+/resolv.conf to revert: Unable to read .+/resolv.conf: open .+/resolv.conf: no such file or directory"),
-		regexp.MustCompile("Unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:20::10: Mock failure deleting route"),
-		regexp.MustCompile("Unable to delete route to 2001:db8::/64 via 2001:db8:20::10: Mock failure deleting route"),
+		regexp.MustCompile("no kubelet drop-in file to remove"),
+		regexp.MustCompile("unable to remove IP from management interface: unable to delete ip \"2001:db8:20::20/64\" from interface \"eth2\""),
+		regexp.MustCompile("unable to read file .+/hosts to revert: unable to read .+/hosts: open .+/hosts: no such file or directory"),
+		regexp.MustCompile("unable to read file .+/resolv.conf to revert: unable to read .+/resolv.conf: open .+/resolv.conf: no such file or directory"),
+		regexp.MustCompile("unable to delete route to 2001:db8:64:ff9b::/96 via 2001:db8:20::10: mock failure deleting route"),
+		regexp.MustCompile("unable to delete route to 2001:db8::/64 via 2001:db8:20::10: mock failure deleting route"),
 	}
 	for i, _ := range actual {
 		if !expected[i].MatchString(actual[i]) {
@@ -768,7 +768,7 @@ func TestFailedRemoveContainer(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove container")
 	}
-	expected := "Unable to remove \"foo\" container: Mock fail delete of container"
+	expected := "unable to remove \"foo\" container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -784,7 +784,7 @@ func TestSkippedRemoveContainer(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to remove non-existing container")
 	}
-	expected := "Skipping - No \"foo\" container exists"
+	expected := "skipping - No \"foo\" container exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -820,7 +820,7 @@ func TestFailedDeleteCleanupDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete DNS64 server")
 	}
-	expected := "Unable to remove \"bind9\" container: Mock fail delete of container"
+	expected := "unable to remove \"bind9\" container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -843,7 +843,7 @@ func TestFailedRemoveAreaCleanupDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete work area")
 	}
-	expected := "Unable to remove DNS64 file structure"
+	expected := "unable to remove DNS64 file structure"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -889,7 +889,7 @@ func TestFailedDeleteCleanupNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete NAT64 server")
 	}
-	expected := "Unable to remove \"tayga\" container: Mock fail delete of container"
+	expected := "unable to remove \"tayga\" container: mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -914,7 +914,7 @@ func TestFailedDeleteRouteCleanupNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to be able to delete route for NAT64 server")
 	}
-	expected := "Mock failure deleting route"
+	expected := "mock failure deleting route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -943,7 +943,7 @@ func TestSkippedNonExistsCleanupSupportNetwork(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected support network to not exist")
 	}
-	expected := "Skipping - support network does not exists"
+	expected := "skipping - support network does not exists"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -960,7 +960,7 @@ func TestFailedCleanupSupportNetwork(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting support network")
 	}
-	expected := "Unable to remove support network: Mock fail delete of network"
+	expected := "unable to remove support network: mock fail delete of network"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -1115,10 +1115,10 @@ func TestFailedCleanup(t *testing.T) {
 		t.Fatalf("FAILED: Expected 4 error strings, got %d (%v)", len(actual), actual)
 	}
 	expected := []*regexp.Regexp{
-		regexp.MustCompile("No kubelet drop-in file to remove"),
-		regexp.MustCompile("Unable to remove \"bind9\" container: Mock fail delete of container"),
-		regexp.MustCompile("Unable to remove \"tayga\" container: Mock fail delete of container"),
-		regexp.MustCompile("Unable to remove support network: Mock fail delete of network"),
+		regexp.MustCompile("no kubelet drop-in file to remove"),
+		regexp.MustCompile("unable to remove \"bind9\" container: mock fail delete of container"),
+		regexp.MustCompile("unable to remove \"tayga\" container: mock fail delete of container"),
+		regexp.MustCompile("unable to remove support network: mock fail delete of network"),
 	}
 	for i, _ := range actual {
 		if !expected[i].MatchString(actual[i]) {
