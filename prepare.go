@@ -437,7 +437,7 @@ func AddRouteForDNS64Network(c *Config) error {
 	// Create a route in container to NAT64 server, for synthesized IPv6 addresses
 	err := c.General.Hyper.AddV6Route(DNS64Name, c.DNS64.CIDR, c.NAT64.ServerIP)
 	if err != nil {
-		if err.Error() == "file exists" {
+		if strings.Contains(err.Error(), "exit status 2") {
 			err = fmt.Errorf("Skipping - add route to %s via %s as already exists", c.DNS64.CIDR, c.NAT64.ServerIP)
 			glog.V(1).Infof(err.Error())
 		}
@@ -456,7 +456,7 @@ func PrepareDNS64Server(c *Config) error {
 	}
 
 	err = RemoveIPv4AddressOnDNS64Server(c)
-	if err != nil {
+	if err != nil && !strings.HasPrefix(err.Error(), "Unable to find IPv4 address") {
 		return err
 	}
 
@@ -470,7 +470,7 @@ func PrepareDNS64Server(c *Config) error {
 
 func EnsureNAT64Server(c *Config) (err error) {
 	glog.V(1).Info("Preparing NAT64")
-	state := c.General.Hyper.ResourceState(DNS64Name)
+	state := c.General.Hyper.ResourceState(NAT64Name)
 	if state == ResourceRunning {
 		err = fmt.Errorf("Skipping - NAT64 container (%s) already running", NAT64Name)
 		glog.V(1).Info(err.Error())
@@ -489,7 +489,7 @@ func EnsureNAT64Server(c *Config) (err error) {
 	if err != nil {
 		return err
 	}
-	glog.V(1).Info("NAT64 container (%s) started", NAT64Name)
+	glog.V(1).Infof("NAT64 container (%s) started", NAT64Name)
 	return nil
 }
 

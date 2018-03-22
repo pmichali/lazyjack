@@ -86,7 +86,7 @@ func (mh *MockHypervisor) AddV6Route(container, dest, via string) error {
 		return fmt.Errorf("Mock fail add route")
 	}
 	if mh.simRouteExists {
-		return fmt.Errorf("file exists")
+		return fmt.Errorf("exit status 2")
 	}
 	return nil
 }
