@@ -1132,14 +1132,14 @@ func TestNotExistsEnsureDNS64Server(t *testing.T) {
 	}
 }
 
-func TestNotRunningNotRunningEnsureDNS64Server(t *testing.T) {
+func TestExistsButNotRunningEnsureDNS64Server(t *testing.T) {
 	workArea := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{simNotExists: true},
+			Hyper:    &MockHypervisor{},
 			WorkArea: workArea,
 		},
 		DNS64: lazyjack.DNS64Config{
@@ -1161,7 +1161,7 @@ func TestSkipRunningEnsureDNS64Server(t *testing.T) {
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{},
+			Hyper:    &MockHypervisor{simRunning: true},
 			WorkArea: workArea,
 		},
 		DNS64: lazyjack.DNS64Config{
@@ -1174,7 +1174,7 @@ func TestSkipRunningEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected DNS64 container to already be running")
 	}
-	expected := "Skipping - DNS64 container (bind9) already exists"
+	expected := "Skipping - DNS64 container (bind9) already running"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1188,7 +1188,6 @@ func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
-				simNotRunning:          true,
 				simDeleteContainerFail: true,
 			},
 			WorkArea: workArea,
@@ -1203,7 +1202,7 @@ func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old DNS64 container")
 	}
-	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	expected := "Unable to remove existing (non-running) DNS64 container: Mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1254,8 +1253,7 @@ func TestFailedRunEnsureDNS64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
-				simNotRunning: true,
-				simRunFailed:  true,
+				simRunFailed: true,
 			},
 			WorkArea: workArea,
 		},
@@ -1510,10 +1508,10 @@ func TestNotExistsEnsureNAT64Server(t *testing.T) {
 	}
 }
 
-func TestNotRunningNotRunningEnsureNAT64Server(t *testing.T) {
+func TestExistsButNotRunningEnsureNAT64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper: &MockHypervisor{simNotRunning: true},
+			Hyper: &MockHypervisor{},
 		},
 	}
 	err := lazyjack.EnsureNAT64Server(c)
@@ -1525,14 +1523,14 @@ func TestNotRunningNotRunningEnsureNAT64Server(t *testing.T) {
 func TestSkipRunningEnsureNAT64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper: &MockHypervisor{},
+			Hyper: &MockHypervisor{simRunning: true},
 		},
 	}
 	err := lazyjack.EnsureNAT64Server(c)
 	if err == nil {
 		t.Fatalf("FAILED: Expected NAT64 container to already be running")
 	}
-	expected := "Skipping - NAT64 container (tayga) already exists"
+	expected := "Skipping - NAT64 container (tayga) already running"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1542,7 +1540,6 @@ func TestFailedRemoveOldEnsureNAT64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
-				simNotRunning:          true,
 				simDeleteContainerFail: true,
 			},
 		},
@@ -1551,7 +1548,7 @@ func TestFailedRemoveOldEnsureNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
 	}
-	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	expected := "Unable to remove existing (non-running) NAT64 container: Mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1561,8 +1558,7 @@ func TestFailedRunEnsureNAT64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
-				simNotRunning: true,
-				simRunFailed:  true,
+				simRunFailed: true,
 			},
 		},
 	}
@@ -1656,7 +1652,6 @@ func TestFailRunPrepareNAT64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
-				simNotExists:           true,
 				simDeleteContainerFail: true,
 			},
 			NetMgr: nm,
@@ -1671,7 +1666,7 @@ func TestFailRunPrepareNAT64Server(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting old NAT64 container")
 	}
-	expected := "Unable to ensure no old container exists: Mock fail delete of container"
+	expected := "Unable to remove existing (non-running) NAT64 container: Mock fail delete of container"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}

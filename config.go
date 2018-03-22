@@ -84,6 +84,10 @@ const (
 	DefaultPlugin  = "bridge"
 	SupportNetName = "support_net"
 
+	ResourceNotPresent = "not-present"
+	ResourceRunning    = "running"
+	ResourceExists     = "exists"
+
 	WorkArea           = "/tmp/lazyjack"
 	CertArea           = "certs"
 	KubernetesCertArea = "/etc/kubernetes/pki"

@@ -322,7 +322,7 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 }
 
 func CreateSupportNetwork(c *Config) (err error) {
-	if c.General.Hyper.ResourceExists(SupportNetName, false) {
+	if c.General.Hyper.ResourceState(SupportNetName) == ResourceExists {
 		err = fmt.Errorf("Skipping - support network already exists")
 		glog.V(1).Infof(err.Error())
 		return err
@@ -384,14 +384,17 @@ func ParseIPv4Address(ifConfig string) string {
 func EnsureDNS64Server(c *Config) (err error) {
 	glog.V(1).Info("Preparing DNS64")
 
-	if c.General.Hyper.ResourceExists(DNS64Name, true) {
-		err = fmt.Errorf("Skipping - DNS64 container (%s) already exists", DNS64Name)
+	state := c.General.Hyper.ResourceState(DNS64Name)
+	if state == ResourceRunning {
+		err = fmt.Errorf("Skipping - DNS64 container (%s) already running", DNS64Name)
 		glog.V(1).Info(err.Error())
 		return err
 	}
-	err = c.General.Hyper.DeleteContainer(DNS64Name)
-	if err != nil {
-		return fmt.Errorf("Unable to ensure no old container exists: %v", err)
+	if state == ResourceExists {
+		err = c.General.Hyper.DeleteContainer(DNS64Name)
+		if err != nil {
+			return fmt.Errorf("Unable to remove existing (non-running) DNS64 container: %v", err)
+		}
 	}
 
 	err = CreateConfigForDNS64(c)
@@ -467,14 +470,17 @@ func PrepareDNS64Server(c *Config) error {
 
 func EnsureNAT64Server(c *Config) (err error) {
 	glog.V(1).Info("Preparing NAT64")
-	if c.General.Hyper.ResourceExists(NAT64Name, true) {
-		err = fmt.Errorf("Skipping - NAT64 container (%s) already exists", NAT64Name)
+	state := c.General.Hyper.ResourceState(DNS64Name)
+	if state == ResourceRunning {
+		err = fmt.Errorf("Skipping - NAT64 container (%s) already running", NAT64Name)
 		glog.V(1).Info(err.Error())
 		return err
 	}
-	err = c.General.Hyper.DeleteContainer(NAT64Name)
-	if err != nil {
-		return fmt.Errorf("Unable to ensure no old container exists: %v", err)
+	if state == ResourceExists {
+		err = c.General.Hyper.DeleteContainer(NAT64Name)
+		if err != nil {
+			return fmt.Errorf("Unable to remove existing (non-running) NAT64 container: %v", err)
+		}
 	}
 
 	// Run NAT64 (tayga) container

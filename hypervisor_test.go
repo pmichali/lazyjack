@@ -1,12 +1,16 @@
 package lazyjack_test
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/pmichali/lazyjack"
+)
 
 type MockHypervisor struct {
 	simNotExists           bool
+	simRunning             bool
 	simDeleteNetFail       bool
 	simDeleteContainerFail bool
-	simNotRunning          bool
 	simRunFailed           bool
 	simInterfaceGetFail    bool
 	simNoV4Interface       bool
@@ -16,14 +20,14 @@ type MockHypervisor struct {
 	simCreateNetFail       bool
 }
 
-func (mh *MockHypervisor) ResourceExists(r string, requireRunning bool) bool {
+func (mh *MockHypervisor) ResourceState(r string) string {
 	if mh.simNotExists {
-		return false
+		return lazyjack.ResourceNotPresent
 	}
-	if mh.simNotRunning {
-		return false
+	if mh.simRunning {
+		return lazyjack.ResourceRunning
 	}
-	return true
+	return lazyjack.ResourceExists
 }
 
 func (mh *MockHypervisor) DeleteNetwork(string) error {

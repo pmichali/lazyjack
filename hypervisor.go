@@ -1,7 +1,7 @@
 package lazyjack
 
 type Hypervisor interface {
-	ResourceExists(string, bool) bool
+	ResourceState(r string) string
 	DeleteContainer(string) error
 	RunContainer(string, []string) error
 	CreateNetwork(string, string, string, string) error

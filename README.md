@@ -423,7 +423,6 @@ have been corruption of IPTABLES rules.
   * Go version.
   * Other tools?
 * Support Calico plugin. Cillium? Contiv? Others?
-* Mocking for UTs to provide better coverage (in progress).
 * Add per function documentation.
 
 ### Details to figure out

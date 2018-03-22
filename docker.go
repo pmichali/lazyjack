@@ -11,23 +11,18 @@ import (
 
 type Docker struct{}
 
-// ResourceExists inspects to see if the resource is known
-// to docker. Optionally, will check if running.
-func (d *Docker) ResourceExists(r string, requireRunning bool) bool {
+func (d *Docker) ResourceState(r string) string {
 	output, err := DoCommand(r, []string{"inspect", r})
 	if err != nil {
 		glog.V(4).Infof("No %q resource", r)
-		return false
+		return ResourceNotPresent
+	}
+	if strings.Contains(output, "\"Running\": true") {
+		glog.V(4).Infof("Resource %q is running", r)
+		return ResourceRunning
 	}
 	glog.V(4).Infof("Resource %q exists", r)
-	if requireRunning {
-		if !strings.Contains(output, "\"Running\": true") {
-			glog.V(4).Infof("Resource %q is NOT running", r)
-			return false
-		}
-		glog.V(4).Infof("Resource %q is running", r)
-	}
-	return true
+	return ResourceExists
 }
 
 func DoCommand(name string, args []string) (string, error) {

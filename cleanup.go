@@ -165,7 +165,7 @@ func CleanupClusterNode(node *Node, c *Config) error {
 }
 
 func RemoveContainer(name string, c *Config) error {
-	if !c.General.Hyper.ResourceExists(name, false) {
+	if c.General.Hyper.ResourceState(name) == ResourceNotPresent {
 		return fmt.Errorf("Skipping - No %q container exists", name)
 	}
 	err := c.General.Hyper.DeleteContainer(name)
@@ -230,7 +230,7 @@ func CleanupNAT64Server(c *Config) error {
 }
 
 func CleanupSupportNetwork(c *Config) error {
-	if !c.General.Hyper.ResourceExists(SupportNetName, false) {
+	if c.General.Hyper.ResourceState(SupportNetName) == ResourceNotPresent {
 		return fmt.Errorf("Skipping - support network does not exists")
 	}
 
