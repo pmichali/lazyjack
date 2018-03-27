@@ -12,6 +12,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+// ValidateCommand ensures that the command specified is supported.
 func ValidateCommand(command string) (string, error) {
 	if command == "" {
 		return "", fmt.Errorf("missing command")
@@ -25,6 +26,7 @@ func ValidateCommand(command string) (string, error) {
 	return "", fmt.Errorf("unknown command %q", command)
 }
 
+// ValidateHost ensures that the host is mentioned in the configuration.
 func ValidateHost(host string, config *Config) error {
 	_, ok := config.Topology[host]
 	if !ok {
@@ -33,6 +35,7 @@ func ValidateHost(host string, config *Config) error {
 	return nil
 }
 
+// ValidateUniqueIDs ensures that the node IDs are unique.
 func ValidateUniqueIDs(c *Config) error {
 	// Ensure no duplicate IDs
 	IDs := make(map[int]string)
@@ -127,6 +130,8 @@ func ValidateOpModesForAllNodes(c *Config) error {
 	return nil
 }
 
+// ValidateToken ensures that the token exists and seems valid. This
+// check is skipped during the init operation, where the token is created.
 func ValidateToken(token string, ignoreMissing bool) error {
 	if token == "" {
 		if ignoreMissing {
@@ -144,6 +149,9 @@ func ValidateToken(token string, ignoreMissing bool) error {
 	return fmt.Errorf("token is invalid %q", token)
 }
 
+// ValidateTokenCertHash ensures that the token certificate hash exists
+// and seems valid. This check is skipped during the init operation, where
+// the hash is created.
 func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 	if certHash == "" {
 		if ignoreMissing {
@@ -161,6 +169,7 @@ func ValidateTokenCertHash(certHash string, ignoreMissing bool) error {
 	return nil
 }
 
+// ValidateCIDR ensures that the CIDR is valid.
 func ValidateCIDR(which, cidr string) error {
 	if cidr == "" {
 		return fmt.Errorf("config missing %s CIDR", which)
@@ -193,6 +202,8 @@ func ValidatePlugin(c *Config) error {
 	return nil
 }
 
+// GetNetAndMask obtains the network part and mask from the provided
+// CIDR.
 func GetNetAndMask(input string) (string, int, error) {
 	_, cidr, err := net.ParseCIDR(input)
 	if err != nil {
@@ -240,6 +251,8 @@ func SetupBaseAreas(work, systemd, etc, cni, cert string, c *Config) {
 	c.General.K8sCertArea = cert
 }
 
+// SetupHandles configures pointers to the methods that will handle
+// network and hypervisor operations.
 func SetupHandles(c *Config) error {
 	handle, err := netlink.NewHandle()
 	if err != nil {
@@ -305,6 +318,7 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	return nil
 }
 
+// LoadConfig parses the stream provided into the configuration structure.
 func LoadConfig(cf io.ReadCloser) (*Config, error) {
 	defer cf.Close()
 
@@ -317,6 +331,7 @@ func LoadConfig(cf io.ReadCloser) (*Config, error) {
 	return config, nil
 }
 
+// OpenConfigFile opens the TAML file with configuration settings.
 func OpenConfigFile(configFile string) (io.ReadCloser, error) {
 	glog.V(1).Infof("Reading configuration file %q", configFile)
 

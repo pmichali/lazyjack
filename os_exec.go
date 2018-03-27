@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+// DoExecCommand performs an OS command, returning the output and
+// results of running the command. Used to invoke KubeAdm commands.
 func DoExecCommand(cmd string, args []string) (string, error) {
 	a := strings.Join(args, " ")
 	glog.V(4).Infof("Invoking: %s %s", cmd, a)

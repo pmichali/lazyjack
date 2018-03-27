@@ -1,5 +1,6 @@
 package lazyjack
 
+// Hypervisor interface indicates the general API for hypervisor operations.
 type Hypervisor interface {
 	ResourceState(r string) string
 	DeleteContainer(string) error

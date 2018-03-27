@@ -9,10 +9,13 @@ import (
 	"github.com/vishvananda/netlink/nl"
 )
 
+// NetMgr defines the structure for a netlink implementation for networking.
 type NetMgr struct {
 	Server NetLinkAPI
 }
 
+// AddAddressToLink method adds an IP address to a link, replacing the
+// existing address, if any.
 func (n NetMgr) AddAddressToLink(ip, intf string) error {
 	link, err := n.Server.LinkByName(intf)
 	if err != nil {
@@ -46,6 +49,7 @@ func (n NetMgr) AddressExistsOnLink(addr *netlink.Addr, link netlink.Link) bool 
 	return false
 }
 
+// RemoveAddressFromLink method removes an IP addres from an interface.
 func (n NetMgr) RemoveAddressFromLink(ip, intf string) error {
 	link, err := n.Server.LinkByName(intf)
 	if err != nil {
@@ -67,6 +71,8 @@ func (n NetMgr) RemoveAddressFromLink(ip, intf string) error {
 	return nil
 }
 
+// FindLinkIndexForCIDR method obtains the index of the interface that
+// contains the CIDR.
 func (n NetMgr) FindLinkIndexForCIDR(cidr string) (int, error) {
 	c, err := n.Server.ParseIPNet(cidr)
 	if err != nil {
@@ -88,6 +94,8 @@ func (n NetMgr) FindLinkIndexForCIDR(cidr string) (int, error) {
 	return 0, fmt.Errorf("unable to find interface for CIDR %q", cidr)
 }
 
+// BuildRoute creates a route to the destination, using the provided
+// gateway.
 func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	_, cidr, err := net.ParseCIDR(destStr)
 	if err != nil {
@@ -101,6 +109,8 @@ func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	return route, nil
 }
 
+// AddRouteUsingSupportNetInterface method adds a route to the destination
+// using the gateway and support network CIDR.
 func (n NetMgr) AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	glog.V(4).Infof("Adding route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := n.FindLinkIndexForCIDR(supportNetCIDR)
@@ -114,6 +124,8 @@ func (n NetMgr) AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string
 	return n.Server.RouteAdd(route)
 }
 
+// DeleteRouteUsingSupportNetInterface method removes the route to the
+// destination that uses the provided CIDR.
 func (n NetMgr) DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := n.FindLinkIndexForCIDR(supportNetCIDR)
@@ -127,6 +139,8 @@ func (n NetMgr) DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR str
 	return n.Server.RouteDel(route)
 }
 
+// AddRouteUsingInterfaceName method adds a route to the destination,
+// using the local interface.
 func (n NetMgr) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Adding route for %s via %s using interface %s", dest, gw, intf)
 	link, err := n.Server.LinkByName(intf)
@@ -141,6 +155,8 @@ func (n NetMgr) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	return n.Server.RouteAdd(route)
 }
 
+// DeleteRouteUsingInterfaceName method removes the route to the destination
+// that uses the local interface.
 func (n NetMgr) DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
 	link, err := n.Server.LinkByName(intf)
@@ -155,6 +171,7 @@ func (n NetMgr) DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	return n.Server.RouteDel(route)
 }
 
+// BringLinkDown method shuts down the link specified.
 func (n NetMgr) BringLinkDown(name string) error {
 	glog.V(4).Infof("Bringing down interface %q", name)
 	link, err := n.Server.LinkByName(name)
@@ -169,6 +186,7 @@ func (n NetMgr) BringLinkDown(name string) error {
 	return nil
 }
 
+// DeleteLink method deletes the link specified.
 func (n NetMgr) DeleteLink(name string) error {
 	glog.V(4).Infof("Deleting interface %q", name)
 	link, err := n.Server.LinkByName(name)
@@ -183,6 +201,7 @@ func (n NetMgr) DeleteLink(name string) error {
 	return nil
 }
 
+// RemoveBridge method removes the specified bridge.
 func (n NetMgr) RemoveBridge(name string) error {
 	glog.V(1).Infof("Removing bridge %q", name)
 	err := n.BringLinkDown(name)

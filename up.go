@@ -10,6 +10,8 @@ import (
 	"github.com/golang/glog"
 )
 
+// EnsureCNIAreaExists makes sure there is an area for the CNI plugin's
+// config files.
 func EnsureCNIAreaExists(area string) error {
 	err := os.RemoveAll(area)
 	if err != nil {
@@ -22,6 +24,8 @@ func EnsureCNIAreaExists(area string) error {
 	return nil
 }
 
+// SetupForPlugin prepares the CNI plugin by creating the config file
+// and static routes. Tailored for the bridge plugin currently.
 func SetupForPlugin(node *Node, c *Config) error {
 	glog.V(1).Infof("Setting up %s plugin", c.General.Plugin)
 	err := EnsureCNIAreaExists(c.General.CNIArea)
@@ -44,6 +48,8 @@ func SetupForPlugin(node *Node, c *Config) error {
 	return nil
 }
 
+// RestartKubeletService restarts the service, after changes have been
+// made to drop-in files.
 func RestartKubeletService() error {
 	_, err := DoExecCommand("systemctl", []string{"daemon-reload"})
 	if err != nil {
@@ -62,6 +68,9 @@ func RestartKubeletService() error {
 	return nil
 }
 
+// BuildKubeAdmCommand constructs the init command (For master), or join
+// command (for minions), using the previously created and stored token
+// and certificate hash.
 func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	var args []string
 	if n.IsMaster {
@@ -80,6 +89,8 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 	return args
 }
 
+// CopyFile copies configuration files to another area. Used for
+// placing needed certificates and keys that were created.
 func CopyFile(name, src, dst string) (err error) {
 	glog.V(4).Infof("Copying %s/%s to %s/%s", src, name, dst, name)
 	s, err := os.Open(filepath.Join(src, name))
@@ -110,6 +121,8 @@ func CopyFile(name, src, dst string) (err error) {
 	return
 }
 
+// PlaceCertificateAndKeyForCA copies generated files to the Kubernetes area
+// so that KubeAdm can reference the information.
 func PlaceCertificateAndKeyForCA(workBase, dst string) error {
 	glog.V(1).Infof("Copying certificate and key to Kuberentes area")
 	src := filepath.Join(workBase, CertArea)
@@ -128,6 +141,8 @@ func PlaceCertificateAndKeyForCA(workBase, dst string) error {
 	return err
 }
 
+// DetermineMasterNode identifies which node configuration entry is
+// for the master node.
 func DetermineMasterNode(c *Config) *Node {
 	for _, node := range c.Topology {
 		if node.IsMaster {
@@ -137,6 +152,8 @@ func DetermineMasterNode(c *Config) *Node {
 	return nil
 }
 
+// StartKubernetes uses the KubeAdm init or join command to start
+// up the cluster on the master or minion node, respectively.
 func StartKubernetes(n *Node, c *Config) error {
 	master := DetermineMasterNode(c)
 	if master == nil {
@@ -156,6 +173,9 @@ func StartKubernetes(n *Node, c *Config) error {
 	return nil
 }
 
+// BringUp performs the "up" actions to bring up a cluster. The (bridge)
+// plugin is set up, kubelet server restarted to pickup changes, the
+// cert/key placed (on master), and cluster init/join performed.
 func BringUp(name string, c *Config) {
 	node := c.Topology[name]
 	var asType string

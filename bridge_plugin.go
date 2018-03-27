@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 )
 
+// CreateBridgeCNIConfContents builds the CNI bridge plugin's config file
+// contents.
 func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 	header := `{
     "cniVersion": "0.3.0",
@@ -38,6 +40,8 @@ func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 	return contents
 }
 
+// CreateBridgeCNIConfigFile creates the bridge plugin's configuration
+// file in /etc/cni/net.d/ area.
 func CreateBridgeCNIConfigFile(node *Node, c *Config) error {
 	contents := CreateBridgeCNIConfContents(node, c)
 	filename := filepath.Join(c.General.CNIArea, CNIConfFile)
@@ -48,6 +52,8 @@ func CreateBridgeCNIConfigFile(node *Node, c *Config) error {
 	return nil
 }
 
+// DoRouteOpsOnNodes builds static routes between minion and master node
+// for the bridge plugin, so that pods can communicate across nodes.
 func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 	if node.IsMaster || node.IsMinion {
 		myID := node.ID
@@ -80,11 +86,15 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 	return nil
 }
 
+// CreateRoutesForPodNetwork establishes static routes between a node
+// and all other nodes as part of the "up" operation.
 func CreateRoutesForPodNetwork(node *Node, c *Config) error {
 	glog.V(4).Info("Creating routes for pod network")
 	return DoRouteOpsOnNodes(node, c, "add")
 }
 
+// RemoveRoutesForPodNetwork removes static routes between nodes, as
+// part of the "down" operation.
 func RemoveRoutesForPodNetwork(node *Node, c *Config) error {
 	glog.V(4).Info("Deleting routes for pod network")
 	return DoRouteOpsOnNodes(node, c, "delete")

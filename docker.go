@@ -9,8 +9,11 @@ import (
 	"github.com/golang/glog"
 )
 
+// Docker represents a concrete hypervisor implementation.
 type Docker struct{}
 
+// ResourceState method obtains the state of the resource, which can be
+// not present, existing, or running (for container resources).
 func (d *Docker) ResourceState(r string) string {
 	output, err := DoCommand(r, []string{"inspect", r})
 	if err != nil {
@@ -25,6 +28,8 @@ func (d *Docker) ResourceState(r string) string {
 	return ResourceExists
 }
 
+// DoCommand performs a docker command, collecting and returning output.
+// TODO: Perform in a separate go-routine with a timeout, and abort handling.
 func DoCommand(name string, args []string) (string, error) {
 	glog.V(4).Infof("Invoking: docker %s", strings.Join(args, " "))
 	cmd := args[0]
@@ -37,6 +42,7 @@ func DoCommand(name string, args []string) (string, error) {
 	return string(output), nil
 }
 
+// BuildRunArgsForDNS64 constructs docker command to start DNS64 container.
 func BuildRunArgsForDNS64(c *Config) []string {
 	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
 	volumeMap := fmt.Sprintf("%s:/etc/bind/named.conf", conf)
@@ -50,43 +56,55 @@ func BuildRunArgsForDNS64(c *Config) []string {
 	return cmdList
 }
 
+// BuildGetInterfaceArgs constructs arguments for obtaining list of IPs
+// for an interface.
 func BuildGetInterfaceArgs(container, ifName string) []string {
 	return []string{"exec", container, "ip", "addr", "list", ifName}
 }
 
+// GetInterfaceConfig performs docker command to obtain an interface's
+// IP addresses.
 func (d *Docker) GetInterfaceConfig(name, ifName string) (string, error) {
 	args := BuildGetInterfaceArgs(name, ifName)
 	return DoCommand("Get I/F config", args)
 }
 
+// BuildV4AddrDelArgs constructs arguments for deleting an IPv4 address
+// from and interface.
 func BuildV4AddrDelArgs(container, ip string) []string {
 	return []string{"exec", container, "ip", "addr", "del", ip, "dev", "eth0"}
 }
 
+// DeleteV4Address performs docker command to remove the IPv4 address from
+// the container's eth0 interface.
 func (d *Docker) DeleteV4Address(container, ip string) error {
 	args := BuildV4AddrDelArgs(container, ip)
 	_, err := DoCommand("Delete IPv4 addr", args)
 	return err
 }
 
+// BuildAddRouteArgs constructs arguments for adding an IPv6 route to container.
 func BuildAddRouteArgs(container, dest, via string) []string {
 	return []string{
 		"exec", container, "ip", "-6", "route", "add", dest, "via", via,
 	}
 }
 
+// AddV6Route performs docker command to add an IPv6 route.
 func (d *Docker) AddV6Route(container, dest, via string) error {
 	args := BuildAddRouteArgs(container, dest, via)
 	_, err := DoCommand("Add IPv6 route", args)
 	return err
 }
 
+// DeleteContainer performs docker command to remove a container.
 func (d *Docker) DeleteContainer(name string) error {
 	args := []string{"rm", "-f", name}
 	_, err := DoCommand(name, args)
 	return err
 }
 
+// BuildRunArgsForNAT64 constructs arguments to start a NAT64 container.
 func BuildRunArgsForNAT64(c *Config) []string {
 	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s", c.DNS64.CIDR)
 	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
@@ -102,11 +120,13 @@ func BuildRunArgsForNAT64(c *Config) []string {
 	return cmdList
 }
 
+// RunContainer performs docker command to run a container.
 func (d *Docker) RunContainer(name string, args []string) error {
 	_, err := DoCommand(name, args)
 	return err
 }
 
+// BuildCreateNetArgsFor constructs arguments to create a docker network.
 func BuildCreateNetArgsFor(name, cidr, v4cidr, gw string) []string {
 	args := []string{"network", "create", "--ipv6"}
 	subnetOption := fmt.Sprintf("--subnet=\"%s\"", cidr)
@@ -116,16 +136,19 @@ func BuildCreateNetArgsFor(name, cidr, v4cidr, gw string) []string {
 	return args
 }
 
+// CreateNetwork performs docker command to create a network.
 func (d *Docker) CreateNetwork(name, cidr, v4cidr, gw string) error {
 	args := BuildCreateNetArgsFor(name, cidr, v4cidr, gw)
 	_, err := DoCommand(name, args)
 	return err
 }
 
+// BuildDeleteNetArgsFor constructs arguments to delete a network.
 func BuildDeleteNetArgsFor(name string) []string {
 	return []string{"network", "rm", name}
 }
 
+// DeleteNetwork performs docker command to delete a network.
 func (d *Docker) DeleteNetwork(name string) error {
 	args := BuildDeleteNetArgsFor(name)
 	_, err := DoCommand("SupportNetName", args)

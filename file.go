@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 )
 
+// GetFileContents reads the contents of the specified file.
 func GetFileContents(file string) ([]byte, error) {
 	glog.V(4).Infof("Reading %s contents", file)
 	contents, err := ioutil.ReadFile(file)
@@ -17,6 +18,9 @@ func GetFileContents(file string) ([]byte, error) {
 	return contents, err
 }
 
+// SaveFileContents backs up the files (if it exists), and then
+// saves the updated contents to the file. If the save fails, it
+// attempts to restore the backup.
 func SaveFileContents(contents []byte, file, backup string) error {
 	glog.V(4).Infof("Saving updated %s", file)
 	_, err := os.Stat(file)
@@ -42,6 +46,7 @@ func SaveFileContents(contents []byte, file, backup string) error {
 	return nil
 }
 
+// RecoverFile attempts to restore the backup of a file to the original.
 func RecoverFile(file, backup, saveErr string) error {
 	err := os.Rename(backup, file)
 	if err != nil {

@@ -7,6 +7,8 @@ import (
 	"github.com/golang/glog"
 )
 
+// CleanupForPlugin removes all static routes from the node to other
+// nodes and removes the bridge CNI plugin config file to clean up the node.
 func CleanupForPlugin(node *Node, c *Config) error {
 	glog.V(1).Infof("Cleaning up for %s plugin", c.General.Plugin)
 
@@ -26,6 +28,8 @@ func CleanupForPlugin(node *Node, c *Config) error {
 	return nil
 }
 
+// StopKubernetes is called during the "down" operation, to bring down
+// the cluster.
 func StopKubernetes() error {
 	args := []string{"reset"}
 	output, err := DoExecCommand("kubeadm", args)
@@ -38,6 +42,9 @@ func StopKubernetes() error {
 	return nil
 }
 
+// TearDown performs the "down" operations of bringing down the cluster,
+// removing static routes, removing the Bridge plugin config file, and
+// removing the bridge.
 func TearDown(name string, c *Config) {
 	node := c.Topology[name]
 	var asType string

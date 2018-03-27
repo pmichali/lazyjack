@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 )
 
+// CreateCertKeyArea creates the area used to hold certificates used
+// by KubeAdm.
 func CreateCertKeyArea(base string) error {
 	area := filepath.Join(base, CertArea)
 	err := os.RemoveAll(area)
@@ -25,10 +27,12 @@ func CreateCertKeyArea(base string) error {
 	return nil
 }
 
+// BuildArgsForCAKey constructs arguments for command to build CA keys.
 func BuildArgsForCAKey(base string) []string {
 	return []string{"genrsa", "-out", filepath.Join(base, CertArea, "ca.key"), "2048"}
 }
 
+// CreateKeyForCA creates the CA key and stores it in a file.
 func CreateKeyForCA(base string) error {
 	glog.V(1).Infof("Creating CA key")
 	args := BuildArgsForCAKey(base)
@@ -40,6 +44,7 @@ func CreateKeyForCA(base string) error {
 	return nil
 }
 
+// BuildArgsForCACert constructs arguments for command to build CA certificate.
 func BuildArgsForCACert(mgmtPrefix string, id int, base string) []string {
 	return []string{
 		"req", "-x509", "-new", "-nodes",
@@ -50,6 +55,7 @@ func BuildArgsForCACert(mgmtPrefix string, id int, base string) []string {
 	}
 }
 
+// CreateCertificateForCA creates CA certificate and stores in a file.
 func CreateCertificateForCA(mgmtPrefix string, id int, base string) error {
 	glog.V(1).Infof("Creating CA certificate")
 	args := BuildArgsForCACert(mgmtPrefix, id, base)
@@ -61,6 +67,7 @@ func CreateCertificateForCA(mgmtPrefix string, id int, base string) error {
 	return nil
 }
 
+// BuildArgsForX509Cert builds args for command to create X.509 certificate.
 func BuildArgsForX509Cert(base string) []string {
 	return []string{
 		"x509", "-pubkey",
@@ -69,6 +76,7 @@ func BuildArgsForX509Cert(base string) []string {
 
 }
 
+// CreateX509CertForCA creates X.509 certificate and stores in a file.
 func CreateX509CertForCA(base string) error {
 	glog.V(4).Infof("Building CA X509 certificate")
 	args := BuildArgsForX509Cert(base)
@@ -84,6 +92,7 @@ func CreateX509CertForCA(base string) error {
 	return nil
 }
 
+// BuildArgsForRSA builds arguments for command to create RSA key.
 func BuildArgsForRSA(base string) []string {
 	return []string{
 		"rsa", "-pubin",
@@ -93,6 +102,7 @@ func BuildArgsForRSA(base string) []string {
 	}
 }
 
+// CreateRSAForCA creates RSA key and stores in a file.
 func CreateRSAForCA(base string) error {
 	glog.V(4).Infof("Building RSA key for CA")
 	args := BuildArgsForRSA(base)
@@ -104,6 +114,7 @@ func CreateRSAForCA(base string) error {
 	return nil
 }
 
+// BuildArgsForCADigest builds arguments for comamnd to create CA digest.
 func BuildArgsForCADigest(base string) []string {
 	return []string{
 		"dgst", "-sha256", "-hex",
@@ -111,6 +122,7 @@ func BuildArgsForCADigest(base string) []string {
 	}
 }
 
+// ExtractDigest parses the digest, extracting the hash and validating it.
 func ExtractDigest(input string) (string, error) {
 	glog.V(4).Infof("Parsing digest info %q", input)
 	parts := strings.Split(input, " ")
@@ -126,6 +138,7 @@ func ExtractDigest(input string) (string, error) {
 	return hash, nil
 }
 
+// CreateDigestForCA creates the CA digest and extracts the hash for it.
 func CreateDigestForCA(base string) (string, error) {
 	glog.V(4).Infof("Building digest for CA")
 	args := BuildArgsForCADigest(base)
@@ -136,6 +149,8 @@ func CreateDigestForCA(base string) (string, error) {
 	return ExtractDigest(output)
 }
 
+// CreateCertficateHashForCA creates X.509 certificate, RSA key, and digest,
+// and returns the hash.
 func CreateCertficateHashForCA(base string) (string, error) {
 	err := CreateX509CertForCA(base)
 	if err != nil {
@@ -148,6 +163,7 @@ func CreateCertficateHashForCA(base string) (string, error) {
 	return CreateDigestForCA(base)
 }
 
+// ExtractToken extracts the access token and validates it, returning the value.
 func ExtractToken(input string) (string, error) {
 	glog.V(4).Infof("Parsing token %q", input)
 	token := strings.TrimSpace(input)
@@ -159,6 +175,7 @@ func ExtractToken(input string) (string, error) {
 	return token, nil
 }
 
+// CreateToken creates the shared token and extracts the value.
 func CreateToken() (string, error) {
 	glog.V(4).Infof("Creating shared token")
 	args := []string{"token", "generate"}
@@ -202,6 +219,7 @@ func UpdateConfigYAMLContents(contents []byte, file, token, hash string) []byte 
 	return output.Bytes()
 }
 
+// OpenPermissions helper makes the directory read/write.
 func OpenPermissions(name string) error {
 	err := os.Chmod(name, 0777)
 	if err != nil {
@@ -210,6 +228,8 @@ func OpenPermissions(name string) error {
 	return nil
 }
 
+// UpdateConfigYAML adds the access token and hash to the configuration YAML
+// file, replacing any existing entries.
 func UpdateConfigYAML(file, token, hash string) error {
 	glog.V(1).Infof("Updating %s file", file)
 	contents, err := GetFileContents(file)
@@ -234,6 +254,10 @@ func UpdateConfigYAML(file, token, hash string) error {
 	return nil
 }
 
+// Initialize performs steps for the "init" operation, creating
+// certificate, key, token, and hash, and then updates the configuration
+// YAML file with the token and hash, so that KubeAdm operations can be
+// performed.
 func Initialize(name string, c *Config, configFile string) error {
 	node := c.Topology[name]
 

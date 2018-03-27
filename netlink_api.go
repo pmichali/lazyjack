@@ -6,7 +6,8 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// Interface representing external package
+// NetLinkAPI interface representing low level API to netlink package.
+// Used to allow mocking for testing.
 type NetLinkAPI interface {
 	AddrDel(netlink.Link, *netlink.Addr) error
 	AddrList(netlink.Link, int) ([]netlink.Addr, error)

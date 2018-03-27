@@ -10,6 +10,9 @@ import (
 	"github.com/golang/glog"
 )
 
+// RevertConfigInfo restores the contents of the provided config file,
+// by using the comment tags that describe the additions settings (to be
+// removed), and the previous settings (to be restored).
 func RevertConfigInfo(contents []byte, file string) []byte {
 	glog.V(4).Infof("Reverting %s", file)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
@@ -23,6 +26,9 @@ func RevertConfigInfo(contents []byte, file string) []byte {
 	return output.Bytes()
 }
 
+// RevertEntries obtains the config file contents, reverts the
+// settings, and then stores the updated file (with a backup
+// created, in case of issues).
 func RevertEntries(file, backup string) error {
 	glog.V(4).Infof("Cleaning %s file", file)
 	contents, err := GetFileContents(file)
@@ -38,6 +44,8 @@ func RevertEntries(file, backup string) error {
 	return nil
 }
 
+// RemoveDropInFile eliminates the kubelet drop-in file as part of
+// the cleanup operation.
 func RemoveDropInFile(c *Config) error {
 	glog.V(1).Info("Cleaning kubelet drop-in file")
 	file := filepath.Join(c.General.SystemdArea, KubeletDropInFile)
@@ -52,6 +60,8 @@ func RemoveDropInFile(c *Config) error {
 	return nil
 }
 
+// RemoveManagementIP removes the node's management IP off of the
+// interface configured as the management port.
 func RemoveManagementIP(node *Node, c *Config) error {
 	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
 	err := c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
@@ -62,6 +72,8 @@ func RemoveManagementIP(node *Node, c *Config) error {
 	return nil
 }
 
+// RevertEtcAreaFile will revert the entries in config files in
+// the /etc/ area as part of cleanup.
 func RevertEtcAreaFile(c *Config, file, backup string) error {
 	file = filepath.Join(c.General.EtcArea, file)
 	backup = filepath.Join(c.General.EtcArea, backup)
@@ -118,6 +130,10 @@ func RemoveRouteForNAT64(node *Node, c *Config) error {
 	return nil
 }
 
+// CleanupClusterNode removes the kubelet drop-in file, management port's
+// IP address, reverts /etc/hosts and /etc/resolv.conf, removes route for
+// DNS network, and removes route to NAT64 server (when the node is not
+// the node hosting the server).
 func CleanupClusterNode(node *Node, c *Config) error {
 	var all []string
 	glog.V(1).Info("Cleaning general settings")
@@ -164,6 +180,8 @@ func CleanupClusterNode(node *Node, c *Config) error {
 	return nil
 }
 
+// RemoveContainer checks to see if the container is present, and if so,
+// removes the container.
 func RemoveContainer(name string, c *Config) error {
 	if c.General.Hyper.ResourceState(name) == ResourceNotPresent {
 		return fmt.Errorf("skipping - No %q container exists", name)
@@ -176,6 +194,8 @@ func RemoveContainer(name string, c *Config) error {
 	return nil
 }
 
+// CleanupDNS64Server removes the DNS64 server and associated config
+// files. The IPv4 default route is not altered.
 func CleanupDNS64Server(c *Config) error {
 	glog.V(1).Info("Cleaning DNS64")
 	var all []string
@@ -203,6 +223,8 @@ func CleanupDNS64Server(c *Config) error {
 	return nil
 }
 
+// CleanupNAT64Server removes the NAT64 server and route to server.
+// The default IPv4 route is not touched.
 func CleanupNAT64Server(c *Config) error {
 	glog.V(1).Info("Cleaning NAT64")
 
@@ -229,6 +251,8 @@ func CleanupNAT64Server(c *Config) error {
 	return nil
 }
 
+// CleanupSupportNetwork checks to see if the support network exists,
+// and if so, removes the network.
 func CleanupSupportNetwork(c *Config) error {
 	if c.General.Hyper.ResourceState(SupportNetName) == ResourceNotPresent {
 		return fmt.Errorf("skipping - support network does not exists")
@@ -242,6 +266,8 @@ func CleanupSupportNetwork(c *Config) error {
 	return nil
 }
 
+// Cleanup is the top level method for the "clean" action, to remove/revert
+// config files, remove routes, and delete DNS64/NAT64 containers.
 func Cleanup(name string, c *Config) error {
 	node := c.Topology[name]
 	var all []string
