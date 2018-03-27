@@ -11,7 +11,7 @@ import (
 	"github.com/vishvananda/netlink/nl"
 )
 
-type mockImpl struct {
+type mockNetLink struct {
 	simLookupFail    bool
 	simParseAddrFail bool
 	simDeleteFail    bool
@@ -26,14 +26,14 @@ type mockImpl struct {
 	simLinkDelFail   bool
 }
 
-func (m *mockImpl) AddrDel(link netlink.Link, addr *netlink.Addr) error {
+func (m mockNetLink) AddrDel(link netlink.Link, addr *netlink.Addr) error {
 	if m.simDeleteFail {
 		return fmt.Errorf("mock failure to delete address")
 	}
 	return nil
 }
 
-func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, error) {
+func (m mockNetLink) AddrList(link netlink.Link, family int) ([]netlink.Addr, error) {
 	if m.simAddrListFail {
 		return []netlink.Addr{}, fmt.Errorf("mock failure to list addresses")
 	}
@@ -55,14 +55,14 @@ func (m *mockImpl) AddrList(link netlink.Link, family int) ([]netlink.Addr, erro
 	return addrList, nil
 }
 
-func (m *mockImpl) AddrReplace(link netlink.Link, addr *netlink.Addr) error {
+func (m mockNetLink) AddrReplace(link netlink.Link, addr *netlink.Addr) error {
 	if m.simReplaceFail {
 		return fmt.Errorf("mock failure to replace address")
 	}
 	return nil
 }
 
-func (m *mockImpl) LinkByName(name string) (netlink.Link, error) {
+func (m mockNetLink) LinkByName(name string) (netlink.Link, error) {
 	if m.simLookupFail {
 		return nil, fmt.Errorf("mock failure to find link")
 	}
@@ -74,7 +74,7 @@ func (m *mockImpl) LinkByName(name string) (netlink.Link, error) {
 	return link, nil
 }
 
-func (m *mockImpl) LinkList() ([]netlink.Link, error) {
+func (m mockNetLink) LinkList() ([]netlink.Link, error) {
 	if m.simLinkListFail {
 		return []netlink.Link{}, fmt.Errorf("mock failure to list addresses")
 	}
@@ -87,18 +87,18 @@ func (m *mockImpl) LinkList() ([]netlink.Link, error) {
 	return []netlink.Link{linkA, linkB}, nil
 }
 
-func (m *mockImpl) ParseAddr(s string) (*netlink.Addr, error) {
+func (m mockNetLink) ParseAddr(s string) (*netlink.Addr, error) {
 	if m.simParseAddrFail {
 		return nil, fmt.Errorf("mock failure to parse address")
 	}
 	return netlink.ParseAddr(s)
 }
 
-func (m *mockImpl) ParseIPNet(s string) (*net.IPNet, error) {
+func (m mockNetLink) ParseIPNet(s string) (*net.IPNet, error) {
 	return netlink.ParseIPNet(s)
 }
 
-func (m *mockImpl) RouteAdd(route *netlink.Route) error {
+func (m mockNetLink) RouteAdd(route *netlink.Route) error {
 	if m.simRouteAddFail {
 		return fmt.Errorf("mock failure adding route")
 	}
@@ -108,7 +108,7 @@ func (m *mockImpl) RouteAdd(route *netlink.Route) error {
 	return nil
 }
 
-func (m *mockImpl) RouteDel(route *netlink.Route) error {
+func (m mockNetLink) RouteDel(route *netlink.Route) error {
 	if m.simRouteDelFail {
 		return fmt.Errorf("mock failure deleting route")
 	}
@@ -118,21 +118,28 @@ func (m *mockImpl) RouteDel(route *netlink.Route) error {
 	return nil
 }
 
-func (m *mockImpl) LinkSetDown(link netlink.Link) error {
+func (m mockNetLink) LinkSetDown(link netlink.Link) error {
 	if m.simSetDownFail {
 		return fmt.Errorf("mock failure set link down")
 	}
 	return nil
 }
 
-func (m *mockImpl) LinkDel(link netlink.Link) error {
+func (m mockNetLink) LinkDel(link netlink.Link) error {
 	if m.simLinkDelFail {
 		return fmt.Errorf("mock failure link delete")
 	}
 	return nil
 }
 
-// START OF TESTS...
+func TestAddAddressToLink(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	err := nm.AddAddressToLink("2001:db8::10/64", "eth1")
+	if err != nil {
+		t.Fatalf("FAILED: Expected address add to pass: %s", err.Error())
+	}
+}
+
 func TestBuildNodeCIDR(t *testing.T) {
 	actual := lazyjack.BuildNodeCIDR("2001:db8:20::", 2, 64)
 	expected := "2001:db8:20::2/64"
@@ -141,16 +148,8 @@ func TestBuildNodeCIDR(t *testing.T) {
 	}
 }
 
-func TestAddAddressToLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
-	err := nm.AddAddressToLink("2001:db8::10/64", "eth1")
-	if err != nil {
-		t.Fatalf("FAILED: Expected address add to pass: %s", err.Error())
-	}
-}
-
 func TestFailedLookupForAddAddressToLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.AddAddressToLink("2001:db8::10", "eth1")
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
@@ -162,7 +161,7 @@ func TestFailedLookupForAddAddressToLink(t *testing.T) {
 }
 
 func TestFailedParseForAddAddressToLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simParseAddrFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simParseAddrFail: true}}
 	err := nm.AddAddressToLink("2001::db8::10/64", "eth1")
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
@@ -174,7 +173,7 @@ func TestFailedParseForAddAddressToLink(t *testing.T) {
 }
 
 func TestFailedReplaceForAddAddressToLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simReplaceFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simReplaceFail: true}}
 	err := nm.AddAddressToLink("2001:db8::10/64", "eth1")
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
@@ -186,7 +185,7 @@ func TestFailedReplaceForAddAddressToLink(t *testing.T) {
 }
 
 func TestFailureAddressExistsOnLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simAddrListFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simAddrListFail: true}}
 	dummyAddr, _ := netlink.ParseAddr("2001:db8:10::2/64")
 	dummyLink := &netlink.Device{}
 	dummyLink.Index = 10
@@ -197,7 +196,7 @@ func TestFailureAddressExistsOnLink(t *testing.T) {
 }
 
 func TestNotFoundAddressExistsOnLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	dummyAddr, _ := netlink.ParseAddr("2001:db8:50::2/64")
 	dummyLink := &netlink.Device{}
 	dummyLink.Index = 10
@@ -208,7 +207,7 @@ func TestNotFoundAddressExistsOnLink(t *testing.T) {
 }
 
 func TestAddressExistsOnLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	dummyAddr, _ := netlink.ParseAddr("2001:db8:30::2/64")
 	dummyLink := &netlink.Device{}
 	dummyLink.Index = 30
@@ -219,7 +218,7 @@ func TestAddressExistsOnLink(t *testing.T) {
 }
 
 func TestLookupFailedForRemoveAddressFromLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.RemoveAddressFromLink("2001:db8:30::2/64", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected that link does not exist")
@@ -231,7 +230,7 @@ func TestLookupFailedForRemoveAddressFromLink(t *testing.T) {
 }
 
 func TestParseFailedForRemoveAddressFromLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simParseAddrFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simParseAddrFail: true}}
 	err := nm.RemoveAddressFromLink("2001:db8::30::2/64", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected that address is invalid")
@@ -243,7 +242,7 @@ func TestParseFailedForRemoveAddressFromLink(t *testing.T) {
 }
 
 func TestNotFoundForRemoveAddressFromLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.RemoveAddressFromLink("2001:db8:50::2/64", "eth2")
 	if err == nil {
 		t.Fatalf("FAILED: Expected failure - no match for address")
@@ -255,7 +254,7 @@ func TestNotFoundForRemoveAddressFromLink(t *testing.T) {
 }
 
 func TestRemoveAddressFromLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.RemoveAddressFromLink("2001:db8:20::2/64", "eth2")
 	if err != nil {
 		t.Fatalf("FAILED: Expected success - matched address: %s", err.Error())
@@ -263,7 +262,7 @@ func TestRemoveAddressFromLink(t *testing.T) {
 }
 
 func TestFailedDeleteForRemoveAddressFromLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simDeleteFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simDeleteFail: true}}
 	err := nm.RemoveAddressFromLink("2001:db8:30::2/64", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected failure to remove address")
@@ -275,7 +274,7 @@ func TestFailedDeleteForRemoveAddressFromLink(t *testing.T) {
 }
 
 func TestFindLinkIndexForCIDR(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	idx, err := nm.FindLinkIndexForCIDR("172.30.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to find CIDR on link: %s", err.Error())
@@ -286,7 +285,7 @@ func TestFindLinkIndexForCIDR(t *testing.T) {
 }
 
 func TestFailedParseForFindLinkIndexForCIDR(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	_, err := nm.FindLinkIndexForCIDR("172.30.0.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail parsing of CIDR")
@@ -298,7 +297,7 @@ func TestFailedParseForFindLinkIndexForCIDR(t *testing.T) {
 }
 
 func TestFailedNoLinkFindLinkIndexForCIDR(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkListFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLinkListFail: true}}
 	_, err := nm.FindLinkIndexForCIDR("172.30.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected no links")
@@ -310,7 +309,7 @@ func TestFailedNoLinkFindLinkIndexForCIDR(t *testing.T) {
 }
 
 func TestFailedAddrNotFoundFindLinkIndexForCIDR(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	_, err := nm.FindLinkIndexForCIDR("172.50.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected not to find address on any links")
@@ -364,7 +363,7 @@ func TestFailedParseIPBuildRoute(t *testing.T) {
 }
 
 func TestAddRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to add route: %s", err.Error())
@@ -372,7 +371,7 @@ func TestAddRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
@@ -384,7 +383,7 @@ func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.AddRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
@@ -396,7 +395,7 @@ func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.50.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index from support net CIDR")
@@ -408,7 +407,7 @@ func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to delete route: %s", err.Error())
@@ -416,7 +415,7 @@ func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
@@ -428,7 +427,7 @@ func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedBadCIDRDeleteRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.30.40.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
@@ -440,7 +439,7 @@ func TestFailedBadCIDRDeleteRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.50.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index from support net CIDR")
@@ -468,7 +467,7 @@ func TestBuildGWIP(t *testing.T) {
 }
 
 func TestAddRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to add route: %s", err.Error())
@@ -476,7 +475,7 @@ func TestAddRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedAddRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
@@ -488,7 +487,7 @@ func TestFailedAddRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedBadCIDRAddRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.AddRouteUsingInterfaceName("2001:db8::30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
@@ -500,7 +499,7 @@ func TestFailedBadCIDRAddRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedNotFoundAddRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index for link")
@@ -512,7 +511,7 @@ func TestFailedNotFoundAddRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedExistsAddRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	err := nm.AddRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected failure due to existing route")
@@ -524,7 +523,7 @@ func TestFailedExistsAddRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestDeleteRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to delete route: %s", err.Error())
@@ -532,7 +531,7 @@ func TestDeleteRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedDeleteRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
@@ -544,7 +543,7 @@ func TestFailedDeleteRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedBadCIDRDeleteRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteRouteUsingInterfaceName("2001:db8::30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
@@ -556,7 +555,7 @@ func TestFailedBadCIDRDeleteRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestFailedNotFoundDeleteRouteUsingInterfaceName(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.DeleteRouteUsingInterfaceName("2001:db8:30::2/64", "2001:db8:30::1", "eth3")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find index for link")
@@ -568,7 +567,7 @@ func TestFailedNotFoundDeleteRouteUsingInterfaceName(t *testing.T) {
 }
 
 func TestBringLinkDown(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.BringLinkDown("br0")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to bring link down")
@@ -576,7 +575,7 @@ func TestBringLinkDown(t *testing.T) {
 }
 
 func TestFailedBringLinkDown(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true}}
 	err := nm.BringLinkDown("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to bring link down")
@@ -588,7 +587,7 @@ func TestFailedBringLinkDown(t *testing.T) {
 }
 
 func TestFailedNotFoundBringLinkDown(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.BringLinkDown("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find link to bring down")
@@ -600,7 +599,7 @@ func TestFailedNotFoundBringLinkDown(t *testing.T) {
 }
 
 func TestDeleteLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.DeleteLink("br0")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to delete link")
@@ -608,7 +607,7 @@ func TestDeleteLink(t *testing.T) {
 }
 
 func TestFailedDeleteLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLinkDelFail: true}}
 	err := nm.DeleteLink("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete link")
@@ -620,7 +619,7 @@ func TestFailedDeleteLink(t *testing.T) {
 }
 
 func TestFailedNotFoundDeleteLink(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLookupFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
 	err := nm.DeleteLink("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to find link to delete")

@@ -102,7 +102,7 @@ func TestFailedCreateBridgeCNIConfigFile(t *testing.T) {
 }
 
 func TestDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -141,7 +141,7 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 }
 
 func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -184,7 +184,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 }
 
 func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -227,7 +227,7 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 }
 
 func TestDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -266,7 +266,7 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 }
 
 func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -309,7 +309,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 }
 
 func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simNoRoute: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simNoRoute: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {

@@ -38,25 +38,6 @@ func StopKubernetes() error {
 	return nil
 }
 
-func (n *NetManager) RemoveBridge(name string) error {
-	glog.V(1).Infof("Removing bridge %q", name)
-	err := n.BringLinkDown(name)
-	if err == nil {
-		glog.Infof("Brought link %q down", name)
-	}
-	// Even if err, will try to delete bridge
-	err2 := n.DeleteLink(name)
-	if err2 == nil {
-		glog.Infof("Removed bridge %q", name)
-	}
-	if err == nil {
-		return err2
-	} else if err2 == nil {
-		return err
-	}
-	return fmt.Errorf("unable to bring link down (%v), nor remove link (%v)", err, err2)
-}
-
 func TearDown(name string, c *Config) {
 	node := c.Topology[name]
 	var asType string

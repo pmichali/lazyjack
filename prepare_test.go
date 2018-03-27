@@ -732,7 +732,7 @@ func TestFailingCreateKubeAdmConfFile(t *testing.T) {
 }
 
 func TestCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
@@ -752,7 +752,7 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
 }
 
 func TestCreateRouteToNAT64ServerForDNS64SubnetForNonNATServer(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -788,7 +788,7 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNonNATServer(t *testing.T) {
 }
 
 func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -828,7 +828,7 @@ func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
 }
 
 func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
@@ -852,7 +852,7 @@ func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *tes
 }
 
 func TestRouteExistsCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
@@ -872,7 +872,7 @@ func TestRouteExistsCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testin
 }
 
 func TestSkipNAT64ServerForCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 	}
@@ -890,7 +890,7 @@ func TestSkipNAT64ServerForCreateRouteToSupportNetworkForOtherNodes(t *testing.T
 }
 
 func TestCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -925,7 +925,7 @@ func TestCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 }
 
 func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -964,7 +964,7 @@ func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 }
 
 func TestFailedRouteExistsCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -999,7 +999,7 @@ func TestFailedRouteExistsCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 }
 
 func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -1065,7 +1065,7 @@ func TestPrepareClusterNode(t *testing.T) {
 		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
 	}
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -1573,7 +1573,7 @@ func TestFailedRunEnsureNAT64Server(t *testing.T) {
 }
 
 func TestEnsureRouteToNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
@@ -1589,7 +1589,7 @@ func TestEnsureRouteToNAT64(t *testing.T) {
 }
 
 func TestFailedEnsureRouteToNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
@@ -1609,7 +1609,7 @@ func TestFailedEnsureRouteToNAT64(t *testing.T) {
 }
 
 func TestSkippingEnsureRouteToNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
@@ -1629,7 +1629,7 @@ func TestSkippingEnsureRouteToNAT64(t *testing.T) {
 }
 
 func TestPrepareNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper:  &MockHypervisor{simNotExists: true},
@@ -1648,7 +1648,7 @@ func TestPrepareNAT64Server(t *testing.T) {
 }
 
 func TestFailRunPrepareNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
@@ -1673,7 +1673,7 @@ func TestFailRunPrepareNAT64Server(t *testing.T) {
 }
 
 func TestFailRouteAddPrepareNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper:  &MockHypervisor{},
@@ -1720,7 +1720,7 @@ func TestPrepare(t *testing.T) {
 	HelperSetupArea(systemdArea, t)
 	defer HelperCleanupArea(systemdArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -1844,7 +1844,7 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -1901,7 +1901,7 @@ func TestFailClusterNodePrepare(t *testing.T) {
 	HelperSetupArea(systemdArea, t)
 	defer HelperCleanupArea(systemdArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {

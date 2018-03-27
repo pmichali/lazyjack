@@ -56,16 +56,16 @@ type Node struct {
 }
 
 type GeneralSettings struct {
-	Plugin        string      `yaml:"plugin"`
-	Token         string      `yaml:"token"`           // Internal
-	TokenCertHash string      `yaml:"token-cert-hash"` // Internal
-	WorkArea      string      `yaml:"work-area"`
-	SystemdArea   string      // Internal
-	EtcArea       string      // Internal
-	CNIArea       string      // Internal
-	K8sCertArea   string      // Internal
-	NetMgr        *NetManager // Internal
-	Hyper         Hypervisor  // Internal
+	Plugin        string     `yaml:"plugin"`
+	Token         string     `yaml:"token"`           // Internal
+	TokenCertHash string     `yaml:"token-cert-hash"` // Internal
+	WorkArea      string     `yaml:"work-area"`
+	SystemdArea   string     // Internal
+	EtcArea       string     // Internal
+	CNIArea       string     // Internal
+	K8sCertArea   string     // Internal
+	NetMgr        Networker  // Internal
+	Hyper         Hypervisor // Internal
 }
 
 type Config struct {

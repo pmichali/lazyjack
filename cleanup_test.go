@@ -295,7 +295,7 @@ func TestFailedRemoveDropInFile(t *testing.T) {
 }
 
 func TestRemoveManagementIP(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
@@ -317,7 +317,7 @@ func TestRemoveManagementIP(t *testing.T) {
 }
 
 func TestFailedRemoveManagementIP(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simDeleteFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simDeleteFail: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
@@ -365,7 +365,7 @@ func TestRevertFile(t *testing.T) {
 }
 
 func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -398,7 +398,7 @@ func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 }
 
 func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -435,7 +435,7 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 }
 
 func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -468,7 +468,7 @@ func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
 }
 
 func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -506,7 +506,7 @@ func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
 }
 
 func TestRemoveRouteForNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -536,7 +536,7 @@ func TestRemoveRouteForNAT64(t *testing.T) {
 }
 
 func TestFailedRemoveRouteForNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -570,7 +570,7 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 }
 
 func TestFailedNoNATRemoveRouteForNAT64(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -631,7 +631,7 @@ func TestCleanupClusterNode(t *testing.T) {
 		t.Fatalf("ERROR: Unable to create drop-in file for test")
 	}
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -685,7 +685,7 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 	// Missing drop-in file
 
 	// Simulating address delete and all route deletes fail
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{
+	nm := lazyjack.NetMgr{Server: mockNetLink{
 		simRouteDelFail: true,
 		simDeleteFail:   true,
 	}}
@@ -850,7 +850,7 @@ func TestFailedRemoveAreaCleanupDNS64Server(t *testing.T) {
 }
 
 func TestCleanupNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper:  &MockHypervisor{},
@@ -871,7 +871,7 @@ func TestCleanupNAT64Server(t *testing.T) {
 }
 
 func TestFailedDeleteCleanupNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper:  &MockHypervisor{simDeleteContainerFail: true},
@@ -896,7 +896,7 @@ func TestFailedDeleteCleanupNAT64Server(t *testing.T) {
 }
 
 func TestFailedDeleteRouteCleanupNAT64Server(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper:  &MockHypervisor{},
@@ -996,7 +996,7 @@ func TestCleanup(t *testing.T) {
 		t.Fatalf("ERROR: Unable to create drop-in file for test")
 	}
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -1065,7 +1065,7 @@ func TestFailedCleanup(t *testing.T) {
 
 	// Missing drop-in file in system area to cause failure
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {

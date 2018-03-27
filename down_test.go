@@ -15,7 +15,7 @@ func TestCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -67,7 +67,7 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -123,7 +123,7 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -178,7 +178,7 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 }
 
 func TestRemoveBridge(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	err := nm.RemoveBridge("br0")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to remove bridge: %s", err.Error())
@@ -186,7 +186,7 @@ func TestRemoveBridge(t *testing.T) {
 }
 
 func TestFailedLinkDownRemoveBridge(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail bringing link down")
@@ -198,7 +198,7 @@ func TestFailedLinkDownRemoveBridge(t *testing.T) {
 }
 
 func TestFailedLinkDeleteRemoveBridge(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simLinkDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLinkDelFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail deleting link")
@@ -210,7 +210,7 @@ func TestFailedLinkDeleteRemoveBridge(t *testing.T) {
 }
 
 func TestFailedAllRemoveBridge(t *testing.T) {
-	nm := &lazyjack.NetManager{Mgr: &mockImpl{simSetDownFail: true, simLinkDelFail: true}}
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true, simLinkDelFail: true}}
 	err := nm.RemoveBridge("br0")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail bringing link down and deleting link")

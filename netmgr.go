@@ -9,20 +9,20 @@ import (
 	"github.com/vishvananda/netlink/nl"
 )
 
-func BuildNodeCIDR(prefix string, node, mask int) string {
-	return fmt.Sprintf("%s%d/%d", prefix, node, mask)
+type NetMgr struct {
+	Server NetLinkAPI
 }
 
-func (n *NetManager) AddAddressToLink(ip, intf string) error {
-	link, err := n.Mgr.LinkByName(intf)
+func (n NetMgr) AddAddressToLink(ip, intf string) error {
+	link, err := n.Server.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("unable to find interface %q", intf)
 	}
-	addr, err := n.Mgr.ParseAddr(ip)
+	addr, err := n.Server.ParseAddr(ip)
 	if err != nil {
 		return fmt.Errorf("malformed address %q", ip)
 	}
-	err = n.Mgr.AddrReplace(link, addr)
+	err = n.Server.AddrReplace(link, addr)
 	if err != nil {
 		return fmt.Errorf("unable to add ip %q to interface %q", ip, intf)
 	}
@@ -33,8 +33,8 @@ func (n *NetManager) AddAddressToLink(ip, intf string) error {
 // AddressExistsOnLink checks to see if the address to be deleted, is on
 // the link. If we are unable to obtain link info, we'll assume address
 // is not there, and will later skip trying to remove it.
-func (n *NetManager) AddressExistsOnLink(addr *netlink.Addr, link netlink.Link) bool {
-	addrs, err := n.Mgr.AddrList(link, nl.FAMILY_ALL)
+func (n NetMgr) AddressExistsOnLink(addr *netlink.Addr, link netlink.Link) bool {
+	addrs, err := n.Server.AddrList(link, nl.FAMILY_ALL)
 	if err != nil {
 		return false // Will assume it exists
 	}
@@ -46,12 +46,12 @@ func (n *NetManager) AddressExistsOnLink(addr *netlink.Addr, link netlink.Link) 
 	return false
 }
 
-func (n *NetManager) RemoveAddressFromLink(ip, intf string) error {
-	link, err := n.Mgr.LinkByName(intf)
+func (n NetMgr) RemoveAddressFromLink(ip, intf string) error {
+	link, err := n.Server.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("unable to find interface %q", intf)
 	}
-	addr, err := n.Mgr.ParseAddr(ip)
+	addr, err := n.Server.ParseAddr(ip)
 	if err != nil {
 		return fmt.Errorf("malformed address to delete %q", ip)
 	}
@@ -59,7 +59,7 @@ func (n *NetManager) RemoveAddressFromLink(ip, intf string) error {
 		return fmt.Errorf("skipping - address %q does not exist on interface %q", ip, intf)
 	}
 
-	err = n.Mgr.AddrDel(link, addr)
+	err = n.Server.AddrDel(link, addr)
 	if err != nil {
 		return fmt.Errorf("unable to delete ip %q from interface %q", ip, intf)
 	}
@@ -67,17 +67,17 @@ func (n *NetManager) RemoveAddressFromLink(ip, intf string) error {
 	return nil
 }
 
-func (n *NetManager) FindLinkIndexForCIDR(cidr string) (int, error) {
-	c, err := n.Mgr.ParseIPNet(cidr)
+func (n NetMgr) FindLinkIndexForCIDR(cidr string) (int, error) {
+	c, err := n.Server.ParseIPNet(cidr)
 	if err != nil {
 		return 0, err
 	}
-	links, _ := n.Mgr.LinkList()
+	links, _ := n.Server.LinkList()
 	if len(links) == 0 {
 		return 0, fmt.Errorf("no links on system")
 	}
 	for _, link := range links {
-		addrs, _ := n.Mgr.AddrList(link, nl.FAMILY_V4)
+		addrs, _ := n.Server.AddrList(link, nl.FAMILY_V4)
 		for _, addr := range addrs {
 			if c.Contains(addr.IP) {
 				glog.V(4).Infof("Using interface %s (%d) for CIDR %q", link.Attrs().Name, link.Attrs().Index, cidr)
@@ -101,7 +101,7 @@ func BuildRoute(destStr, gwStr string, index int) (*netlink.Route, error) {
 	return route, nil
 }
 
-func (n *NetManager) AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
+func (n NetMgr) AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	glog.V(4).Infof("Adding route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := n.FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
@@ -111,10 +111,10 @@ func (n *NetManager) AddRouteUsingSupportNetInterface(dest, gw, supportNetCIDR s
 	if err != nil {
 		return err
 	}
-	return n.Mgr.RouteAdd(route)
+	return n.Server.RouteAdd(route)
 }
 
-func (n *NetManager) DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
+func (n NetMgr) DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCIDR string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using CIDR %s for link determination", dest, gw, supportNetCIDR)
 	index, err := n.FindLinkIndexForCIDR(supportNetCIDR)
 	if err != nil {
@@ -124,20 +124,12 @@ func (n *NetManager) DeleteRouteUsingSupportNetInterface(dest, gw, supportNetCID
 	if err != nil {
 		return err
 	}
-	return n.Mgr.RouteDel(route)
+	return n.Server.RouteDel(route)
 }
 
-func BuildDestCIDR(prefix string, node, size int) string {
-	return fmt.Sprintf("%s:%d::/%d", prefix, node, size)
-}
-
-func BuildGWIP(prefix string, intfPart int) string {
-	return fmt.Sprintf("%s%d", prefix, intfPart)
-}
-
-func (n *NetManager) AddRouteUsingInterfaceName(dest, gw, intf string) error {
+func (n NetMgr) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Adding route for %s via %s using interface %s", dest, gw, intf)
-	link, err := n.Mgr.LinkByName(intf)
+	link, err := n.Server.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("unable to find interface %q", intf)
 	}
@@ -146,12 +138,12 @@ func (n *NetManager) AddRouteUsingInterfaceName(dest, gw, intf string) error {
 	if err != nil {
 		return err
 	}
-	return n.Mgr.RouteAdd(route)
+	return n.Server.RouteAdd(route)
 }
 
-func (n *NetManager) DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
+func (n NetMgr) DeleteRouteUsingInterfaceName(dest, gw, intf string) error {
 	glog.V(4).Infof("Deleting route for %s via %s using interface %s", dest, gw, intf)
-	link, err := n.Mgr.LinkByName(intf)
+	link, err := n.Server.LinkByName(intf)
 	if err != nil {
 		return fmt.Errorf("skipping - Unable to find interface %q to delete route", intf)
 	}
@@ -160,16 +152,16 @@ func (n *NetManager) DeleteRouteUsingInterfaceName(dest, gw, intf string) error 
 	if err != nil {
 		return err
 	}
-	return n.Mgr.RouteDel(route)
+	return n.Server.RouteDel(route)
 }
 
-func (n *NetManager) BringLinkDown(name string) error {
+func (n NetMgr) BringLinkDown(name string) error {
 	glog.V(4).Infof("Bringing down interface %q", name)
-	link, err := n.Mgr.LinkByName(name)
+	link, err := n.Server.LinkByName(name)
 	if err != nil {
 		return fmt.Errorf("unable to find interface %q", name)
 	}
-	err = n.Mgr.LinkSetDown(link)
+	err = n.Server.LinkSetDown(link)
 	if err != nil {
 		return fmt.Errorf("unable to shut down interface %q", name)
 	}
@@ -177,17 +169,35 @@ func (n *NetManager) BringLinkDown(name string) error {
 	return nil
 }
 
-func (n *NetManager) DeleteLink(name string) error {
+func (n NetMgr) DeleteLink(name string) error {
 	glog.V(4).Infof("Deleting interface %q", name)
-	link, err := n.Mgr.LinkByName(name)
+	link, err := n.Server.LinkByName(name)
 	if err != nil {
 		return fmt.Errorf("unable to find interface %q", name)
 	}
-	err = n.Mgr.LinkDel(link)
+	err = n.Server.LinkDel(link)
 	if err != nil {
 		return fmt.Errorf("unable to delete interface %q", name)
 	}
 	glog.V(1).Infof("Deleted interface %q", name)
 	return nil
+}
 
+func (n NetMgr) RemoveBridge(name string) error {
+	glog.V(1).Infof("Removing bridge %q", name)
+	err := n.BringLinkDown(name)
+	if err == nil {
+		glog.Infof("Brought link %q down", name)
+	}
+	// Even if err, will try to delete bridge
+	err2 := n.DeleteLink(name)
+	if err2 == nil {
+		glog.Infof("Removed bridge %q", name)
+	}
+	if err == nil {
+		return err2
+	} else if err2 == nil {
+		return err
+	}
+	return fmt.Errorf("unable to bring link down (%v), nor remove link (%v)", err, err2)
 }
