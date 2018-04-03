@@ -10,10 +10,48 @@ import (
 	"github.com/pmichali/lazyjack"
 )
 
+func TestBuildPodSubnetPrefix(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		prefix   string
+		size     int
+		node_id  int
+		expected string
+	}{
+		{
+			name:     "normal combination",
+			prefix:   "fd00:40:0:0:",
+			size:     80,
+			node_id:  10,
+			expected: "fd00:40:0:0:a::",
+		},
+		{
+			name:     "node in upper byte",
+			prefix:   "fd00:40:0:0:",
+			size:     72,
+			node_id:  10,
+			expected: "fd00:40:0:0:a00::",
+		},
+		{
+			name:     "node added to lower byte",
+			prefix:   "fd00:10:20:30:40",
+			size:     80,
+			node_id:  80,
+			expected: "fd00:10:20:30:4050::",
+		},
+	}
+	for _, tc := range testCases {
+		actual := lazyjack.BuildPodSubnetPrefix(tc.prefix, tc.size, tc.node_id)
+		if actual != tc.expected {
+			t.Errorf("[%s] Expected: %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
 func TestBridgeCNIConfigContents(t *testing.T) {
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 	}
@@ -32,8 +70,8 @@ func TestBridgeCNIConfigContents(t *testing.T) {
         "ranges": [
           [
             {
-              "subnet": "fd00:40:0:0:10::/80",
-              "gateway": "fd00:40:0:0:10::1"
+              "subnet": "fd00:40:0:0:a::/80",
+              "gateway": "fd00:40:0:0:a::1"
 	    }
           ]
         ]
@@ -53,7 +91,7 @@ func TestCreateBridgeCNIConfigFile(t *testing.T) {
 
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -82,7 +120,7 @@ func TestFailedCreateBridgeCNIConfigFile(t *testing.T) {
 
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -117,7 +155,7 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -156,7 +194,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -199,7 +237,7 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -242,7 +280,7 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -281,7 +319,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{
@@ -324,7 +362,7 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{

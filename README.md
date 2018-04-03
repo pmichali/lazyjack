@@ -118,8 +118,7 @@ support_net:
 mgmt_net:
     cidr: "fd00:20::/64"
 pod_net:
-    prefix: "fd00:40:0:0"
-    size: 80
+    cidr: "fd00:40::/72"
 service_net:
     cidr: "fd00:30::/110"
 nat64:
@@ -194,15 +193,17 @@ section.
 
 ### Pod Network (pod_net)
 A second network that is used by Kubernetes for the pods. This network should be
-distint from the support and management networks. Here, we specify all but 16 bits
-of the subnet address. During provisioning, Lazyjack will add the node ID to the
-network prefix to form distinct subnet on each node.
+distint from the support and management networks. Here, we specify the CIDR for
+the pod cluster. Inside this network, each node will carve out a subnet, using the
+node "ID" as the last part of the address.
 ```
-prefix: "fd00:40:0:0"
-    size: 80
+    cidr: "fd00:40::/72"
 ```
 In the example configuration, we would have a pod subnet `fd00:40:0:0:2::/80`
-on node `my-master` and `fd00:40:0:0:3::/80` on node `a-minion`.
+on node `my-master` and `fd00:40:0:0:3::/80` on node `a-minion`. If you want to
+specify the prefix and size, the prefix must be fully qualified (e.g. in this
+case `fd00:40:0:0:`) and the size must be the size allocated to the node (e.g.
+80).
 
 ### Service Network (service_net)
 Specify the network CIDR to be used for service pods. This should be a smaller
@@ -423,7 +424,6 @@ have been corruption of IPTABLES rules.
   * Go version.
   * Other tools?
 * Support Calico plugin. Cillium? Contiv? Others?
-* Add per function documentation.
 
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
@@ -440,3 +440,4 @@ have been corruption of IPTABLES rules.
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
 * Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.
+* Using separate go routine for kubeadm commands, and provide a (configurable) timeout.

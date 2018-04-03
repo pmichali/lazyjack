@@ -451,8 +451,8 @@ func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
 }
 
 func TestBuildDestCIDR(t *testing.T) {
-	actual := lazyjack.BuildDestCIDR("2001:db8", 20, 80)
-	expected := "2001:db8:20::/80"
+	actual := lazyjack.BuildDestCIDR("2001:db8:0:0:", 2, 80)
+	expected := "2001:db8:0:0:2::/80"
 	if actual != expected {
 		t.Fatalf("FAILED: Destination CIDR create. Expected %q, got %q", expected, actual)
 	}

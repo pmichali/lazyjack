@@ -484,7 +484,7 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 		General: lazyjack.GeneralSettings{

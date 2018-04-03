@@ -21,8 +21,7 @@ support_net:
 mgmt_net:
     cidr: "fd00:20::/64"
 pod_net:
-    prefix: "fd00:40:0:0"
-    size: 80
+    cidr: "fd00:40::/72"
 service_net:
     cidr: "fd00:30::/110"
 nat64:

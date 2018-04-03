@@ -26,8 +26,9 @@ type ManagementNetwork struct {
 
 // PodNetwork defines information for the the pod network.
 type PodNetwork struct {
-	Prefix string `yaml:"prefix"`
-	Size   int    `yaml:"size"`
+	CIDR   string `yaml:"cidr"`
+	Prefix string `yaml:"prefix"`  // For backward compatibility
+	Size   int    `yaml:"size"`  // For backward compatibility
 }
 
 // ServiceNetwork defines information for the service network.

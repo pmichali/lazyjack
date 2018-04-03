@@ -10,8 +10,19 @@ import (
 	"io/ioutil"
 )
 
+// BuildPodSubnetPrefix will create a pod network prefix, using the cluster
+// prefix and node ID. If the subnet size is not a multiple of 16, then the
+// node ID will be placed in the upper byte of the last part of the prefix.
+func BuildPodSubnetPrefix(prefix string, netSize, nodeID int) string {
+	if (netSize % 16) != 0 {
+		nodeID *= 256 // shift to upper byte
+	}
+	return fmt.Sprintf("%s%x::", prefix, nodeID)
+}
+
 // CreateBridgeCNIConfContents builds the CNI bridge plugin's config file
-// contents.
+// contents. The subnet will be eight bits smaller than the pod cluster
+// network size.
 func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 	header := `{
     "cniVersion": "0.3.0",
@@ -34,8 +45,9 @@ func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 }
 `
 	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "              \"subnet\": \"%s:%d::/%d\",\n", c.Pod.Prefix, node.ID, c.Pod.Size)
-	fmt.Fprintf(contents, "              \"gateway\": \"%s:%d::1\"\n", c.Pod.Prefix, node.ID)
+	prefix := BuildPodSubnetPrefix(c.Pod.Prefix, c.Pod.Size, node.ID)
+	fmt.Fprintf(contents, "              \"subnet\": \"%s/%d\",\n", prefix, c.Pod.Size)
+	fmt.Fprintf(contents, "              \"gateway\": \"%s1\"\n", prefix)
 	fmt.Fprintf(contents, trailer)
 	return contents
 }

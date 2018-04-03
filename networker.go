@@ -22,7 +22,7 @@ func BuildNodeCIDR(prefix string, node, mask int) string {
 
 // BuildDestCIDR helper constructs an IPv6 CIDR.
 func BuildDestCIDR(prefix string, node, size int) string {
-	return fmt.Sprintf("%s:%d::/%d", prefix, node, size)
+	return fmt.Sprintf("%s%d::/%d", prefix, node, size)
 }
 
 // BuildGWIP helper constructs a gateway IP using the provided interface.

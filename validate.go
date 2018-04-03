@@ -214,11 +214,50 @@ func GetNetAndMask(input string) (string, int, error) {
 	return net, mask, nil
 }
 
+// MakePrefixFromNetwork takes the network part of the CDIR, and
+// builds an expanded prefix, so that a node ID can be added later
+// to form the network part of the pod network. This means expanding
+// "::" as needed, so that the prefix is fully qualified (and a ::
+// can be added to the end later without causing a syntax error).
+// This is done by determining how many 16 bit parts are needed and
+// padding each missing part with a zero.
+//
+// Also, if the network includes a final part that is 16 bits and
+// only the upper eight bits are part of the prefix, then the lower
+// byte will be removed so that the node ID can be placed there later.
+//
+// Lastly, if we don't have this condition of the prefix containing
+// the upper eight bits of the address, we'll place a colon on the
+// end.
+//
+// Examples:
+//   fd00:40:: (72)            -> fd00:40:0:0:
+//   fd00:10:20:30:4000:: (72) -> fd00:10:20:30:40
+//   fd00:10:20:30:: (64)      -> fd00:10:20:30:
+//
+func MakePrefixFromNetwork(network string, netSize int) string {
+	minPartsNeeded := netSize / 16
+	parts := strings.Split(strings.TrimRight(network, ":"), ":")
+	haveParts := len(parts)
+
+	if haveParts > minPartsNeeded {
+		parts[minPartsNeeded] = strings.TrimSuffix(parts[minPartsNeeded], "00")
+	}
+	for haveParts < minPartsNeeded {
+		parts = append(parts, "0")
+		haveParts++
+	}
+	prefix := strings.Join(parts, ":")
+	if haveParts == minPartsNeeded {
+		prefix += ":"
+	}
+	return prefix
+}
+
 // CalculateDerivedFields splits up CIDRs into prefix and size
 // for use later.
 // TODO: Validate no overlaps in CIDRs
 func CalculateDerivedFields(c *Config) error {
-	// Calculate derived fields
 	var err error
 	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
 	if err != nil {
@@ -228,6 +267,23 @@ func CalculateDerivedFields(c *Config) error {
 	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
 	if err != nil {
 		return fmt.Errorf("invalid support network CIDR: %v", err)
+	}
+
+	if c.Pod.CIDR != "" {
+		network, netSize, err := GetNetAndMask(c.Pod.CIDR)
+		if err != nil {
+			return fmt.Errorf("invalid pod network CIDR: %v", err)
+		}
+		c.Pod.Size = netSize + 8 // Each node will get a subnet from this network
+		c.Pod.Prefix = MakePrefixFromNetwork(network, netSize)
+	} else if c.Pod.Prefix == "" || c.Pod.Size == 0 {
+		return fmt.Errorf("missing pod network CIDR")
+	} else {
+		// Legacy mode - will just change so that prefix has colon at end
+		// NOTE: prefixes were always a multiple of 16
+		if !strings.HasSuffix(c.Pod.Prefix, ":") {
+			c.Pod.Prefix += ":"
+		}
 	}
 
 	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)

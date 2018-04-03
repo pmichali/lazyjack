@@ -90,7 +90,7 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 			Prefix: "fd00:100::",
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
+			Prefix: "fd00:40:0:0:",
 			Size:   80,
 		},
 	}
