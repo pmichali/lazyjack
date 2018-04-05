@@ -29,7 +29,7 @@ func SaveFileContents(contents []byte, file, backup string) error {
 		exists = false
 	}
 	if exists {
-		err := os.Rename(file, backup)
+		err = os.Rename(file, backup)
 		if err != nil {
 			return fmt.Errorf("unable to backup existing file %s to %s: %v", file, backup, err)
 		}

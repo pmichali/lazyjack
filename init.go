@@ -63,7 +63,7 @@ func CreateCertificateForCA(mgmtPrefix string, id int, base string) error {
 	if err != nil {
 		return fmt.Errorf("unable to create CA certificate: %v", err)
 	}
-	glog.Infof("Created CA certificate")
+	glog.Info("Created CA certificate")
 	return nil
 }
 

@@ -168,7 +168,7 @@ func StartKubernetes(n *Node, c *Config) error {
 		glog.Fatalf("unable to %s Kubernetes cluster: %v", args[0], err)
 		os.Exit(1)
 	}
-	glog.V(1).Info("Kubernetes %s output: %s", args[0], output)
+	glog.Infof("Kubernetes %s output: %s", args[0], output)
 	glog.Infof("Kubernetes %s successful", args[0])
 	return nil
 }
