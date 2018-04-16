@@ -475,12 +475,12 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 			"minion1": {
 				IsMinion: true,
 				Name:     "minion1",
-				ID:       20,
+				ID:       0x20,
 			},
 			"master": {
 				IsMaster: true,
 				Name:     "master",
-				ID:       10,
+				ID:       0x10,
 			},
 		},
 		Pod: lazyjack.PodNetwork{
@@ -500,7 +500,7 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 		Name:      "master",
 		Interface: "eth1",
 		IsMaster:  true,
-		ID:        10,
+		ID:        0x10,
 	}
 
 	err := lazyjack.SetupForPlugin(n, c)

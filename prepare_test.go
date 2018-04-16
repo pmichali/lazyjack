@@ -593,15 +593,15 @@ func TestFindHostIPForNAT64(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: false,
 			},
 			"minion1": {
-				ID:            20,
+				ID:            0x20,
 				IsNAT64Server: true,
 			},
 			"minion2": {
-				ID:            30,
+				ID:            0x30,
 				IsNAT64Server: false,
 			},
 		},
@@ -619,7 +619,7 @@ func TestFindHostIPForNAT64(t *testing.T) {
 	bad := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: false,
 			},
 		},
@@ -736,12 +736,12 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 	}
 	masterNode := &lazyjack.Node{
 		Name:          "master",
-		ID:            10,
+		ID:            0x10,
 		IsNAT64Server: true,
 		IsDNS64Server: true,
 	}
@@ -832,7 +832,7 @@ func TestFailedRouteAddCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *tes
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 	}
 	masterNode := &lazyjack.Node{
@@ -856,7 +856,7 @@ func TestRouteExistsCreateRouteToNAT64ServerForDNS64SubnetForNATServer(t *testin
 	c := &lazyjack.Config{
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 	}
 	masterNode := &lazyjack.Node{
@@ -1576,7 +1576,7 @@ func TestEnsureRouteToNAT64(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1592,7 +1592,7 @@ func TestFailedEnsureRouteToNAT64(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1612,7 +1612,7 @@ func TestSkippingEnsureRouteToNAT64(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{NetMgr: nm},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1635,7 +1635,7 @@ func TestPrepareNAT64Server(t *testing.T) {
 			Hyper:  &MockHypervisor{simNotExists: true},
 			NetMgr: nm,
 		},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1656,7 +1656,7 @@ func TestFailRunPrepareNAT64Server(t *testing.T) {
 			},
 			NetMgr: nm,
 		},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1679,7 +1679,7 @@ func TestFailRouteAddPrepareNAT64Server(t *testing.T) {
 			Hyper:  &MockHypervisor{},
 			NetMgr: nm,
 		},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 		NAT64: lazyjack.NAT64Config{
 			V4MappingCIDR: "172.18.0.128/25",
 			V4MappingIP:   "172.18.0.200",
@@ -1757,7 +1757,7 @@ func TestPrepare(t *testing.T) {
 		Support: lazyjack.SupportNetwork{
 			Prefix: "2001:db8:10::",
 			CIDR:   "2001:db8:10::/64",
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err = lazyjack.Prepare("master", c)
@@ -1873,7 +1873,7 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 		Support: lazyjack.SupportNetwork{
 			Prefix: "2001:db8:10::",
 			CIDR:   "2001:db8:10::/64",
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err := lazyjack.Prepare("master", c)
@@ -1938,7 +1938,7 @@ func TestFailClusterNodePrepare(t *testing.T) {
 		Support: lazyjack.SupportNetwork{
 			Prefix: "2001:db8:10::",
 			CIDR:   "2001:db8:10::/64",
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err := lazyjack.Prepare("master", c)

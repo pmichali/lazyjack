@@ -307,7 +307,7 @@ func TestRemoveManagementIP(t *testing.T) {
 	}
 	n := &lazyjack.Node{
 		Interface: "eth1",
-		ID:        10,
+		ID:        0x10,
 	}
 
 	err := lazyjack.RemoveManagementIP(n, c)
@@ -329,7 +329,7 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 	}
 	n := &lazyjack.Node{
 		Interface: "eth1",
-		ID:        10,
+		ID:        0x10,
 	}
 
 	err := lazyjack.RemoveManagementIP(n, c)
@@ -369,11 +369,11 @@ func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -384,12 +384,12 @@ func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 	}
 	n := &lazyjack.Node{
 		Interface:     "eth1",
 		IsNAT64Server: true,
-		ID:            10,
+		ID:            0x10,
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err != nil {
@@ -402,11 +402,11 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -417,12 +417,12 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 	}
 	n := &lazyjack.Node{
 		Interface:     "eth1",
 		IsNAT64Server: true,
-		ID:            10,
+		ID:            0x10,
 	}
 	err := lazyjack.RemoveRouteForDNS64(n, c)
 	if err == nil {
@@ -454,7 +454,7 @@ func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:6::200"},
-		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
+		Support: lazyjack.SupportNetwork{V4CIDR: "172.32.0.0/16"},
 	}
 	n := &lazyjack.Node{
 		Interface:     "eth1",
@@ -540,11 +540,11 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -557,7 +557,7 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 	}
 	n := &lazyjack.Node{
 		Interface: "eth1",
-		ID:        20,
+		ID:        0x20,
 	}
 	err := lazyjack.RemoveRouteForNAT64(n, c)
 	if err == nil {
@@ -635,11 +635,11 @@ func TestCleanupClusterNode(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -662,7 +662,7 @@ func TestCleanupClusterNode(t *testing.T) {
 	n := &lazyjack.Node{
 		Interface:     "eth2",
 		IsNAT64Server: false,
-		ID:            20,
+		ID:            0x20,
 	}
 
 	err = lazyjack.CleanupClusterNode(n, c)
@@ -692,11 +692,11 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -711,7 +711,7 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64: lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 			CIDR:   "2001:db8::/64",
 		},
 	}
@@ -719,7 +719,7 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 	n := &lazyjack.Node{
 		Interface:     "eth2",
 		IsNAT64Server: false,
-		ID:            20,
+		ID:            0x20,
 	}
 
 	err := lazyjack.CleanupClusterNode(n, c)
@@ -861,7 +861,7 @@ func TestCleanupNAT64Server(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err := lazyjack.CleanupNAT64Server(c)
@@ -882,7 +882,7 @@ func TestFailedDeleteCleanupNAT64Server(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err := lazyjack.CleanupNAT64Server(c)
@@ -907,7 +907,7 @@ func TestFailedDeleteRouteCleanupNAT64Server(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 		},
 	}
 	err := lazyjack.CleanupNAT64Server(c)
@@ -1000,14 +1000,14 @@ func TestCleanup(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 				IsDNS64Server: true,
 				IsMaster:      true,
 				Interface:     "eth1",
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -1028,7 +1028,7 @@ func TestCleanup(t *testing.T) {
 			ServerIP:      "2001:db8:5::200",
 		},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 			CIDR:   "2001:db8::/64",
 		},
 	}
@@ -1069,14 +1069,14 @@ func TestFailedCleanup(t *testing.T) {
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
-				ID:            10,
+				ID:            0x10,
 				IsNAT64Server: true,
 				IsDNS64Server: true,
 				IsMaster:      true,
 				Interface:     "eth1",
 			},
 			"minion": {
-				ID: 20,
+				ID: 0x20,
 			},
 		},
 		General: lazyjack.GeneralSettings{
@@ -1100,7 +1100,7 @@ func TestFailedCleanup(t *testing.T) {
 			ServerIP:      "2001:db8:5::200",
 		},
 		Support: lazyjack.SupportNetwork{
-			V4CIDR: "172.20.0.0/16",
+			V4CIDR: "172.32.0.0/16",
 			CIDR:   "2001:db8::/64",
 		},
 	}

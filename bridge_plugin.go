@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -13,9 +14,13 @@ import (
 // BuildPodSubnetPrefix will create a pod network prefix, using the cluster
 // prefix and node ID. If the subnet size is not a multiple of 16, then the
 // node ID will be placed in the upper byte of the last part of the prefix.
+// If the node ID is to be placed in the lower byte, and there is an upper
+// byte, we need to make sure we pad with zero for values less than 0x10.
 func BuildPodSubnetPrefix(prefix string, netSize, nodeID int) string {
 	if (netSize % 16) != 0 {
 		nodeID *= 256 // shift to upper byte
+	} else if !strings.HasSuffix(prefix, ":") && nodeID < 0x10 {
+		prefix += "0" // pad
 	}
 	return fmt.Sprintf("%s%x::", prefix, nodeID)
 }
@@ -74,7 +79,7 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				continue
 			}
 			if n.IsMaster || n.IsMinion {
-				dest := BuildDestCIDR(c.Pod.Prefix, n.ID, c.Pod.Size)
+				dest := fmt.Sprintf("%s/%d", BuildPodSubnetPrefix(c.Pod.Prefix, c.Pod.Size, n.ID), c.Pod.Size)
 				gw := BuildGWIP(c.Mgmt.Prefix, n.ID)
 				var err error
 				if op == "add" {

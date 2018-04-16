@@ -1,6 +1,8 @@
 package lazyjack
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Networker interface describes the API for networking operations
 type Networker interface {
@@ -15,17 +17,14 @@ type Networker interface {
 	RemoveBridge(name string) error
 }
 
-// BuildNodeCIDR helper constructs a node CIDR.
+// BuildNodeCIDR helper constructs a node CIDR. The network portion
+// of the CIDR (the prefix), has the node added as the last part of
+// the final address. For example, fd00:20::/64 -> fd00:20::3/64
 func BuildNodeCIDR(prefix string, node, mask int) string {
-	return fmt.Sprintf("%s%d/%d", prefix, node, mask)
-}
-
-// BuildDestCIDR helper constructs an IPv6 CIDR.
-func BuildDestCIDR(prefix string, node, size int) string {
-	return fmt.Sprintf("%s%d::/%d", prefix, node, size)
+	return fmt.Sprintf("%s%x/%d", prefix, node, mask)
 }
 
 // BuildGWIP helper constructs a gateway IP using the provided interface.
 func BuildGWIP(prefix string, intfPart int) string {
-	return fmt.Sprintf("%s%d", prefix, intfPart)
+	return fmt.Sprintf("%s%x", prefix, intfPart)
 }

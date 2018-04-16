@@ -27,8 +27,8 @@ type ManagementNetwork struct {
 // PodNetwork defines information for the the pod network.
 type PodNetwork struct {
 	CIDR   string `yaml:"cidr"`
-	Prefix string `yaml:"prefix"`  // For backward compatibility
-	Size   int    `yaml:"size"`  // For backward compatibility
+	Prefix string `yaml:"prefix"` // For backward compatibility
+	Size   int    `yaml:"size"`   // For backward compatibility
 }
 
 // ServiceNetwork defines information for the service network.
@@ -92,30 +92,30 @@ type Config struct {
 
 const (
 	// DefaultPlugin if none is specified
-	DefaultPlugin  = "bridge"
+	DefaultPlugin = "bridge"
 	// SupportNetName used by NAT64/DNS64 server
 	SupportNetName = "support_net"
 
 	// ResourceNotPresent status, indicating it can be created
 	ResourceNotPresent = "not-present"
 	// ResourceRunning status, indicating it is already created
-	ResourceRunning    = "running"
+	ResourceRunning = "running"
 	// ResourceExists status, indicating that it exists, but is not running
-	ResourceExists     = "exists"
+	ResourceExists = "exists"
 
 	// WorkArea where configuration files are placed for running program
-	WorkArea           = "/tmp/lazyjack"
+	WorkArea = "/tmp/lazyjack"
 	// CertArea where certificates and keys are stored
-	CertArea           = "certs"
+	CertArea = "certs"
 	// KubernetesCertArea where KubeAdm references certificates and keys
 	KubernetesCertArea = "/etc/kubernetes/pki"
 
 	// DNS64Name name of the DNS64 server
-	DNS64Name      = "bind9"
+	DNS64Name = "bind9"
 	// DNS64BaseArea root of where DNS64 directory tree exists
-	DNS64BaseArea  = "bind9"
+	DNS64BaseArea = "bind9"
 	// DNS64ConfArea subdirectory for config files
-	DNS64ConfArea  = "conf"
+	DNS64ConfArea = "conf"
 	// DNS64CacheArea subdirectory for runtime cache files
 	DNS64CacheArea = "cache"
 	// DNS64NamedConf main configuration file
@@ -127,7 +127,7 @@ const (
 	// KubeletSystemdArea where kubelet configuration files are located
 	KubeletSystemdArea = "/etc/systemd/system/kubelet.service.d"
 	// KubeletDropInFile name of drop-in file being created
-	KubeletDropInFile  = "20-extra-dns-args.conf"
+	KubeletDropInFile = "20-extra-dns-args.conf"
 
 	// CNIConfArea where CNI config files are stored
 	CNIConfArea = "/etc/cni/net.d"
@@ -135,13 +135,13 @@ const (
 	CNIConfFile = "cni.conf"
 
 	// EtcArea top level area for config files
-	EtcArea                 = "/etc"
+	EtcArea = "/etc"
 	// EtcHostsFile name of the hosts file
-	EtcHostsFile            = "hosts"
+	EtcHostsFile = "hosts"
 	// EtcHostsBackupFile backup name for hosts file
-	EtcHostsBackupFile      = "hosts.bak"
+	EtcHostsBackupFile = "hosts.bak"
 	// EtcResolvConfFile name of the nameserver file
-	EtcResolvConfFile       = "resolv.conf"
+	EtcResolvConfFile = "resolv.conf"
 	// EtcResolvConfBackupFile backup name for nameserver file
 	EtcResolvConfBackupFile = "resolv.conf.bak"
 

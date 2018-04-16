@@ -72,12 +72,12 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 		Topology: map[string]lazyjack.Node{
 			"master": {
 				Name:     "master",
-				ID:       10,
+				ID:       0x10,
 				IsMaster: true,
 			},
 			"minion1": {
 				Name:     "minion1",
-				ID:       20,
+				ID:       0x20,
 				IsMinion: true,
 			},
 		},
@@ -97,7 +97,7 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 	// Currently, we expect NAT64 node to also be DNS64 node.
 	n := &lazyjack.Node{
 		Name:      "master",
-		ID:        10,
+		ID:        0x10,
 		Interface: "eth1",
 		IsMaster:  true,
 	}

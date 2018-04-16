@@ -46,10 +46,10 @@ func (m mockNetLink) AddrList(link netlink.Link, family int) ([]netlink.Addr, er
 		second, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.3/16", link.Attrs().Index))
 		third, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.4/16", link.Attrs().Index))
 	} else {
-		first, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::2/64", link.Attrs().Index))
-		second, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%d::3/64", link.Attrs().Index))
+		first, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::2/64", link.Attrs().Index))
+		second, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::3/64", link.Attrs().Index))
 		// To simulate mgmt IP address, which has node ID as last part of address
-		third, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:20::%d/64", link.Attrs().Index))
+		third, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:20::%x/64", link.Attrs().Index))
 	}
 	addrList := []netlink.Addr{*first, *second, *third}
 	return addrList, nil
@@ -66,11 +66,11 @@ func (m mockNetLink) LinkByName(name string) (netlink.Link, error) {
 	if m.simLookupFail {
 		return nil, fmt.Errorf("mock failure to find link")
 	}
-	// Calc index based on interface name, using last digit * 10.
-	// For example "eth2" -> 2*10 = 20.
+	// Calc index based on interface name, using last digit * 16.
+	// For example "eth2" -> 2*16 = 0x20.
 	link := &netlink.Device{}
 	idx, _ := strconv.Atoi(name[len(name)-1:])
-	link.Index = idx * 10
+	link.Index = idx * 16
 	return link, nil
 }
 
@@ -78,12 +78,12 @@ func (m mockNetLink) LinkList() ([]netlink.Link, error) {
 	if m.simLinkListFail {
 		return []netlink.Link{}, fmt.Errorf("mock failure to list addresses")
 	}
-	// Making a dummy list of two entries with indexes 20 and 30. The dummy addresses
+	// Making a dummy list of two entries with indexes 0x20 and 0x30. The dummy addresses
 	// we create for some tests, will use the index as part of the IP.
 	linkA := &netlink.Device{}
-	linkA.Index = 20
+	linkA.Index = 0x20
 	linkB := &netlink.Device{}
-	linkB.Index = 30
+	linkB.Index = 0x30
 	return []netlink.Link{linkA, linkB}, nil
 }
 
@@ -199,7 +199,7 @@ func TestNotFoundAddressExistsOnLink(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	dummyAddr, _ := netlink.ParseAddr("2001:db8:50::2/64")
 	dummyLink := &netlink.Device{}
-	dummyLink.Index = 10
+	dummyLink.Index = 0x10
 	exists := nm.AddressExistsOnLink(dummyAddr, dummyLink)
 	if exists {
 		t.Fatalf("FAILED: Expected address to not exist on link")
@@ -210,7 +210,7 @@ func TestAddressExistsOnLink(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
 	dummyAddr, _ := netlink.ParseAddr("2001:db8:30::2/64")
 	dummyLink := &netlink.Device{}
-	dummyLink.Index = 30
+	dummyLink.Index = 0x30
 	exists := nm.AddressExistsOnLink(dummyAddr, dummyLink)
 	if !exists {
 		t.Fatalf("FAILED: Expected address to exist on link")
@@ -275,12 +275,12 @@ func TestFailedDeleteForRemoveAddressFromLink(t *testing.T) {
 
 func TestFindLinkIndexForCIDR(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
-	idx, err := nm.FindLinkIndexForCIDR("172.30.0.0/16")
+	idx, err := nm.FindLinkIndexForCIDR("172.32.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to find CIDR on link: %s", err.Error())
 	}
-	if idx != 30 {
-		t.Fatalf("FAILED: Expected to find CIDR on link with index 30, got link %d", idx)
+	if idx != 32 {
+		t.Fatalf("FAILED: Expected to find CIDR on link with index 32, got link %d", idx)
 	}
 }
 
@@ -364,7 +364,7 @@ func TestFailedParseIPBuildRoute(t *testing.T) {
 
 func TestAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.32.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to add route: %s", err.Error())
 	}
@@ -372,7 +372,7 @@ func TestAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.32.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
@@ -384,7 +384,7 @@ func TestFailedAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedBadCIDRAddRouteUsingSupportNetInterface(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
-	err := nm.AddRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.30.0.0/16")
+	err := nm.AddRouteUsingSupportNetInterface("2001:db8::30::2/64", "2001:db8:30::1", "172.32.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to add route")
 	}
@@ -408,7 +408,7 @@ func TestFailedNotFoundAddRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.32.0.0/16")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to delete route: %s", err.Error())
 	}
@@ -416,7 +416,7 @@ func TestDeleteRouteUsingSupportNetInterface(t *testing.T) {
 
 func TestFailedDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
-	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.30.0.0/16")
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001:db8:30::1", "172.32.0.0/16")
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to delete route")
 	}
@@ -447,14 +447,6 @@ func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	expected := "unable to find interface for CIDR \"172.50.0.0/16\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
-	}
-}
-
-func TestBuildDestCIDR(t *testing.T) {
-	actual := lazyjack.BuildDestCIDR("2001:db8:0:0:", 2, 80)
-	expected := "2001:db8:0:0:2::/80"
-	if actual != expected {
-		t.Fatalf("FAILED: Destination CIDR create. Expected %q, got %q", expected, actual)
 	}
 }
 

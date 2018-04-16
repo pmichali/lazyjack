@@ -231,7 +231,7 @@ func AddResolvConfEntry(c *Config) error {
 func FindHostIPForNAT64(c *Config) (string, bool) {
 	for _, node := range c.Topology {
 		if node.IsNAT64Server {
-			return fmt.Sprintf("%s%d", c.Mgmt.Prefix, node.ID), true
+			return fmt.Sprintf("%s%x", c.Mgmt.Prefix, node.ID), true
 		}
 	}
 	return "", false
