@@ -24,13 +24,13 @@ nodes. See below for details on each step.
 
 
 ## A bit about IPv6 and Kubernetes...
-Kubernetes 1.9 has alpha support for IPv6 only (not dual stack) mode of
+Starting with Kubernetes 1.9, there is alpha support for IPv6 only (not dual stack) mode of
 operation for pods and services. There are various plugins that have or are
 adding support for IPv6. The reference Bridge plugin, has support and will be
 used by Lazyjack.
 
 Currently, there are some external sites, like github.com, which do not support
-IPv6 yet. As a result, the Kubernetes installation in 1.9 uses DNS64 and NAT64
+IPv6 yet. As a result, the Kubernetes installation in 1.9+ uses DNS64 and NAT64
 to access the outside world. With this solution, a DNS64 and NAT64 server will
 be employed via containers, rather than relying on external H/W or S/W.
 
@@ -46,13 +46,14 @@ undoing the setup made and restoring the system to original state.
 
 ## Prerequisites
 The following needs to be done, prior to using this tool:
-* One or more bare-metal systems running Linux (tested with Ubuntu 16.04)
+* One or more bare-metal systems running Linux (tested with Ubuntu 16.04), each with:
   * Two interfaces, one for access to box, one for management network for cluster
   * Make sure management interface doesn't have a conflicting IPv6 address
   * Internet access via IPv4 on the node being used for DNS64/NAT64
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ installed on the system and environment set up.
+  * CNI 0.7.1+ installed.
   * openssl installed on system (I used 1.0.2g).
 * Install Lazyjack on each system (see below)
 
@@ -409,6 +410,10 @@ I was unable to find root cause, but did KubeAdm reset, `clean` command,
 fllush IPTABLES rules (like above), rebooted, and problem was cleared. May
 have been corruption of IPTABLES rules.
 
+Tip: You can customize kubeadm.conf, after the prepare step, to make any
+additional changes desired for the configuration (e.g. setting kubernetesVersion
+to a specific version).
+
 
 ## TODOs/Futures
 
@@ -422,6 +427,7 @@ have been corruption of IPTABLES rules.
   * Docker version.
   * Kubeadm, kubectl, kubelet version 1.9+.
   * Go version.
+  * CNI plugin version 0.7.1+.
   * Other tools?
 * Support Calico plugin. Cillium? Contiv? Others?
 
