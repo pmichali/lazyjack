@@ -154,7 +154,8 @@ nat64:
 dns64:
     remote_server: "8.8.8.8"  # Could be a internal/company DNS server
     cidr: "fd00:10:64:ff9b::/96"
-    ip: "fd00:10::100"`
+    ip: "fd00:10::100"
+    allow_ipv6_use: true`
 
 	stream := &ClosingBuffer{bytes.NewBufferString(goodYAML)}
 	config, err := lazyjack.LoadConfig(stream)
@@ -205,7 +206,8 @@ dns64:
 
 	if config.DNS64.RemoteV4Server != "8.8.8.8" ||
 		config.DNS64.CIDR != "fd00:10:64:ff9b::/96" ||
-		config.DNS64.ServerIP != "fd00:10::100" {
+		config.DNS64.ServerIP != "fd00:10::100" ||
+		!config.DNS64.AllowIPv6Use {
 		t.Errorf("DNS64 config parse failure (%+v)", config.DNS64)
 	}
 }

@@ -47,14 +47,19 @@ undoing the setup made and restoring the system to original state.
 ## Prerequisites
 The following needs to be done, prior to using this tool:
 * One or more bare-metal systems running Linux (tested with Ubuntu 16.04), each with:
-  * Two interfaces, one for access to box, one for management network for cluster
-  * Make sure management interface doesn't have a conflicting IPv6 address
-  * Internet access via IPv4 on the node being used for DNS64/NAT64
+  * Two interfaces, one for access to box, one for management network for cluster.
+  * Make sure management interface doesn't have a conflicting IPv6 address.
+  * Internet access via IPv4 on the node being used for DNS64/NAT64.
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ installed on the system and environment set up.
   * CNI 0.7.1+ installed.
   * openssl installed on system (I used 1.0.2g).
+  * (optional) Internet access via IPv6 for direct IPv6 access to external sites.
+    * IPv6 enabled on node.
+    * IPv6 address on main interface with Internet connectivity.
+    * Default route for IPv6 traffic using main interface.
+    * Setting sysctl accept_ra=2 on main I/F (e.g. `net.ipv6.conf.eth0.accept_ra = 2`)
 * Install Lazyjack on each system (see below)
 
 
@@ -130,6 +135,7 @@ dns64:
     remote_server: "64.102.6.247"
     cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"
+    allow_ipv6_use: true
 ```
 
 ### Token (token) and Token CA Certificate Hash (token-cert-hash)
@@ -249,11 +255,19 @@ also specified.
 ```
     remote_server: "64.102.6.247"
 ```
-Lastly, the **support_net** IPv6 address of the bind9 server needs to be specified.
+The **support_net** IPv6 address of the bind9 server needs to be specified.
 ```
-ip: "fd00:10::100"
+    ip: "fd00:10::100"
 ```
 
+If the topology supports accessing the Internet via IPv6, the following can be
+set to allow external IPv6 addresses to be used directly, instead of translating
+them to IPv4 addresses using NAT64. To do this, requires telling DNS64 to use
+the AAAA records for lookups. The default is false, meaning IPv4 addresses will
+be used in all lookups.
+```
+    allow_ipv6_use: true
+```
 
 ## Usage
 As mentioned above, you should have Lazyjack and the YAML file on each system to be
@@ -359,6 +373,7 @@ For each command, there are a series of actions performed...
 
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
+* CNI v0.7.1+ is needed for full IPv6 support by plugins.
 * Relies on the tayga and bind6 containers (as provided by other developers).
 * The `init` command modifies the specified configuration YAML file. As a result, `init` must be done before copying the config YAML to other nodes.
 * Because the config YAML file is modified by the root user, permissions is set to 777, so that the non-root user can still modify the file.
@@ -434,7 +449,6 @@ to a specific version).
 ### Details to figure out
 * Decide how to handle prepare failures (exits currently). Rollback? Difficulty?
 * Create makefile for building/installing. Build executable for immediate use?
-* Modifying NAT64/DNS64 to support external sytems that support IPv6 only addresses, without translating.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 * Way to timeout on "kubeadm init", if it gets stuck (e.g. kubelet never comes up).
 

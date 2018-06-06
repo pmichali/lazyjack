@@ -126,6 +126,34 @@ func TestNamedConfContents(t *testing.T) {
 	}
 }
 
+func TestNamedConfContentsAllowingIPv6(t *testing.T) {
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+			AllowIPv6Use:   true,
+		},
+	}
+
+	expected := `options {
+    directory "/var/bind";
+    allow-query { any; };
+    forwarders {
+        fd00:10:64:ff9b::8.8.8.8;
+    };
+    auth-nxdomain no;    # conform to RFC1035
+    listen-on-v6 { any; };
+    dns64 fd00:10:64:ff9b::/96 {
+    };
+};
+`
+	actual := lazyjack.CreateNamedConfContents(c)
+	if actual.String() != expected {
+		t.Fatalf("DNS64 named.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual.String())
+	}
+}
+
 func TestCreateSupportNetwork(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{

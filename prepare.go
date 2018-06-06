@@ -348,14 +348,16 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
     auth-nxdomain no;    # conform to RFC1035
     listen-on-v6 { any; };
 `
-	trailer := `        exclude { any; };
-    };
+	trailer := `    };
 };
 `
 	contents := bytes.NewBufferString(header)
 	fmt.Fprintf(contents, "        %s%s;\n", c.DNS64.CIDRPrefix, c.DNS64.RemoteV4Server)
 	fmt.Fprintf(contents, middle)
 	fmt.Fprintf(contents, "    dns64 %s {\n", c.DNS64.CIDR)
+	if !c.DNS64.AllowIPv6Use {
+		fmt.Fprintf(contents, "        exclude { any; };\n")
+	}
 	fmt.Fprintf(contents, trailer)
 	return contents
 }
