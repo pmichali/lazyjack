@@ -290,6 +290,10 @@ func CalculateDerivedFields(c *Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid DNS64 CIDR: %v", err)
 	}
+
+	if c.DNS64.AllowIPv6Use {
+		c.DNS64.AllowAAAAUse = true
+	}
 	return nil
 }
 

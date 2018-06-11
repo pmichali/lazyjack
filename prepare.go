@@ -355,7 +355,7 @@ func CreateNamedConfContents(c *Config) *bytes.Buffer {
 	fmt.Fprintf(contents, "        %s%s;\n", c.DNS64.CIDRPrefix, c.DNS64.RemoteV4Server)
 	fmt.Fprintf(contents, middle)
 	fmt.Fprintf(contents, "    dns64 %s {\n", c.DNS64.CIDR)
-	if !c.DNS64.AllowIPv6Use {
+	if !c.DNS64.AllowAAAAUse {
 		fmt.Fprintf(contents, "        exclude { any; };\n")
 	}
 	fmt.Fprintf(contents, trailer)

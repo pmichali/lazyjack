@@ -126,13 +126,13 @@ func TestNamedConfContents(t *testing.T) {
 	}
 }
 
-func TestNamedConfContentsAllowingIPv6(t *testing.T) {
+func TestNamedConfContentsAllowingAAAA(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
 			CIDRPrefix:     "fd00:10:64:ff9b::",
 			RemoteV4Server: "8.8.8.8",
-			AllowIPv6Use:   true,
+			AllowAAAAUse:   true,
 		},
 	}
 

@@ -135,7 +135,7 @@ dns64:
     remote_server: "64.102.6.247"
     cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"
-    allow_ipv6_use: true
+    allow_aaaa_use: true
 ```
 
 ### Token (token) and Token CA Certificate Hash (token-cert-hash)
@@ -266,7 +266,7 @@ them to IPv4 addresses using NAT64. To do this, requires telling DNS64 to use
 the AAAA records for lookups. The default is false, meaning IPv4 addresses will
 be used in all lookups.
 ```
-    allow_ipv6_use: true
+    allow_aaaa_use: true
 ```
 
 ## Usage

@@ -155,7 +155,7 @@ dns64:
     remote_server: "8.8.8.8"  # Could be a internal/company DNS server
     cidr: "fd00:10:64:ff9b::/96"
     ip: "fd00:10::100"
-    allow_ipv6_use: true`
+    allow_aaaa_use: true`
 
 	stream := &ClosingBuffer{bytes.NewBufferString(goodYAML)}
 	config, err := lazyjack.LoadConfig(stream)
@@ -207,7 +207,7 @@ dns64:
 	if config.DNS64.RemoteV4Server != "8.8.8.8" ||
 		config.DNS64.CIDR != "fd00:10:64:ff9b::/96" ||
 		config.DNS64.ServerIP != "fd00:10::100" ||
-		!config.DNS64.AllowIPv6Use {
+		!config.DNS64.AllowAAAAUse {
 		t.Errorf("DNS64 config parse failure (%+v)", config.DNS64)
 	}
 }
@@ -738,6 +738,32 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 	expectedDNS64Prefix := "fd00:10:64:ff9b::"
 	if c.DNS64.CIDRPrefix != expectedDNS64Prefix {
 		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedDNS64Prefix, c.DNS64.CIDRPrefix)
+	}
+}
+
+func TestCalculateDerivedFieldsDeprecatedAAAASupport(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR: "fd00:20::/64",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR:         "fd00:10:64:ff9b::/96",
+			AllowIPv6Use: true, // Deprecated field
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err != nil {
+		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
+	}
+	if !c.DNS64.AllowAAAAUse {
+		t.Fatalf("Expected allow AAAA use field to be set by deprecated value")
 	}
 }
 

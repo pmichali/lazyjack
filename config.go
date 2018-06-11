@@ -42,7 +42,8 @@ type DNS64Config struct {
 	CIDR           string `yaml:"cidr"`
 	CIDRPrefix     string
 	ServerIP       string `yaml:"ip"`
-	AllowIPv6Use   bool   `yaml:"allow_ipv6_use"`
+	AllowIPv6Use   bool   `yaml:"allow_ipv6_use"` // Deprecated
+	AllowAAAAUse   bool   `yaml:"allow_aaaa_use"`
 }
 
 // NAT64Config defines information for the NAT64 server configuration.
