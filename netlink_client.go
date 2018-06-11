@@ -67,3 +67,7 @@ func (n NetLink) LinkSetDown(link netlink.Link) error {
 func (n NetLink) LinkDel(link netlink.Link) error {
 	return n.h.LinkDel(link)
 }
+
+func (n NetLink) LinkSetMTU(link netlink.Link, mtu int) error {
+	return n.h.LinkSetMTU(link, mtu)
+}

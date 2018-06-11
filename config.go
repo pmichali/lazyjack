@@ -29,6 +29,7 @@ type PodNetwork struct {
 	CIDR   string `yaml:"cidr"`
 	Prefix string `yaml:"prefix"` // For backward compatibility
 	Size   int    `yaml:"size"`   // For backward compatibility
+	MTU    int    `yaml:"mtu"`
 }
 
 // ServiceNetwork defines information for the service network.
@@ -149,6 +150,11 @@ const (
 
 	// KubeAdmConfFile name of the configuration file used by KubeAdm
 	KubeAdmConfFile = "kubeadm.conf"
+
+	// MinimumPodMTU is the smallest MTU for IPv6
+	MinimumPodMTU = 1280
+	// DefaultPodMTU is the default MTU to use, when not specified
+	DefaultPodMTU = 1500
 )
 
 // ParseConfig parses the YAML configuration provided, into the config structure.

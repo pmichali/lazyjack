@@ -53,6 +53,7 @@ func TestBridgeCNIConfigContents(t *testing.T) {
 		Pod: lazyjack.PodNetwork{
 			Prefix: "fd00:40:0:0:",
 			Size:   80,
+			MTU:    9000,
 		},
 	}
 	n := &lazyjack.Node{ID: 10}
@@ -65,6 +66,7 @@ func TestBridgeCNIConfigContents(t *testing.T) {
     "isDefaultGateway": true,
     "ipMasq": true,
     "hairpinMode": true,
+    "mtu": 9000,
     "ipam": {
         "type": "host-local",
         "ranges": [

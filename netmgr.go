@@ -201,6 +201,21 @@ func (n NetMgr) DeleteLink(name string) error {
 	return nil
 }
 
+// SetLinkMTU method sets the MTU on the link.
+func (n NetMgr) SetLinkMTU(name string, mtu int) error {
+	glog.V(4).Infof("Setting MTU to %d on interface %q", mtu, name)
+	link, err := n.Server.LinkByName(name)
+	if err != nil {
+		return fmt.Errorf("unable to find interface %q", name)
+	}
+	err = n.Server.LinkSetMTU(link, mtu)
+	if err != nil {
+		return fmt.Errorf("unable to set MTU on interface %q", name)
+	}
+	glog.V(1).Infof("Interface %q MTU set", name)
+	return nil
+}
+
 // RemoveBridge method removes the specified bridge.
 func (n NetMgr) RemoveBridge(name string) error {
 	glog.V(1).Infof("Removing bridge %q", name)

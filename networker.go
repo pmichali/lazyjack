@@ -15,6 +15,7 @@ type Networker interface {
 	BringLinkDown(name string) error
 	DeleteLink(name string) error
 	RemoveBridge(name string) error
+	SetLinkMTU(name string, mtu int) error
 }
 
 // BuildNodeCIDR helper constructs a node CIDR. The network portion

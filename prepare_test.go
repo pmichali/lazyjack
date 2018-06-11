@@ -1067,6 +1067,69 @@ func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 	}
 }
 
+func TestConfigureManagementInterface(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID: 10,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+			Size:   64,
+		},
+		Pod: lazyjack.PodNetwork{
+			MTU: 9000,
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:      "master",
+		ID:        10,
+		Interface: "eth1",
+	}
+	err := lazyjack.ConfigureManagementInterface(n, c)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to configure interface: %s", err.Error())
+	}
+
+}
+
+func TestFailedAddAddressConfigureManagementInterface(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simReplaceFail: true}}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID: 10,
+			},
+		},
+		General: lazyjack.GeneralSettings{NetMgr: nm},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+			Size:   64,
+		},
+		Pod: lazyjack.PodNetwork{
+			MTU: 9000,
+		},
+	}
+	// Currently, we expect NAT64 node to also be DNS64 node.
+	n := &lazyjack.Node{
+		Name:      "master",
+		ID:        10,
+		Interface: "eth1",
+	}
+	err := lazyjack.ConfigureManagementInterface(n, c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to configure interface")
+	}
+	expected := "unable to add ip \"fd00:100::a/64\" to interface \"eth1\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
 func TestPrepareClusterNode(t *testing.T) {
 	workArea := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(workArea, t)

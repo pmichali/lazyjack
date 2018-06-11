@@ -741,26 +741,72 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 	}
 }
 
-func TestCalculateDerivedFieldsDeprecatedAAAASupport(t *testing.T) {
+func TestValidatePodMTU(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		mtu         int
+		expectedMTU int
+		expectedStr string
+	}{
+		{
+			name:        "Default 1500",
+			mtu:         0,
+			expectedMTU: 1500,
+			expectedStr: "",
+		},
+		{
+			name:        "Overridden MTU",
+			mtu:         9000,
+			expectedMTU: 9000,
+			expectedStr: "",
+		},
+		{
+			name:        "Overridden with minium MTU",
+			mtu:         1280,
+			expectedMTU: 1280,
+			expectedStr: "",
+		},
+		{
+			name:        "Too small",
+			mtu:         1279,
+			expectedMTU: 0,
+			expectedStr: "MTU (1279) is less than minimum MTU for IPv6 (1280)",
+		},
+	}
 	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "fd00:20::/64",
-		},
-		Support: lazyjack.SupportNetwork{
-			CIDR: "fd00:10::/64",
-		},
-		DNS64: lazyjack.DNS64Config{
-			CIDR:         "fd00:10:64:ff9b::/96",
-			AllowIPv6Use: true, // Deprecated field
-		},
 		Pod: lazyjack.PodNetwork{
-			CIDR: "fd00:40::/72",
+			MTU: -1,
+		},
+	}
+	for _, tc := range testCases {
+		c.Pod.MTU = tc.mtu
+		err := lazyjack.ValidatePodFields(c)
+		if err == nil {
+			if tc.expectedStr != "" {
+				t.Errorf("[%s] No error seen, but expected %s", tc.name, tc.expectedStr)
+			} else if c.Pod.MTU != tc.expectedMTU {
+				t.Errorf("[%s] Expected MTU %d, got %d", tc.name, tc.expectedMTU, c.Pod.MTU)
+			}
+		} else {
+			if tc.expectedStr == "" {
+				t.Errorf("[%s] Expected no error, but saw: %s", tc.name, err.Error())
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("[%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
+			}
+		}
+	}
+}
+
+func TestDeprecatedAAAASupport(t *testing.T) {
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			AllowIPv6Use: true, // Deprecated field
 		},
 	}
 
-	err := lazyjack.CalculateDerivedFields(c)
+	err := lazyjack.ValidateDNS64Fields(c)
 	if err != nil {
-		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
+		t.Fatalf("Expected validating DNS64 fields to succeed, but see error: %s", err.Error())
 	}
 	if !c.DNS64.AllowAAAAUse {
 		t.Fatalf("Expected allow AAAA use field to be set by deprecated value")

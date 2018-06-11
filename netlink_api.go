@@ -20,4 +20,5 @@ type NetLinkAPI interface {
 	RouteDel(route *netlink.Route) error
 	LinkSetDown(link netlink.Link) error
 	LinkDel(link netlink.Link) error
+	LinkSetMTU(link netlink.Link, mtu int) error
 }

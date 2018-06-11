@@ -287,6 +287,22 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 	return err
 }
 
+// ConfigureManagementInterface adds and address and sets the MTU for
+// the interface used for the pod and management networks.
+func ConfigureManagementInterface(node *Node, c *Config) error {
+	glog.V(1).Infof("Configuring management interface %s", node.Interface)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
+	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
+	if err != nil {
+		return err
+	}
+	err = c.General.NetMgr.SetLinkMTU(node.Interface, c.Pod.MTU)
+	if err == nil {
+		glog.V(4).Infof("Set %s IP to %s and MTU to %d", node.Interface, mgmtIP, c.Pod.MTU)
+	}
+	return err
+}
+
 // PrepareClusterNode performs steps on the node to prepare for bringing
 // up the cluster. Includes adding the management IP, updating hosts and
 // resolv.conf entries, creating a kubelet drop-in file, creating the
@@ -295,8 +311,9 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 func PrepareClusterNode(node *Node, c *Config) error {
 	glog.V(1).Info("Preparing general settings")
 
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
-	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
+	var err error
+
+	err = ConfigureManagementInterface(node, c)
 	if err != nil {
 		return err
 	}

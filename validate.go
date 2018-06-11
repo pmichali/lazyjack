@@ -291,6 +291,24 @@ func CalculateDerivedFields(c *Config) error {
 		return fmt.Errorf("invalid DNS64 CIDR: %v", err)
 	}
 
+	return nil
+}
+
+// ValidatePodFields checks user supplied pod network settings, applies
+// defaults, and handles any deprecated fields.
+func ValidatePodFields(c *Config) error {
+	if c.Pod.MTU == 0 {
+		c.Pod.MTU = DefaultPodMTU
+	}
+	if c.Pod.MTU < MinimumPodMTU {
+		return fmt.Errorf("MTU (%d) is less than minimum MTU for IPv6 (%d)", c.Pod.MTU, MinimumPodMTU)
+	}
+	return nil
+}
+
+// ValidateDNS64Fields checks user supplied DNS64 settings, applies
+// defaults, and handles any deprecated fields.
+func ValidateDNS64Fields(c *Config) error {
 	if c.DNS64.AllowIPv6Use {
 		c.DNS64.AllowAAAAUse = true
 	}
@@ -352,6 +370,16 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = ValidateCIDR("service network", c.Service.CIDR)
+	if err != nil {
+		return err
+	}
+
+	err = ValidatePodFields(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateDNS64Fields(c)
 	if err != nil {
 		return err
 	}

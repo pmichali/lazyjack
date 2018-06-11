@@ -24,6 +24,7 @@ type mockNetLink struct {
 	simNoRoute       bool
 	simSetDownFail   bool
 	simLinkDelFail   bool
+	simSetMTUFail    bool
 }
 
 func (m mockNetLink) AddrDel(link netlink.Link, addr *netlink.Addr) error {
@@ -128,6 +129,13 @@ func (m mockNetLink) LinkSetDown(link netlink.Link) error {
 func (m mockNetLink) LinkDel(link netlink.Link) error {
 	if m.simLinkDelFail {
 		return fmt.Errorf("mock failure link delete")
+	}
+	return nil
+}
+
+func (m mockNetLink) LinkSetMTU(link netlink.Link, mtu int) error {
+	if m.simSetMTUFail {
+		return fmt.Errorf("mock failure set link MTU")
 	}
 	return nil
 }
@@ -450,6 +458,18 @@ func TestFailedNotFoundDeleteRouteUsingSupportNetInterface(t *testing.T) {
 	}
 }
 
+func TestFailedBadGWDeleteRouteUsingSupportNetInterface(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	err := nm.DeleteRouteUsingSupportNetInterface("2001:db8:30::2/64", "2001::db8:30::1", "172.32.0.0/16")
+	if err == nil {
+		t.Fatalf("FAILED: Expected to not be able to delete route because of invalid GW")
+	}
+	expected := "unable to parse gateway IP \"2001::db8:30::1\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
 func TestBuildGWIP(t *testing.T) {
 	actual := lazyjack.BuildGWIP("2001:db8::", 5)
 	expected := "2001:db8::5"
@@ -617,6 +637,38 @@ func TestFailedNotFoundDeleteLink(t *testing.T) {
 		t.Fatalf("FAILED: Expected to not be able to find link to delete")
 	}
 	expected := "unable to find interface \"br0\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestSetLinkMTU(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	err := nm.SetLinkMTU("eth0", 1500)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to set MTU")
+	}
+}
+
+func TestFailedSetLinkMTU(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetMTUFail: true}}
+	err := nm.SetLinkMTU("eth0", 1500)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to not be able to set MTU")
+	}
+	expected := "unable to set MTU on interface \"eth0\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedNotFoundSetLinkMTU(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLookupFail: true}}
+	err := nm.SetLinkMTU("eth0", 9000)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to not be able to find link to set MTU")
+	}
+	expected := "unable to find interface \"eth0\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}

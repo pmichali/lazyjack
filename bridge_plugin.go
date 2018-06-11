@@ -37,7 +37,8 @@ func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
     "isDefaultGateway": true,
     "ipMasq": true,
     "hairpinMode": true,
-    "ipam": {
+`
+	middle := `    "ipam": {
         "type": "host-local",
         "ranges": [
           [
@@ -50,6 +51,8 @@ func CreateBridgeCNIConfContents(node *Node, c *Config) *bytes.Buffer {
 }
 `
 	contents := bytes.NewBufferString(header)
+	fmt.Fprintf(contents, "    \"mtu\": %d,\n", c.Pod.MTU)
+	fmt.Fprintf(contents, middle)
 	prefix := BuildPodSubnetPrefix(c.Pod.Prefix, c.Pod.Size, node.ID)
 	fmt.Fprintf(contents, "              \"subnet\": \"%s/%d\",\n", prefix, c.Pod.Size)
 	fmt.Fprintf(contents, "              \"gateway\": \"%s1\"\n", prefix)
