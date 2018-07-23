@@ -31,7 +31,7 @@ func CleanupForPlugin(node *Node, c *Config) error {
 // StopKubernetes is called during the "down" operation, to bring down
 // the cluster.
 func StopKubernetes() error {
-	args := []string{"reset"}
+	args := []string{"reset", "-f"}
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
 		glog.Warningf("unable to %s Kubernetes cluster: %v", args[0], err)
