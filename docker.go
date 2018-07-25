@@ -108,13 +108,14 @@ func (d *Docker) DeleteContainer(name string) error {
 func BuildRunArgsForNAT64(c *Config) []string {
 	confPrefix := fmt.Sprintf("TAYGA_CONF_PREFIX=%s", c.DNS64.CIDR)
 	confV4Addr := fmt.Sprintf("TAYGA_CONF_IPV4_ADDR=%s", c.NAT64.V4MappingIP)
+	confV4Pool := fmt.Sprintf("TAYGA_CONF_DYNAMIC_POOL=%s", c.NAT64.V4MappingCIDR)
 	cmdList := []string{
 		"run", "-d", "--name", NAT64Name, "--hostname", NAT64Name, "--label", "lazyjack",
 		"--privileged=true", "--ip", c.NAT64.V4MappingIP, "--ip6", c.NAT64.ServerIP,
 		"--dns", c.DNS64.RemoteV4Server, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
 		"--sysctl", "net.ipv6.conf.all.forwarding=1",
-		"-e", confPrefix, "-e", confV4Addr,
+		"-e", confPrefix, "-e", confV4Addr, "-e", confV4Pool,
 		"--net", SupportNetName, "danehans/tayga:latest",
 	}
 	return cmdList

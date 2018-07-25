@@ -190,7 +190,7 @@ CIDR, and the IPv4 CIDR:
 ```
 The IPv4 subnet should be large enough to contain the V4 subnet that will be created
 for NAT64 mapping of V6 to V4 addresses. A /16 net is usually fine (Lazyjack doesn't
-validate this dependency, currently).
+validate this requirement, currently).
 
 ### Management Network (mgmt_net)
 The network that is used by Kubernetes for each cluster node, is called out in this
@@ -236,8 +236,9 @@ is used for this role and runs as a container on the node with **nat64** specifi
 as an **opmode**.
 
 Tayga uses a pool of local IPv4 addresses that are mapped to IPv6 address. As
-such, the IPv4 pool and IPv4 address of Tayga must be specified. Make sure that
-this pool is inside of the **support_net** subnet, mentioned above.
+such, the IPv4 pool and IPv4 address of Tayga must be specified. Lazyjack checks
+to make sure that both of these are inside of the **support_net** subnet, mentioned
+above.
 ```
     v4_cidr: "172.18.0.128/25"
     v4_ip: "172.18.0.200"

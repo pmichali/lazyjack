@@ -77,14 +77,15 @@ func TestBuildDockerArgsForNAT64(t *testing.T) {
 			RemoteV4Server: "8.8.8.8",
 		},
 		NAT64: lazyjack.NAT64Config{
-			ServerIP:    "fd00:10::200",
-			V4MappingIP: "172.18.0.200",
+			ServerIP:      "fd00:10::200",
+			V4MappingIP:   "172.18.0.200",
+			V4MappingCIDR: "172.18.0.128/25",
 		},
 	}
 
 	list := lazyjack.BuildRunArgsForNAT64(c)
 	actual := strings.Join(list, " ")
-	expected := "run -d --name tayga --hostname tayga --label lazyjack --privileged=true --ip 172.18.0.200 --ip6 fd00:10::200 --dns 8.8.8.8 --dns fd00:10::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -e TAYGA_CONF_PREFIX=fd00:10:64:ff9b::/96 -e TAYGA_CONF_IPV4_ADDR=172.18.0.200 --net support_net danehans/tayga:latest"
+	expected := "run -d --name tayga --hostname tayga --label lazyjack --privileged=true --ip 172.18.0.200 --ip6 fd00:10::200 --dns 8.8.8.8 --dns fd00:10::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -e TAYGA_CONF_PREFIX=fd00:10:64:ff9b::/96 -e TAYGA_CONF_IPV4_ADDR=172.18.0.200 -e TAYGA_CONF_DYNAMIC_POOL=172.18.0.128/25 --net support_net danehans/tayga:latest"
 	if actual != expected {
 		t.Fatalf("FAILED: Building docker run args for NAT64.\nExpected: %q\n  Actual: %q", expected, actual)
 	}

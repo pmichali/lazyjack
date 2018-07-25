@@ -315,6 +315,40 @@ func ValidateDNS64Fields(c *Config) error {
 	return nil
 }
 
+// ValidateNAT64Fields checks that the subnet for the IPv4 mapping
+// address (assumed /16), contains the subnet used for the IPv4
+// mapping pool, and that both are valid.
+func ValidateNAT64Fields(c *Config) error {
+	if c.Support.V4CIDR == "" {
+		return fmt.Errorf("missing IPv4 support network CIDR")
+	}
+	if c.NAT64.V4MappingIP == "" {
+		return fmt.Errorf("missing IPv4 mapping IP")
+	}
+	if c.NAT64.V4MappingCIDR == "" {
+		return fmt.Errorf("missing IPv4 mapping CIDR")
+	}
+	_, v4SupportNet, err := net.ParseCIDR(c.Support.V4CIDR)
+	if err != nil {
+		return fmt.Errorf("v4 support network (%s) is invalid: %s", c.Support.V4CIDR, err.Error())
+	}
+	v4MappingIP := net.ParseIP(c.NAT64.V4MappingIP)
+	if v4MappingIP == nil {
+		return fmt.Errorf("v4 mapping IP (%s) is invalid", c.NAT64.V4MappingIP)
+	}
+	v4PoolIP, _, err := net.ParseCIDR(c.NAT64.V4MappingCIDR)
+	if err != nil {
+		return fmt.Errorf("v4 mapping CIDR (%s) is invalid: %s", c.NAT64.V4MappingCIDR, err.Error())
+	}
+	if !v4SupportNet.Contains(v4MappingIP) {
+		return fmt.Errorf("V4 mapping IP (%s) is not within IPv4 support subnet (%s)", c.NAT64.V4MappingIP, c.Support.V4CIDR)
+	}
+	if !v4SupportNet.Contains(v4PoolIP) {
+		return fmt.Errorf("V4 mapping CIDR (%s) is not within IPv4 support subnet (%s)", c.NAT64.V4MappingCIDR, c.Support.V4CIDR)
+	}
+	return nil
+}
+
 // SetupBaseAreas allows the configuration to hold the root for both
 // the working files (overridable), and key configuration files. This
 // will allow the user to specify a different work area in the former
@@ -380,6 +414,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = ValidateDNS64Fields(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateNAT64Fields(c)
 	if err != nil {
 		return err
 	}

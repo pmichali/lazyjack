@@ -387,6 +387,29 @@ func TestNoMasterNode(t *testing.T) {
 	}
 }
 
+
+func TestUnableToValidateOpModes(t *testing.T) {
+	// Create minimum to test node entries
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"node1": {
+				OperatingModes: "monster dns64 nat64",
+			},
+			"node2": {
+				OperatingModes: "minion",
+			},
+		},
+	}
+
+	err := lazyjack.ValidateOpModesForAllNodes(c)
+	expectedErr := "invalid operating mode \"monster\" for \"node1\""
+	if err == nil {
+		t.Fatalf("Expected to see error, when configuration has invalid op mode")
+	} else if err.Error() != expectedErr {
+		t.Fatalf("Have error %q, expected %q", err.Error(), expectedErr)
+	}
+}
+
 func TestBootstrapToken(t *testing.T) {
 	var testCases = []struct {
 		name      string
@@ -810,6 +833,104 @@ func TestDeprecatedAAAASupport(t *testing.T) {
 	}
 	if !c.DNS64.AllowAAAAUse {
 		t.Fatalf("Expected allow AAAA use field to be set by deprecated value")
+	}
+}
+
+func TestIPv4Mapping(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		support_net string
+		v4IP        string
+		v4Pool      string
+		expectedStr string
+	}{
+		{
+			name:        "Mapping pool is in subnet",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.18.0.200",
+			v4Pool:      "172.18.0.128/25",
+			expectedStr: "",
+		},
+		{
+			name:        "Bad mapping IP",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.18.0.0.200",
+			v4Pool:      "172.18.0.128/25",
+			expectedStr: "v4 mapping IP (172.18.0.0.200) is invalid",
+		},
+		{
+			name:        "Bad mapping CIDR",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.18.0.200",
+			v4Pool:      "172.18.0.128/500",
+			expectedStr: "v4 mapping CIDR (172.18.0.128/500) is invalid: invalid CIDR address: 172.18.0.128/500",
+		},
+		{
+			name:        "Bad support net CIDR",
+			support_net: "172.18.0.0/400",
+			v4IP:        "172.18.0.200",
+			v4Pool:      "172.18.0.128/500",
+			expectedStr: "v4 support network (172.18.0.0/400) is invalid: invalid CIDR address: 172.18.0.0/400",
+		},
+		{
+			name:        "Missing mapping IP",
+			support_net: "172.18.0.0/16",
+			v4IP:        "",
+			v4Pool:      "172.18.0.128/25",
+			expectedStr: "missing IPv4 mapping IP",
+		},
+		{
+			name:        "Missing mapping CIDR",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.18.0.200",
+			v4Pool:      "",
+			expectedStr: "missing IPv4 mapping CIDR",
+		},
+		{
+			name:        "Missing support net CIDR",
+			support_net: "",
+			v4IP:        "",
+			v4Pool:      "172.18.0.128/25",
+			expectedStr: "missing IPv4 support network CIDR",
+		},
+		{
+			name:        "Mapping CIDR not in subnet",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.18.0.200",
+			v4Pool:      "172.22.0.128/25",
+			expectedStr: "V4 mapping CIDR (172.22.0.128/25) is not within IPv4 support subnet (172.18.0.0/16)",
+		},
+		{
+			name:        "Mapping IP not in support net",
+			support_net: "172.18.0.0/16",
+			v4IP:        "172.22.0.200",
+			v4Pool:      "172.22.0.128/25",
+			expectedStr: "V4 mapping IP (172.22.0.200) is not within IPv4 support subnet (172.18.0.0/16)",
+		},
+	}
+
+	for _, tc := range testCases {
+		c := &lazyjack.Config{
+			NAT64: lazyjack.NAT64Config{
+				V4MappingCIDR: tc.v4Pool,
+				V4MappingIP:   tc.v4IP,
+			},
+			Support: lazyjack.SupportNetwork{
+				V4CIDR: tc.support_net,
+			},
+		}
+		err := lazyjack.ValidateNAT64Fields(c)
+		if err == nil {
+			if tc.expectedStr != "" {
+				t.Errorf("[%s] No error seen, but expected %s", tc.name, tc.expectedStr)
+			}
+		} else {
+			if tc.expectedStr == "" {
+				t.Errorf("[%s] Expected no error, but saw: %s", tc.name, err.Error())
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("[%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
+			}
+		}
 	}
 }
 
