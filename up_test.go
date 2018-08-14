@@ -391,6 +391,7 @@ func TestSetupForPlugin(t *testing.T) {
 			Prefix: "fd00:100::",
 		},
 	}
+	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
 	n := &lazyjack.Node{
 		Name:      "master",
 		Interface: "eth1",
@@ -447,6 +448,7 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 			Prefix: "fd00:100::",
 		},
 	}
+	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
 	n := &lazyjack.Node{
 		Name:      "master",
 		Interface: "eth1",
@@ -496,6 +498,7 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 			Prefix: "fd00:100::",
 		},
 	}
+	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
 	n := &lazyjack.Node{
 		Name:      "master",
 		Interface: "eth1",

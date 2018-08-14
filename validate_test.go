@@ -387,7 +387,6 @@ func TestNoMasterNode(t *testing.T) {
 	}
 }
 
-
 func TestUnableToValidateOpModes(t *testing.T) {
 	// Create minimum to test node entries
 	c := &lazyjack.Config{
@@ -620,6 +619,24 @@ func TestValidatePlugin(t *testing.T) {
 	err := lazyjack.ValidatePlugin(c)
 	if err != nil {
 		t.Fatalf("Expected valid plugin selection to work: %s", err.Error())
+	}
+	if _, ok := c.General.CNIPlugin.(lazyjack.BridgePlugin); !ok {
+		t.Fatalf("Expected plugin to be Bridge")
+	}
+}
+
+func TestValidatePointToPointPlugin(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Plugin: "ptp",
+		},
+	}
+	err := lazyjack.ValidatePlugin(c)
+	if err != nil {
+		t.Fatalf("Expected valid plugin selection to work: %s", err.Error())
+	}
+	if _, ok := c.General.CNIPlugin.(lazyjack.PointToPointPlugin); !ok {
+		t.Fatalf("Expected plugin to be PTP")
 	}
 }
 
@@ -1154,6 +1171,12 @@ func TestMakePrefixFromNetwork(t *testing.T) {
 			network:  "fd00:10:20:30:40:5000::",
 			size:     88,
 			expected: "fd00:10:20:30:40:50",
+		},
+		{
+			name:     "pad to next colon",
+			network:  "fd00:10:20:30::",
+			size:     80,
+			expected: "fd00:10:20:30:0:",
 		},
 	}
 	for _, tc := range testCases {

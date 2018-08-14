@@ -72,6 +72,7 @@ type GeneralSettings struct {
 	Token         string     `yaml:"token"`           // Internal
 	TokenCertHash string     `yaml:"token-cert-hash"` // Internal
 	WorkArea      string     `yaml:"work-area"`
+	CNIPlugin     PluginAPI  // Internal
 	SystemdArea   string     // Internal
 	EtcArea       string     // Internal
 	CNIArea       string     // Internal

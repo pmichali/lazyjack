@@ -196,7 +196,12 @@ func ValidatePlugin(c *Config) error {
 		c.General.Plugin = DefaultPlugin
 		return nil
 	}
-	if plugin != "bridge" {
+	switch plugin {
+	case "bridge":
+		c.General.CNIPlugin = BridgePlugin{c}
+	case "ptp":
+		c.General.CNIPlugin = PointToPointPlugin{c}
+	default:
 		return fmt.Errorf("plugin %q not supported", plugin)
 	}
 	return nil
@@ -234,6 +239,7 @@ func GetNetAndMask(input string) (string, int, error) {
 //   fd00:40:: (72)            -> fd00:40:0:0:
 //   fd00:10:20:30:4000:: (72) -> fd00:10:20:30:40
 //   fd00:10:20:30:: (64)      -> fd00:10:20:30:
+//   fd00:10:20:30:: (80)      -> fd00:10:20:30:0:
 //
 func MakePrefixFromNetwork(network string, netSize int) string {
 	minPartsNeeded := netSize / 16

@@ -3,6 +3,7 @@ package lazyjack
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,27 +22,39 @@ func EnsureCNIAreaExists(area string) error {
 	if err != nil {
 		return err
 	}
+	glog.V(4).Info("created area for CNI config file")
 	return nil
 }
 
-// SetupForPlugin prepares the CNI plugin by creating the config file
-// and static routes. Tailored for the bridge plugin currently.
+// CreateCNIConfigFile creates the config file based on the plugin selected.
+// Default location for file is /etc/cni/net.d/.
+func CreateCNIConfigFile(node *Node, c *Config) error {
+	contents := c.General.CNIPlugin.ConfigContents(node)
+	filename := filepath.Join(c.General.CNIArea, CNIConfFile)
+	err := ioutil.WriteFile(filename, contents.Bytes(), 0755)
+	if err != nil {
+		return fmt.Errorf("unable to create CNI config for %s plugin: %v", c.General.Plugin, err)
+	}
+	glog.V(4).Info("created CNI config file for %s plugin", c.General.Plugin)
+	return nil
+}
+
+// SetupForPlugin prepares the CNI plugin by making sure CNI area
+// exists and then performing bridge specific setup.
 func SetupForPlugin(node *Node, c *Config) error {
 	glog.V(1).Infof("Setting up %s plugin", c.General.Plugin)
 	err := EnsureCNIAreaExists(c.General.CNIArea)
 	if err != nil {
 		return err
 	}
-	glog.V(4).Info("Created area for CNI config file")
-	err = CreateBridgeCNIConfigFile(node, c)
+
+	err = CreateCNIConfigFile(node, c)
 	if err != nil {
 		return err
 	}
 
-	err = CreateRoutesForPodNetwork(node, c)
+	err = c.General.CNIPlugin.Setup(node)
 	if err != nil {
-		// Note: May get error, if route already exists. Since this is the
-		// last operation, it is OK to return, versus continuing here.
 		return err
 	}
 	glog.Infof("Set up for %s plugin", c.General.Plugin)

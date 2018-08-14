@@ -7,23 +7,22 @@ import (
 	"github.com/golang/glog"
 )
 
-// CleanupForPlugin removes all static routes from the node to other
-// nodes and removes the bridge CNI plugin config file to clean up the node.
+// CleanupForPlugin performs actions to cleanup the CNI plugin on a node,
+// Including removing the CNI config file and area.
 func CleanupForPlugin(node *Node, c *Config) error {
 	glog.V(1).Infof("Cleaning up for %s plugin", c.General.Plugin)
 
-	err := RemoveRoutesForPodNetwork(node, c)
+	err := c.General.CNIPlugin.Cleanup(node)
 	if err != nil {
-		return fmt.Errorf("unable to remove routes for %s plugin: %v", c.General.Plugin, err)
+		return err
 	}
-	glog.V(1).Infof("Removed routes for %s plugin", c.General.Plugin)
 
 	// Note: CNI config file will be removed, when "kubeadm reset" performed
 	err = os.RemoveAll(c.General.CNIArea)
 	if err != nil {
 		return fmt.Errorf("unable to remove CNI config file and area: %v", err)
 	}
-	glog.V(1).Info("Removed CNI config file and area")
+	glog.V(4).Info("removed CNI config file and area")
 	glog.Infof("Cleaned up for %s plugin", c.General.Plugin)
 	return nil
 }
@@ -69,11 +68,6 @@ func TearDown(name string, c *Config) {
 	err = CleanupForPlugin(&node, c)
 	if err != nil {
 		glog.Warningf(err.Error())
-	}
-
-	err = c.General.NetMgr.RemoveBridge("br0")
-	if err != nil {
-		glog.Warningf("unable to remove br0 bridge: %v", err)
 	}
 
 	glog.Infof("Node %q tore down", name)

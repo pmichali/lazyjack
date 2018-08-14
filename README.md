@@ -58,8 +58,8 @@ The following needs to be done, prior to using this tool:
   * (optional) Internet access via IPv6 for direct IPv6 access to external sites.
     * IPv6 enabled on node.
     * IPv6 address on main interface with Internet connectivity.
-    * Default route for IPv6 traffic using main interface.
-    * Setting sysctl accept_ra=2 on main I/F (e.g. `net.ipv6.conf.eth0.accept_ra = 2`)
+    * Default route for IPv6 traffic using main interface of nodes.
+    * Setting sysctl accept_ra=2 on main I/F (e.g. `net.ipv6.conf.eth0.accept_ra = 2`) of nodes.
 * Install Lazyjack on each system (see below)
 
 
@@ -146,8 +146,8 @@ be run on the master node, before copying the configuration file over to
 minion nodes for use in the `up` command. You don't need to set these.
 
 ### Plugin (plugin)
-Currently, the reference Bridge plugin is supported by this script. Looking
-to add other plugins.
+Lazyjack will support both the Bridge and PTP plugins. Use either "bridge",
+or "ptp", respectively.
 
 ### Work Area (work-area)
 By default, the `/tmp/lazyjack` area is used to place configuration files,
@@ -352,7 +352,7 @@ For each command, there are a series of actions performed...
 * Adds route to support network for other nodes to access.
 
 ### For the `up` command
-* Creates CNI config file for bridge plugin.
+* Creates CNI config file for bridge/PTP plugin.
 * Create routes for each of the pod networks on other nodes.
 * Reloaded daemons for services.
 * Restarted kubelet service.
@@ -363,7 +363,7 @@ For each command, there are a series of actions performed...
 ### For the `down` command
 * Perform KubeAdm reset command.
 * Remove routes to other nodes' pod networks.
-* Removes bridge plugin's CNI config file.
+* Removes bridge/PTP plugin's CNI config file.
 * Removes the br0 interface
 
 ### For the `clean` command

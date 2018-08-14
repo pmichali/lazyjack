@@ -673,3 +673,47 @@ func TestFailedNotFoundSetLinkMTU(t *testing.T) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
+
+func TestRemoveBridge(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	err := nm.RemoveBridge("br0")
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to remove bridge: %s", err.Error())
+	}
+}
+
+func TestFailedLinkDownRemoveBridge(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true}}
+	err := nm.RemoveBridge("br0")
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail bringing link down")
+	}
+	expected := "unable to shut down interface \"br0\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedLinkDeleteRemoveBridge(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simLinkDelFail: true}}
+	err := nm.RemoveBridge("br0")
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail deleting link")
+	}
+	expected := "unable to delete interface \"br0\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedAllRemoveBridge(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true, simLinkDelFail: true}}
+	err := nm.RemoveBridge("br0")
+	if err == nil {
+		t.Fatalf("FAILED: Expected to fail bringing link down and deleting link")
+	}
+	expected := "unable to bring link down (unable to shut down interface \"br0\"), nor remove link (unable to delete interface \"br0\")"
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+	}
+}
