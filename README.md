@@ -52,7 +52,7 @@ The following needs to be done, prior to using this tool:
   * Internet access via IPv4 on the node being used for DNS64/NAT64.
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
-  * Go 1.9+ installed on the system and environment set up.
+  * Go 1.9+ (1.10.3+ for Kuberentes 1.11+) installed on the system and environment set up.
   * CNI 0.7.1+ installed.
   * openssl installed on system (I used 1.0.2g).
   * (optional) Internet access via IPv6 for direct IPv6 access to external sites.
@@ -151,8 +151,8 @@ to add other plugins.
 
 ### Work Area (work-area)
 By default, the `/tmp/lazyjack` area is used to place configuration files,
-certificates, etc. that are used by `lazyjack`. If you want to use another location,
-you can optionally add this field to override that setting.
+certificates, etc. that are used by `lazyjack`. For security purposes, you
+should select a secure location, by overriding the value in this field.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -469,3 +469,6 @@ to a specific version).
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
 * Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.
 * Using separate go routine for kubeadm commands, and provide a (configurable) timeout.
+* Consider including NAT64/DNS64 containers into project t oremove dependencies.
+* Consider using different default area for config files, especially for config file for DNS64 container. Could
+  use docker volume?
