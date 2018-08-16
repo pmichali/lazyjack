@@ -396,37 +396,26 @@ func CreateSupportNetwork(c *Config) (err error) {
 	return nil
 }
 
-// BuildFileStructureForDNS creates the directory tree that will be
-// used in the DNS64 server container.
-func BuildFileStructureForDNS(base string) error {
-	d := filepath.Join(base, DNS64BaseArea)
-	err := os.RemoveAll(d)
-	if err != nil {
-		return err
-	}
-	conf := filepath.Join(d, DNS64ConfArea)
-	err = os.MkdirAll(conf, 0755)
-	if err != nil {
-		return err
-	}
-	cache := filepath.Join(d, DNS64CacheArea)
-	err = os.MkdirAll(cache, 0755)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // CreateConfigForDNS64 creates the needed configuration files for the
 // DNS64 server.
 func CreateConfigForDNS64(c *Config) error {
-	err := BuildFileStructureForDNS(c.General.WorkArea)
+	var err error
+	err = c.General.Hyper.DeleteVolume(DNS64Volume)
 	if err != nil {
-		return fmt.Errorf("unable to create directory structure for DNS64: %v", err)
+		return fmt.Errorf("unable to remove existing volume: %v", err)
+	}
+	err = c.General.Hyper.CreateVolume(DNS64Volume)
+	if err != nil {
+		return fmt.Errorf("unable to create volume for DNS64 container use: %v", err)
+	}
+
+	mountPoint, err := c.General.Hyper.GetVolumeMountPoint(DNS64Volume)
+	if err != nil {
+		return fmt.Errorf("unable to determine mount point for volume: %v", err)
 	}
 
 	contents := CreateNamedConfContents(c)
-	conf := filepath.Join(c.General.WorkArea, DNS64BaseArea, DNS64ConfArea, DNS64NamedConf)
+	conf := filepath.Join(mountPoint, DNS64NamedConf)
 	err = ioutil.WriteFile(conf, contents.Bytes(), 0755)
 	if err != nil {
 		return fmt.Errorf("unable to create named.conf for DNS64: %v", err)
@@ -475,7 +464,7 @@ func EnsureDNS64Server(c *Config) (err error) {
 	args := BuildRunArgsForDNS64(c)
 	err = c.General.Hyper.RunContainer("DNS64 container", args)
 	if err == nil {
-		glog.V(1).Info("DNS64 container (%s) started", DNS64Name)
+		glog.V(1).Infof("DNS64 container (%s) started", DNS64Name)
 	}
 	return err
 }

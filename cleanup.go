@@ -190,7 +190,7 @@ func RemoveContainer(name string, c *Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to remove %q container: %v", name, err)
 	}
-	glog.V(4).Info("Removed %q container", name)
+	glog.V(4).Infof("Removed %q container", name)
 	return nil
 }
 
@@ -203,15 +203,19 @@ func CleanupDNS64Server(c *Config) error {
 	err = RemoveContainer(DNS64Name, c)
 	if err != nil {
 		all = append(all, err.Error())
+	} else {
+		glog.V(4).Info("Removed DNS64 container")
 	}
 
-	d := filepath.Join(c.General.WorkArea, DNS64BaseArea)
-	err = os.RemoveAll(d)
-	if err != nil {
-		msg := fmt.Sprintf("unable to remove DNS64 file structure: %v", err)
-		all = append(all, msg)
+	if c.General.Hyper.ResourceState(DNS64Volume) == ResourceNotPresent {
+		all = append(all, fmt.Sprintf("skipping - No %q volume", DNS64Volume))
 	} else {
-		glog.V(4).Info("Removed DNS64 file structure")
+		err = c.General.Hyper.DeleteVolume(DNS64Volume)
+		if err != nil {
+			all = append(all, err.Error())
+		} else {
+			glog.V(4).Info("Removed volume used for DNS64 container")
+		}
 	}
 
 	// Will leave V4 default route
@@ -240,6 +244,8 @@ func CleanupNAT64Server(c *Config) error {
 	err = RemoveContainer(NAT64Name, c)
 	if err != nil {
 		all = append(all, err.Error())
+	} else {
+		glog.V(4).Info("Removed NAT64 container")
 	}
 
 	// Will leave default V4 route

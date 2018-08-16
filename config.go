@@ -116,12 +116,8 @@ const (
 
 	// DNS64Name name of the DNS64 server
 	DNS64Name = "bind9"
-	// DNS64BaseArea root of where DNS64 directory tree exists
-	DNS64BaseArea = "bind9"
-	// DNS64ConfArea subdirectory for config files
-	DNS64ConfArea = "conf"
-	// DNS64CacheArea subdirectory for runtime cache files
-	DNS64CacheArea = "cache"
+	// DNS64Volume name of volume holding DNS64 configuration
+	DNS64Volume = "volume-bind9"
 	// DNS64NamedConf main configuration file
 	DNS64NamedConf = "named.conf"
 
