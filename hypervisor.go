@@ -10,4 +10,7 @@ type Hypervisor interface {
 	GetInterfaceConfig(string, string) (string, error)
 	DeleteV4Address(string, string) error
 	AddV6Route(string, string, string) error
+	CreateVolume(string) error
+	DeleteVolume(string) error
+	GetVolumeMountPoint(string) (string, error)
 }

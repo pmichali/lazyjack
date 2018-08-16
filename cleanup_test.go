@@ -826,24 +826,33 @@ func TestFailedDeleteCleanupDNS64Server(t *testing.T) {
 	}
 }
 
-func TestFailedRemoveAreaCleanupDNS64Server(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(basePath, t)
-	defer HelperCleanupArea(basePath, t)
-
-	HelperMakeReadOnly(basePath, t)
-
+func TestFailedDeleteVolumeCleanupDNS64Server(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{},
-			WorkArea: basePath,
+			Hyper: &MockHypervisor{simDeleteVolumeFail: true},
 		},
 	}
 	err := lazyjack.CleanupDNS64Server(c)
 	if err == nil {
-		t.Fatalf("FAILED: Expected not to be able to delete work area")
+		t.Fatalf("FAILED: Expected not to be able to delete volume")
 	}
-	expected := "unable to remove DNS64 file structure"
+	expected := "mock fail delete of volume"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestSkippedDeleteVolumeCleanupDNS64Server(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{simNotExists: true}, // Because if this setting, no container will exist either
+		},
+	}
+	err := lazyjack.CleanupDNS64Server(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected to skip volume delete")
+	}
+	expected := "skipping - No \"bind9\" container exists. skipping - No \"volume-bind9\" volume"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}

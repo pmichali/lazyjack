@@ -18,6 +18,11 @@ type MockHypervisor struct {
 	simAddRouteFail        bool
 	simRouteExists         bool
 	simCreateNetFail       bool
+	simCreateVolumeFail    bool
+	simDeleteVolumeFail    bool
+	simInspectVolumeFail   bool
+	simBadVolumeInfo       bool
+	mountPoint             string
 }
 
 func (mh *MockHypervisor) ResourceState(r string) string {
@@ -96,4 +101,28 @@ func (mh *MockHypervisor) CreateNetwork(name, cidr, v4cidr, gw string) error {
 		return fmt.Errorf("mock fail create of network")
 	}
 	return nil
+}
+
+func (mh *MockHypervisor) CreateVolume(name string) error {
+	if mh.simCreateVolumeFail {
+		return fmt.Errorf("mock fail create of volume")
+	}
+	return nil
+}
+
+func (mh *MockHypervisor) DeleteVolume(name string) error {
+	if mh.simDeleteVolumeFail {
+		return fmt.Errorf("mock fail delete of volume")
+	}
+	return nil
+}
+
+func (mh *MockHypervisor) GetVolumeMountPoint(name string) (string, error) {
+	if mh.simInspectVolumeFail {
+		return "", fmt.Errorf("mock fail inspect of volume")
+	}
+	if mh.simBadVolumeInfo {
+		return "/tmp/volume-mount-point-failure", nil
+	}
+	return mh.mountPoint, nil
 }

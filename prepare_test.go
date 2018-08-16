@@ -58,46 +58,6 @@ func TestFailureToCreateKubeletDropInFile(t *testing.T) {
 	}
 }
 
-func TestBuildFileStructureForDNS(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	defer HelperCleanupArea(basePath, t)
-
-	err := lazyjack.BuildFileStructureForDNS(basePath)
-	if err != nil {
-		t.Fatalf("FAILED: Expected to be able to create DNS area in %q: %s", basePath, err.Error())
-	}
-	conf := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea)
-	if _, err := os.Stat(conf); os.IsNotExist(err) {
-		t.Fatalf("FAILED: Config area was not created")
-	}
-	cache := filepath.Join(basePath, lazyjack.DNS64BaseArea, lazyjack.DNS64CacheArea)
-	if _, err := os.Stat(cache); os.IsNotExist(err) {
-		t.Fatalf("FAILED: Cache area was not created")
-	}
-}
-
-func TestFailingBuildFileStructureForDNS(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	defer HelperCleanupArea(basePath, t)
-
-	// Set work area a level lower, so that we can make parent read-only, preventing deletion
-	workArea := filepath.Join(basePath, "dummy")
-	err := os.MkdirAll(workArea, 0700)
-	if err != nil {
-		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
-	}
-	err = os.Chmod(basePath, 0400)
-	if err != nil {
-		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
-	}
-	defer func() { os.Chmod(basePath, 0700) }()
-
-	err = lazyjack.BuildFileStructureForDNS(workArea)
-	if err == nil {
-		t.Fatalf("FAILED: Expected not to be able to create DNS area in %q", workArea)
-	}
-}
-
 func TestNamedConfContents(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{
@@ -217,8 +177,9 @@ func TestSkippingCreateSupportNetwork(t *testing.T) {
 }
 
 func TestCreateConfigForDNS64(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	defer HelperCleanupArea(basePath, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{
@@ -227,29 +188,24 @@ func TestCreateConfigForDNS64(t *testing.T) {
 			RemoteV4Server: "8.8.8.8",
 		},
 		General: lazyjack.GeneralSettings{
-			WorkArea: basePath,
+			Hyper: &MockHypervisor{mountPoint: volumeMountPoint},
 		},
 	}
 
 	err := lazyjack.CreateConfigForDNS64(c)
 	if err != nil {
-		t.Fatalf("FAILED: Expected to be able to create DNS64 config area and file: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create DNS64 config file: %s", err.Error())
 	}
-	conf := filepath.Join(c.General.WorkArea, lazyjack.DNS64BaseArea, lazyjack.DNS64ConfArea, lazyjack.DNS64NamedConf)
+	conf := filepath.Join(volumeMountPoint, lazyjack.DNS64NamedConf)
 	if _, err := os.Stat(conf); os.IsNotExist(err) {
 		t.Fatalf("FAILED: Config file %q was not created", conf)
 	}
 }
 
-func TestFailedBuildTreeCreateConfigForDNS64(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	defer HelperCleanupArea(basePath, t)
-
-	// Make it not readable, so that it cannot be removed
-	err := os.MkdirAll(basePath, 0400)
-	if err != nil {
-		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
-	}
+func TestFailedDeleteVolumeCreateConfigForDNS64(t *testing.T) {
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{
@@ -258,15 +214,105 @@ func TestFailedBuildTreeCreateConfigForDNS64(t *testing.T) {
 			RemoteV4Server: "8.8.8.8",
 		},
 		General: lazyjack.GeneralSettings{
-			WorkArea: basePath,
+			Hyper: &MockHypervisor{
+				simDeleteVolumeFail: true,
+				mountPoint:          volumeMountPoint,
+			},
 		},
 	}
 
-	err = lazyjack.CreateConfigForDNS64(c)
+	err := lazyjack.CreateConfigForDNS64(c)
 	if err == nil {
-		t.Fatalf("FAILED: Expected not to be able to create DNS64 config area")
+		t.Fatalf("FAILED: Expected not to be able to delete existing volume")
 	}
-	expected := "unable to create directory structure for DNS64"
+	expected := "unable to remove existing volume: mock fail delete of volume"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedCreateVolumeCreateConfigForDNS64(t *testing.T) {
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simCreateVolumeFail: true,
+				mountPoint:          volumeMountPoint,
+			},
+		},
+	}
+
+	err := lazyjack.CreateConfigForDNS64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to create volume")
+	}
+	expected := "unable to create volume for DNS64 container use: mock fail create of volume"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedGetVolumeInfoCreateConfigForDNS64(t *testing.T) {
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simInspectVolumeFail: true,
+				mountPoint:           volumeMountPoint,
+			},
+		},
+	}
+
+	err := lazyjack.CreateConfigForDNS64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to get volume info")
+	}
+	expected := "unable to determine mount point for volume: mock fail inspect of volume"
+	if !strings.HasPrefix(err.Error(), expected) {
+		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedWriteConfigFileCreateConfigForDNS64(t *testing.T) {
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{
+			CIDR:           "fd00:10:64:ff9b::/96",
+			CIDRPrefix:     "fd00:10:64:ff9b::",
+			RemoteV4Server: "8.8.8.8",
+		},
+		General: lazyjack.GeneralSettings{
+			Hyper: &MockHypervisor{
+				simBadVolumeInfo: true,
+				mountPoint:       volumeMountPoint,
+			},
+		},
+	}
+
+	err := lazyjack.CreateConfigForDNS64(c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected failure writing config info")
+	}
+	expected := "unable to create named.conf for DNS64: open /tmp/volume-mount-point-failure/named.conf: no such file or directory"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
@@ -1201,14 +1247,16 @@ func TestPrepareClusterNode(t *testing.T) {
 }
 
 func TestNotExistsEnsureDNS64Server(t *testing.T) {
-	workArea := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(workArea, t)
-	defer HelperCleanupArea(workArea, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{simNotExists: true},
-			WorkArea: workArea,
+			Hyper: &MockHypervisor{
+				simNotExists: true,
+				mountPoint:   volumeMountPoint,
+			},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -1223,14 +1271,13 @@ func TestNotExistsEnsureDNS64Server(t *testing.T) {
 }
 
 func TestExistsButNotRunningEnsureDNS64Server(t *testing.T) {
-	workArea := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(workArea, t)
-	defer HelperCleanupArea(workArea, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{},
-			WorkArea: workArea,
+			Hyper: &MockHypervisor{mountPoint: volumeMountPoint},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -1245,14 +1292,16 @@ func TestExistsButNotRunningEnsureDNS64Server(t *testing.T) {
 }
 
 func TestSkipRunningEnsureDNS64Server(t *testing.T) {
-	workArea := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(workArea, t)
-	defer HelperCleanupArea(workArea, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{simRunning: true},
-			WorkArea: workArea,
+			Hyper: &MockHypervisor{
+				simRunning: true,
+				mountPoint: volumeMountPoint,
+			},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -1271,16 +1320,16 @@ func TestSkipRunningEnsureDNS64Server(t *testing.T) {
 }
 
 func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
-	workArea := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(workArea, t)
-	defer HelperCleanupArea(workArea, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
 				simDeleteContainerFail: true,
+				mountPoint:             volumeMountPoint,
 			},
-			WorkArea: workArea,
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -1299,25 +1348,16 @@ func TestFailedRemoveOldEnsureDNS64Server(t *testing.T) {
 }
 
 func TestFailedConfigCreateEnsureDNS64Server(t *testing.T) {
-	basePath := TempFileName(os.TempDir(), "-area")
-	defer HelperCleanupArea(basePath, t)
-
-	// Set work area a level lower, so that we can make parent read-only, preventing deletion
-	workArea := filepath.Join(basePath, "dummy")
-	err := os.MkdirAll(workArea, 0700)
-	if err != nil {
-		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
-	}
-	err = os.Chmod(basePath, 0400)
-	if err != nil {
-		t.Fatalf("ERROR: Test setup failure: %s", err.Error())
-	}
-	defer func() { os.Chmod(basePath, 0700) }()
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{simNotExists: true},
-			WorkArea: workArea,
+			Hyper: &MockHypervisor{
+				simCreateVolumeFail: true,
+				mountPoint:          volumeMountPoint,
+			},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -1325,27 +1365,27 @@ func TestFailedConfigCreateEnsureDNS64Server(t *testing.T) {
 			RemoteV4Server: "8.8.8.8",
 		},
 	}
-	err = lazyjack.EnsureDNS64Server(c)
+	err := lazyjack.EnsureDNS64Server(c)
 	if err == nil {
 		t.Fatalf("FAILED: Expected to fail to create config for DNS64")
 	}
-	expected := "unable to create directory structure for DNS64"
+	expected := "unable to create volume for DNS64 container use: mock fail create of volume"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
 	}
 }
 
 func TestFailedRunEnsureDNS64Server(t *testing.T) {
-	workArea := TempFileName(os.TempDir(), "-area")
-	HelperSetupArea(workArea, t)
-	defer HelperCleanupArea(workArea, t)
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
 
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
 				simRunFailed: true,
+				mountPoint:   volumeMountPoint,
 			},
-			WorkArea: workArea,
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
