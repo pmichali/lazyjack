@@ -152,7 +152,9 @@ or "ptp", respectively.
 ### Work Area (work-area)
 By default, the `/tmp/lazyjack` area is used to place configuration files,
 certificates, etc. that are used by `lazyjack`. For security purposes, you
-should select a secure location, by overriding the value in this field.
+should select a secure location, by overriding the value in this field. On
+each `init` run, the area is deleted and recreated, with permissions restricting
+write access to user and group.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -340,7 +342,7 @@ For each command, there are a series of actions performed...
 
 ### For the `prepare` command
 * Creates support network with IPv6 and IPv4.
-* Starts DNS64 container, with config file, removes IPv4 address, and adds route to NAT64 server.
+* Starts DNS64 container, with config file from created volume, removes IPv4 address, and adds route to NAT64 server.
 * Starts NAT64 container.
 * Adds IPv4 route to NAT64 server on node.
 * Adds management network IP on specified interface.
@@ -352,8 +354,9 @@ For each command, there are a series of actions performed...
 * Adds route to support network for other nodes to access.
 
 ### For the `up` command
-* Creates CNI config file for bridge/PTP plugin.
-* Create routes for each of the pod networks on other nodes.
+* For Bridge and PTP plugins
+  * Creates CNI config file
+  * Create routes for each of the pod networks on other nodes.
 * Reloaded daemons for services.
 * Restarted kubelet service.
 * On master: Place CA certificate and Key files into Kubernetes area.
@@ -363,8 +366,8 @@ For each command, there are a series of actions performed...
 ### For the `down` command
 * Perform KubeAdm reset command.
 * Remove routes to other nodes' pod networks.
-* Removes bridge/PTP plugin's CNI config file.
-* Removes the br0 interface
+* Removes Bridge/PTP plugin's CNI config file.
+* Removes the br0 interface for Bridge plugin
 
 ### For the `clean` command
 * Removes drop-in file for kubelet.
@@ -373,11 +376,46 @@ For each command, there are a series of actions performed...
 * Restores /etc/resolv.conf.
 * Removes route to NAT64 server for DNS64 synthesized net.
 * Removes route to support network.
-* Stops and removes DNS64 container.
+* Stops and removes DNS64 container and volume used for config.
 * Stops and removes NAT64 container.
 * Removes IPv4 route to NAT64 server.
 * Removes support network on DNS64/NAT64 node.
 
+## Customizing the cluster
+After the `prepare` command has been invoked, a kubeadm.conf file has been created
+in the work area. At this point, before the `up` command is issued, you have the
+opportunity to tweak the kubeadm.conf file. For example, you can set the following,
+to use CoreDNS, instead of kube-dns:
+
+```
+featureGates:
+  CoreDNS: true
+```
+
+Note: Newer Kubernetes versions default to using CoreDNS.
+
+Another example is turning on IPVS for kube-proxy. The kubeadm.conf file can include:
+
+```
+kubeProxy:
+  config:
+      mode: "ipvs"
+```
+
+NOTE: You'll need to make sure that the kernel on the nodes support IPVS or you must
+load the IPVS modules. For example, on Ubuntu 16.04:
+```
+sudo su
+modprobe -- ip_vs
+modprobe -- ip_vs_rr
+modprobe -- ip_vs_wrr
+modprobe -- ip_vs_sh
+modprobe -- nf_conntrack_ipv4
+
+cut -f1 -d " "  /proc/modules | grep -e ip_vs -e nf_conntrack_ipv4
+```
+
+I also installed `ipset` and `ipvsadm`.
 
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
@@ -397,7 +435,7 @@ not be required.
 
 If a system is rebooted, the entire process (`init`, copy config, `prepare`,
 and `up`) must be performed, because some changes are not persisted, and some
-files are created in /tmp.
+files are created in /tmp by default (but can be configured to different area).
 
 On a related note, you want to make sure that the node does not already have
 incompatible configuration on being interfaces or for routes that will be
@@ -459,6 +497,7 @@ to a specific version).
 * Create makefile for building/installing. Build executable for immediate use?
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 * Way to timeout on "kubeadm init", if it gets stuck (e.g. kubelet never comes up).
+* Add Continuous Integration tool and tests.
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?
@@ -469,6 +508,5 @@ to a specific version).
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
 * Could copy /etc/kubernetes/admin.conf to ~/.kube/config and change ownership, if can identify user name.
 * Using separate go routine for kubeadm commands, and provide a (configurable) timeout.
-* Consider including NAT64/DNS64 containers into project t oremove dependencies.
-* Consider using different default area for config files, especially for config file for DNS64 container. Could
-  use docker volume?
+* Consider including NAT64/DNS64 containers into project to remove dependencies.
+* Bringing up cluster in containers, instead of using separate bare-metal hosts.
