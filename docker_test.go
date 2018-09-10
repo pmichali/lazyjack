@@ -64,7 +64,7 @@ func TestBuildDockerArgsForDNS64(t *testing.T) {
 
 	list := lazyjack.BuildRunArgsForDNS64(c)
 	actual := strings.Join(list, " ")
-	expected := "run -d --name bind9 --hostname bind9 --label lazyjack --privileged=true --ip6 2001:db8::100 --dns 2001:db8::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -v volume-bind9:/etc/bind/ --net support_net resystit/bind9:latest"
+	expected := "run -d --name bind9 --hostname bind9 --label lazyjack --privileged=true --ip6 2001:db8::100 --dns 2001:db8::100 --sysctl net.ipv6.conf.all.disable_ipv6=0 --sysctl net.ipv6.conf.all.forwarding=1 -v volume-bind9:/etc/bind/ --net support_net diverdane/bind9:latest"
 	if actual != expected {
 		t.Fatalf("FAILED: Building docker run args for DNS64.\nExpected: %q\n  Actual: %q", expected, actual)
 	}

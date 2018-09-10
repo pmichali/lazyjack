@@ -60,7 +60,7 @@ func BuildRunArgsForDNS64(c *Config) []string {
 		"--privileged=true", "--ip6", c.DNS64.ServerIP, "--dns", c.DNS64.ServerIP,
 		"--sysctl", "net.ipv6.conf.all.disable_ipv6=0",
 		"--sysctl", "net.ipv6.conf.all.forwarding=1",
-		"-v", volumeMap, "--net", SupportNetName, "resystit/bind9:latest",
+		"-v", volumeMap, "--net", SupportNetName, "diverdane/bind9:latest",
 	}
 	return cmdList
 }
