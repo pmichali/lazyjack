@@ -327,7 +327,7 @@ func TestOperatingModesOnNode(t *testing.T) {
 
 	for _, tc := range testCases {
 		node := &lazyjack.Node{Name: "test-node", OperatingModes: tc.opMode}
-		err := lazyjack.ValidateNodeOpModes(node)
+		err := lazyjack.ValidateNodeOpModes(lazyjack.IPv6NetMode, node)
 		if tc.expectedStr == "" {
 			if err != nil {
 				t.Errorf("[%s] Expected test to pass - see error: %s", tc.name, err.Error())
@@ -356,6 +356,9 @@ func TestDuplicateMasters(t *testing.T) {
 				OperatingModes: "master",
 			},
 		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
 	}
 
 	err := lazyjack.ValidateOpModesForAllNodes(c)
@@ -376,6 +379,9 @@ func TestNoMasterNode(t *testing.T) {
 			"node2": {
 				OperatingModes: "minion",
 			},
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 		},
 	}
 
@@ -610,6 +616,80 @@ func TestValidateServiceCIDR(t *testing.T) {
 	}
 }
 
+func TestValidateNetworkMode(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		mode        string
+		expected    string
+		expectedStr string
+	}{
+		{
+			name:        "Default is IPv6",
+			mode:        "",
+			expected:    "ipv6",
+			expectedStr: "",
+		},
+		{
+			name:        "IPv4",
+			mode:        "ipv4",
+			expected:    "ipv4",
+			expectedStr: "",
+		},
+		{
+			name:        "IPv6",
+			mode:        "ipv6",
+			expected:    "ipv6",
+			expectedStr: "",
+		},
+		{
+			name:        "Forced to lowercase",
+			mode:        "IPv6",
+			expected:    "ipv6",
+			expectedStr: "",
+		},
+		{
+			name:        "Invalid mode",
+			mode:        "bogus",
+			expected:    "ipv6",
+			expectedStr: "unsupported network mode \"bogus\" entered",
+		},
+	}
+	for _, tc := range testCases {
+		c := &lazyjack.Config{
+			General: lazyjack.GeneralSettings{
+				Mode: tc.mode,
+			},
+		}
+		err := lazyjack.ValidateNetworkMode(c)
+		if err == nil {
+			if tc.expectedStr != "" {
+				t.Errorf("[%s] No error seen, but expected %s", tc.name, tc.expectedStr)
+			} else {
+				if c.General.Mode != tc.expected {
+					t.Errorf("[%s] Expected mode to be %q, but was %q", tc.name, tc.expected, c.General.Mode)
+				}
+			}
+		} else {
+			if tc.expectedStr == "" {
+				t.Errorf("[%s] Expected no error, but saw: %s", tc.name, err.Error())
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("[%s] Expected error %q, got %q", tc.name, tc.expectedStr, err.Error())
+			}
+		}
+	}
+}
+
+func TestNoModeSpecified(t *testing.T) {
+	c := &lazyjack.Config{}
+	err := lazyjack.ValidateNetworkMode(c)
+	if err != nil {
+		t.Errorf("Expected no error, when network mode is not specified")
+	}
+	if c.General.Mode != "ipv6" {
+		t.Errorf("Expected default network mode to be 'ipv6', but was %q", c.General.Mode)
+	}
+}
+
 func TestValidatePlugin(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
@@ -744,6 +824,9 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 		},
 	}
 
@@ -935,6 +1018,9 @@ func TestIPv4Mapping(t *testing.T) {
 			Support: lazyjack.SupportNetwork{
 				V4CIDR: tc.support_net,
 			},
+			General: lazyjack.GeneralSettings{
+				Mode: lazyjack.IPv6NetMode,
+			},
 		}
 		err := lazyjack.ValidateNAT64Fields(c)
 		if err == nil {
@@ -1027,6 +1113,9 @@ func TestFailedSupportCIDRCalculateDerivedFields(t *testing.T) {
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
 		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
 	}
 
 	err := lazyjack.CalculateDerivedFields(c)
@@ -1052,6 +1141,9 @@ func TestFailedDNS64CalculateDerivedFields(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 		},
 	}
 

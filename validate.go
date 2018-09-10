@@ -51,9 +51,11 @@ func ValidateUniqueIDs(c *Config) error {
 
 // ValidateNodeOpModes checks that valid operational mode names are used.
 // NOTE: Side effect of saving the operating modes as flags, for easier use.
-func ValidateNodeOpModes(node *Node) error {
-	validModes := []string{"master", "minion", "dns64", "nat64"}
-
+func ValidateNodeOpModes(netMode string, node *Node) error {
+	validModes := []string{"master", "minion"}
+	if netMode == IPv6NetMode {
+		validModes = append(validModes, "dns64", "nat64")
+	}
 	ops := strings.Split(node.OperatingModes, " ")
 	anyModes := false
 	for _, op := range ops {
@@ -110,7 +112,7 @@ func ValidateOpModesForAllNodes(c *Config) error {
 	numMasters := 0
 	for name, node := range c.Topology {
 		node.Name = name
-		err := ValidateNodeOpModes(&node)
+		err := ValidateNodeOpModes(c.General.Mode, &node)
 		if err != nil {
 			return err
 		}
@@ -177,6 +179,25 @@ func ValidateCIDR(which, cidr string) error {
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return fmt.Errorf("unable to parse %s CIDR (%s)", which, cidr)
+	}
+	return nil
+}
+
+// ValidateNetworkMode makes sure that only the supported network
+// modes are entered. Currently, this is ipv4 and ipv6, and the default
+// is IPv6, when not specified.
+func ValidateNetworkMode(c *Config) error {
+	if c.General.Mode == "" {
+		c.General.Mode = DefaultNetMode
+	}
+	c.General.Mode = strings.ToLower(c.General.Mode)
+	switch c.General.Mode {
+	case IPv4NetMode:
+		fallthrough
+	case IPv6NetMode:
+		glog.Infof("Building cluster in mode %q", c.General.Mode)
+	default:
+		return fmt.Errorf("unsupported network mode %q entered", c.General.Mode)
 	}
 	return nil
 }
@@ -270,9 +291,11 @@ func CalculateDerivedFields(c *Config) error {
 		return fmt.Errorf("invalid management network CIDR: %v", err)
 	}
 
-	c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
-	if err != nil {
-		return fmt.Errorf("invalid support network CIDR: %v", err)
+	if c.General.Mode == IPv6NetMode {
+		c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
+		if err != nil {
+			return fmt.Errorf("invalid support network CIDR: %v", err)
+		}
 	}
 
 	if c.Pod.CIDR != "" {
@@ -292,9 +315,11 @@ func CalculateDerivedFields(c *Config) error {
 		}
 	}
 
-	c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
-	if err != nil {
-		return fmt.Errorf("invalid DNS64 CIDR: %v", err)
+	if c.General.Mode == IPv6NetMode {
+		c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)
+		if err != nil {
+			return fmt.Errorf("invalid DNS64 CIDR: %v", err)
+		}
 	}
 
 	return nil
@@ -325,6 +350,9 @@ func ValidateDNS64Fields(c *Config) error {
 // address (assumed /16), contains the subnet used for the IPv4
 // mapping pool, and that both are valid.
 func ValidateNAT64Fields(c *Config) error {
+	if c.General.Mode != IPv6NetMode {
+		return nil
+	}
 	if c.Support.V4CIDR == "" {
 		return fmt.Errorf("missing IPv4 support network CIDR")
 	}
@@ -389,10 +417,21 @@ func SetupHandles(c *Config) error {
 // to override and mock that library).
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
+	var err error
 	if c == nil {
 		return fmt.Errorf("no configuration loaded")
 	}
-	err := ValidateToken(c.General.Token, ignoreMissing)
+	err = ValidatePlugin(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateNetworkMode(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateToken(c.General.Token, ignoreMissing)
 	if err != nil {
 		return err
 	}
@@ -425,11 +464,6 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = ValidateNAT64Fields(c)
-	if err != nil {
-		return err
-	}
-
-	err = ValidatePlugin(c)
 	if err != nil {
 		return err
 	}

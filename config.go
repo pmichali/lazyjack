@@ -68,6 +68,7 @@ type Node struct {
 
 // GeneralSettings defines general settings used by the app.
 type GeneralSettings struct {
+	Mode          string     `yaml:"mode"`
 	Plugin        string     `yaml:"plugin"`
 	Token         string     `yaml:"token"`           // Internal
 	TokenCertHash string     `yaml:"token-cert-hash"` // Internal
@@ -152,6 +153,13 @@ const (
 	MinimumPodMTU = 1280
 	// DefaultPodMTU is the default MTU to use, when not specified
 	DefaultPodMTU = 1500
+
+	// IPv6NetMode for IPv6 only networks
+	IPv6NetMode = "ipv6"
+	// DefaultNetMode default network operating mode
+	DefaultNetMode = IPv6NetMode
+	// IPv4NetMode for IPv4 only network operating mode
+	IPv4NetMode = "ipv4"
 )
 
 // ParseConfig parses the YAML configuration provided, into the config structure.
