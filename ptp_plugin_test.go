@@ -183,6 +183,9 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
 			Size:   80,
 			MTU:    9000,
 		},
+		General: lazyjack.GeneralSettings{
+			Mode: "ipv6",
+		},
 	}
 	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
 	n := &lazyjack.Node{ID: 10}
@@ -198,6 +201,41 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
     "subnet": "fd00:40:0:0:a::/80",
     "routes": [
       {"dst": "::/0"}
+    ]
+  }
+}
+`
+	actual := c.General.CNIPlugin.ConfigContents(n)
+	if actual.String() != expected {
+		t.Fatalf("FAILED: PTP CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
+	}
+}
+
+func TestPointToPointCNIConfigContentsV4(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Prefix: "10.244.0.",
+			Size:   24,
+			MTU:    1500,
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "ipv4",
+		},
+	}
+	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `{
+  "cniVersion": "0.3.1",
+  "name": "dindnet",
+  "type": "ptp",
+  "ipMasq": true,
+  "mtu": 1500,
+  "ipam": {
+    "type": "host-local",
+    "subnet": "10.244.10.0/24",
+    "routes": [
+      {"dst": "0.0.0.0/0"}
     ]
   }
 }

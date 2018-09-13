@@ -160,19 +160,22 @@ func CleanupClusterNode(node *Node, c *Config) error {
 		all = append(all, err.Error())
 	}
 
-	err = RemoveRouteForDNS64(node, c)
-	if err != nil {
-		glog.V(4).Info(err.Error())
-		all = append(all, err.Error())
-	}
-
-	if !node.IsNAT64Server && !node.IsDNS64Server {
-		err = RemoveRouteForNAT64(node, c)
+	if c.General.Mode == "ipv6" {
+		err = RemoveRouteForDNS64(node, c)
 		if err != nil {
 			glog.V(4).Info(err.Error())
 			all = append(all, err.Error())
 		}
+
+		if !node.IsNAT64Server && !node.IsDNS64Server {
+			err = RemoveRouteForNAT64(node, c)
+			if err != nil {
+				glog.V(4).Info(err.Error())
+				all = append(all, err.Error())
+			}
+		}
 	}
+
 	glog.Info("Cleaned general settings")
 	if len(all) > 0 {
 		return fmt.Errorf(strings.Join(all, ". "))
@@ -285,24 +288,27 @@ func Cleanup(name string, c *Config) error {
 			all = append(all, err.Error())
 		}
 	}
-	if node.IsDNS64Server {
-		err = CleanupDNS64Server(c)
-		if err != nil {
-			all = append(all, err.Error())
+	if c.General.Mode == "ipv6" {
+		if node.IsDNS64Server {
+			err = CleanupDNS64Server(c)
+			if err != nil {
+				all = append(all, err.Error())
+			}
+		}
+		if node.IsNAT64Server {
+			err = CleanupNAT64Server(c)
+			if err != nil {
+				all = append(all, err.Error())
+			}
+		}
+		if node.IsDNS64Server || node.IsNAT64Server {
+			err = CleanupSupportNetwork(c)
+			if err != nil {
+				all = append(all, err.Error())
+			}
 		}
 	}
-	if node.IsNAT64Server {
-		err = CleanupNAT64Server(c)
-		if err != nil {
-			all = append(all, err.Error())
-		}
-	}
-	if node.IsDNS64Server || node.IsNAT64Server {
-		err = CleanupSupportNetwork(c)
-		if err != nil {
-			all = append(all, err.Error())
-		}
-	}
+
 	glog.Infof("Node %q cleaned", name)
 	if len(all) > 0 {
 		return fmt.Errorf(strings.Join(all, ". "))

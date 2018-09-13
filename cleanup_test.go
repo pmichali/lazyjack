@@ -703,6 +703,7 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 			NetMgr:      nm,
 			EtcArea:     etcArea,
 			SystemdArea: systemArea,
+			Mode:        lazyjack.IPv6NetMode,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "2001:db8:20::",
@@ -1097,6 +1098,7 @@ func TestFailedCleanup(t *testing.T) {
 			WorkArea:    basePath,
 			EtcArea:     etcArea,
 			SystemdArea: systemArea,
+			Mode:        lazyjack.IPv6NetMode,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
 			Prefix: "2001:db8:20::",

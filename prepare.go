@@ -67,7 +67,7 @@ apiServerExtraArgs:
 	fmt.Fprintf(contents, middle)
 	serviceNetMode := "::"
 	if c.Service.Mode == "ipv4" {
-		serviceNetMode = "127.0.0.1"
+		serviceNetMode = "0.0.0.0"
 	}
 	fmt.Fprintf(contents, "  insecure-bind-address: \"%s\"\n", serviceNetMode)
 	fmt.Fprintf(contents, trailer)

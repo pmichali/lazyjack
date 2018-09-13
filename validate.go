@@ -338,8 +338,8 @@ func CalculateDerivedFields(c *Config) error {
 		}
 		c.Pod.Size = netSize + 8 // Each node will get a subnet from this network
 		if IsIPv4(network) {
-			if netSize != 8 && netSize != 16 {
-				return fmt.Errorf("only /8 and /16 are supported for IPv4 pod networks - have /%d", netSize)
+			if netSize != 16 {
+				return fmt.Errorf("only /16 is supported for IPv4 pod networks - have /%d", netSize)
 			}
 			c.Pod.Prefix = MakeV4PrefixFromNetwork(network)
 		} else {

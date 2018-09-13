@@ -800,7 +800,7 @@ nodeName: my-master
 token: "56cdce.7b18ad347f3de81c"
 tokenTTL: 0s
 apiServerExtraArgs:
-  insecure-bind-address: "127.0.0.1"
+  insecure-bind-address: "0.0.0.0"
   insecure-port: "8080"
   runtime-config: "admissionregistration.k8s.io/v1alpha1"
   feature-gates: AllAlpha=true

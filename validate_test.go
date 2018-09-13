@@ -1050,7 +1050,7 @@ func TestFailedBadPodNetCalculateDerivedFieldsForV4(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected derived fields parsed failure for pod network")
 	}
-	expectedMsg := "only /8 and /16 are supported for IPv4 pod networks - have /24"
+	expectedMsg := "only /16 is supported for IPv4 pod networks - have /24"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error %q, got %q", expectedMsg, err.Error())
 	}

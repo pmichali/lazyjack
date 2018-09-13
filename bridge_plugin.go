@@ -40,8 +40,8 @@ func (b BridgePlugin) ConfigContents(node *Node) *bytes.Buffer {
 	contents := bytes.NewBufferString(header)
 	fmt.Fprintf(contents, "    \"mtu\": %d,\n", b.Config.Pod.MTU)
 	fmt.Fprintf(contents, middle)
-	prefix := BuildPodSubnetPrefix(b.Config.Pod.Prefix, b.Config.Pod.Size, node.ID)
-	fmt.Fprintf(contents, "              \"subnet\": \"%s/%d\",\n", prefix, b.Config.Pod.Size)
+	prefix, suffix := BuildPodSubnetPrefix(b.Config.General.Mode, b.Config.Pod.Prefix, b.Config.Pod.Size, node.ID)
+	fmt.Fprintf(contents, "              \"subnet\": \"%s%s/%d\",\n", prefix, suffix, b.Config.Pod.Size)
 	fmt.Fprintf(contents, "              \"gateway\": \"%s1\"\n", prefix)
 	fmt.Fprintf(contents, trailer)
 	return contents

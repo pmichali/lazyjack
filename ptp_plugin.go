@@ -25,17 +25,23 @@ func (p PointToPointPlugin) ConfigContents(node *Node) *bytes.Buffer {
 	middle := `  "ipam": {
     "type": "host-local",
 `
-	trailer := `    "routes": [
-      {"dst": "::/0"}
-    ]
+	middle2 := `    "routes": [
+`
+	trailer := `    ]
   }
 }
 `
 	contents := bytes.NewBufferString(header)
 	fmt.Fprintf(contents, "  \"mtu\": %d,\n", p.Config.Pod.MTU)
 	fmt.Fprintf(contents, middle)
-	prefix := BuildPodSubnetPrefix(p.Config.Pod.Prefix, p.Config.Pod.Size, node.ID)
-	fmt.Fprintf(contents, "    \"subnet\": \"%s/%d\",\n", prefix, p.Config.Pod.Size)
+	prefix, suffix := BuildPodSubnetPrefix(p.Config.General.Mode, p.Config.Pod.Prefix, p.Config.Pod.Size, node.ID)
+	fmt.Fprintf(contents, "    \"subnet\": \"%s%s/%d\",\n", prefix, suffix, p.Config.Pod.Size)
+	fmt.Fprintf(contents, middle2)
+	dest := "::"
+	if p.Config.General.Mode == IPv4NetMode {
+		dest = "0.0.0.0"
+	}
+	fmt.Fprintf(contents, "      {\"dst\": \"%s/0\"}\n", dest)
 	fmt.Fprintf(contents, trailer)
 	return contents
 }

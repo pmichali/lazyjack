@@ -15,18 +15,28 @@ type PluginAPI interface {
 	Cleanup(n *Node) error
 }
 
-// BuildPodSubnetPrefix will create a pod network prefix, using the cluster
-// prefix and node ID. If the subnet size is not a multiple of 16, then the
-// node ID will be placed in the upper byte of the last part of the prefix.
-// If the node ID is to be placed in the lower byte, and there is an upper
-// byte, we need to make sure we pad with zero for values less than 0x10.
-func BuildPodSubnetPrefix(prefix string, netSize, nodeID int) string {
+// BuildPodSubnetPrefixSuffix will create a pod network prefix, using the cluster
+// prefix and node ID. For IPv6, if the subnet size is not a multiple of 16,
+// then the node ID will be placed in the upper byte of the last part of the
+// prefix. If the node ID is to be placed in the lower byte, and there is an
+// upper byte, we need to make sure we pad with zero for values less than 0x10.
+// The suffix will be "".
+//
+// For IPv4, the pod network is expected to be /24 with the node ID in the
+// third octect. As a result, the third octet in the prefix is repplaced with
+// the node ID. The suffix will be "0".
+func BuildPodSubnetPrefix(mode, prefix string, netSize, nodeID int) (string, string) {
+	if mode == "ipv4" {
+		parts := strings.Split(prefix, ".")
+		return fmt.Sprintf("%s.%s.%d.", parts[0], parts[1], nodeID), "0"
+	}
+	// IPv6...
 	if (netSize % 16) != 0 {
 		nodeID *= 256 // shift to upper byte
 	} else if !strings.HasSuffix(prefix, ":") && nodeID < 0x10 {
 		prefix += "0" // pad
 	}
-	return fmt.Sprintf("%s%x::", prefix, nodeID)
+	return fmt.Sprintf("%s%x::", prefix, nodeID), ""
 }
 
 // DoRouteOpsOnNodes builds static routes between minion and master node
@@ -39,7 +49,8 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				continue
 			}
 			if n.IsMaster || n.IsMinion {
-				dest := fmt.Sprintf("%s/%d", BuildPodSubnetPrefix(c.Pod.Prefix, c.Pod.Size, n.ID), c.Pod.Size)
+				prefix, suffix := BuildPodSubnetPrefix(c.General.Mode, c.Pod.Prefix, c.Pod.Size, n.ID)
+				dest := fmt.Sprintf("%s%s/%d", prefix, suffix, c.Pod.Size)
 				gw := BuildGWIP(c.Mgmt.Prefix, n.ID)
 				var err error
 				if op == "add" {

@@ -258,38 +258,58 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 
 func TestBuildPodSubnetPrefix(t *testing.T) {
 	var testCases = []struct {
-		name     string
-		prefix   string
-		size     int
-		node_id  int
-		expected string
+		name           string
+		prefix         string
+		size           int
+		node_id        int
+		mode           string
+		expectedPrefix string
+		expectedSuffix string
 	}{
 		{
-			name:     "node in lower byte, no upper byte",
-			prefix:   "fd00:40:0:0:",
-			size:     80,
-			node_id:  10,
-			expected: "fd00:40:0:0:a::",
+			name:           "node in lower byte, no upper byte",
+			prefix:         "fd00:40:0:0:",
+			size:           80,
+			node_id:        10,
+			mode:           "ipv6",
+			expectedPrefix: "fd00:40:0:0:a::",
+			expectedSuffix: "",
 		},
 		{
-			name:     "node in upper byte",
-			prefix:   "fd00:40:0:0:",
-			size:     72,
-			node_id:  10,
-			expected: "fd00:40:0:0:a00::",
+			name:           "node in upper byte",
+			prefix:         "fd00:40:0:0:",
+			size:           72,
+			node_id:        10,
+			mode:           "ipv6",
+			expectedPrefix: "fd00:40:0:0:a00::",
+			expectedSuffix: "",
 		},
 		{
-			name:     "node added to lower byte",
-			prefix:   "fd00:10:20:30:40",
-			size:     80,
-			node_id:  02,
-			expected: "fd00:10:20:30:4002::",
+			name:           "node added to lower byte",
+			prefix:         "fd00:10:20:30:40",
+			size:           80,
+			node_id:        02,
+			mode:           "ipv6",
+			expectedPrefix: "fd00:10:20:30:4002::",
+			expectedSuffix: "",
+		},
+		{
+			name:           "ipv4 /24 only",
+			prefix:         "10.244.0.",
+			size:           24,
+			node_id:        20,
+			mode:           "ipv4",
+			expectedPrefix: "10.244.20.",
+			expectedSuffix: "0",
 		},
 	}
 	for _, tc := range testCases {
-		actual := lazyjack.BuildPodSubnetPrefix(tc.prefix, tc.size, tc.node_id)
-		if actual != tc.expected {
-			t.Errorf("[%s] Expected: %q, got %q", tc.name, tc.expected, actual)
+		actualPrefix, actualSuffix := lazyjack.BuildPodSubnetPrefix(tc.mode, tc.prefix, tc.size, tc.node_id)
+		if actualPrefix != tc.expectedPrefix {
+			t.Errorf("[%s] Expected prefix: %q, got %q", tc.name, tc.expectedPrefix, actualPrefix)
+		}
+		if actualSuffix != tc.expectedSuffix {
+			t.Errorf("[%s] Expected prefix: %q, got %q", tc.name, tc.expectedSuffix, actualSuffix)
 		}
 	}
 }
