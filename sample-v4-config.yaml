@@ -1,0 +1,23 @@
+general:
+    mode: ipv4
+    plugin: bridge  # default value
+topology:
+    <master-name>:
+        interface: "<intf-name>"
+        opmodes: "master"
+        id: 2
+    <minion-1-name>:
+        interface: "<intf-name>"
+        opmodes: "minion"
+        id: 3
+    <minion-2-name>:
+        interface: "<intf-name>"
+        opmodes: "minion"
+        id: 4
+mgmt_net:
+    cidr: "10.192.0.0/24"
+pod_net:
+    prefix: "10.244.0.0/16"
+    size: 24
+service_net:
+    cidr: "10.96.0.0/12"

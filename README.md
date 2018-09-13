@@ -4,7 +4,8 @@ furling, making the process easier.
 
 In keeping with the nautical theme of Kubernetes, the lazyjack application
 is used to make it easier to provision bare-metal systems that they can be
-used with Kubernetes/Istio in an IPv6 (only) environment.
+used with Kubernetes/Istio in an IPv6-only environment. It has been
+enhanced to handle an IPv4-only environment as well.
 
 The goal is to reduce as many manual steps as possible, so that provisioning
 of systems can occur quickly. This is geared to a lab environment, where the
@@ -48,8 +49,8 @@ undoing the setup made and restoring the system to original state.
 The following needs to be done, prior to using this tool:
 * One or more bare-metal systems running Linux (tested with Ubuntu 16.04), each with:
   * Two interfaces, one for access to box, one for management network for cluster.
-  * Make sure management interface doesn't have a conflicting IPv6 address.
-  * Internet access via IPv4 on the node being used for DNS64/NAT64.
+  * Make sure management interface doesn't have a conflicting IP address.
+  * Internet access via IPv4 on the node being used for DNS64/NAT64 (V6).
   * Docker (17.03.2) installed.
   * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.9+ (1.10.3+ for Kuberentes 1.11+) installed on the system and environment set up.
@@ -60,7 +61,7 @@ The following needs to be done, prior to using this tool:
     * IPv6 address on main interface with Internet connectivity.
     * Default route for IPv6 traffic using main interface of nodes.
     * Setting sysctl accept_ra=2 on main I/F (e.g. `net.ipv6.conf.eth0.accept_ra = 2`) of nodes.
-* Install Lazyjack on each system (see below)
+* Install Lazyjack and config file on each system (see below).
 
 
 ## Preparing Lazyjack
@@ -109,6 +110,7 @@ general:
     token-cert-hash: "<provide-cert-hash>"
     plugin: bridge
     work-area: "/tmp/lazyjack"
+    mode: "ipv6"
 topology:
   my-master:
     interface: "enp10s0"
@@ -156,6 +158,9 @@ should select a secure location, by overriding the value in this field. On
 each `init` run, the area is deleted and recreated, with permissions restricting
 write access to user and group.
 
+### Mode (mode)
+The default is IPv6, but `ipv4` may be specified as of version 1.3.0.
+
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
 to by the hostname, and contains three items.
@@ -174,7 +179,7 @@ will be used in IPs and subnets (the app doesn't validate this - yet).
 ```
 Third, the operational mode (**opmode**) of the system. This string can have the value
 **master** or **minion** (only specify one master per cluster). It can also have the
-values **dns64** and **nat64** (again only specify these once).
+values **dns64** and **nat64** (again only specify these once) for IPv6 mode.
 ```
     opmodes: "master dns64 nat64"
 ```
@@ -183,6 +188,7 @@ it makes sense to allow them on separate nodes). They can accompany a master or
 minion, or can be on a node by themselves.
 
 ### Support Network (support_net)
+This section is only used, when operating in `ipv6` mode. The entries are ignore for IPv4.
 For the NAT64 and DNS64 services, which are running in containers, we need a network
 that has both V4 and V6 addresses. This section of the YAML file specifies the IPv6
 CIDR, and the IPv4 CIDR:
@@ -201,6 +207,16 @@ section.
     cidr: "fd00:20::/64"
 ```
 
+For IPv4, this must be a /8 or /16 CIDR. This allows multiple clusters to use the
+third octet for the cluster ID. For example:
+```
+    cidr: "10.192.0.0/16"
+```
+
+NOTE: An IP is added to the specified interface on `prepare` and removed on `down`,
+so it is advised to not use the main interface used to access the node, as may
+loose connectivity.
+
 ### Pod Network (pod_net)
 A second network that is used by Kubernetes for the pods. This network should be
 distint from the support and management networks. Here, we specify the CIDR for
@@ -215,6 +231,12 @@ specify the prefix and size, the prefix must be fully qualified (e.g. in this
 case `fd00:40:0:0:`) and the size must be the size allocated to the node (e.g.
 80).
 
+For IPv4, this must be a /16 CIDR. Each node will carve out a /24 subnet, using
+the node "ID" as the third octet of the address. For example:
+```
+    cidr: "10.244.0.0/16"
+```
+
 Optionally, you can set the MTU used on the interface for the pod and management
 networks, on each node. Use the following, under the pod_net section.
 ```
@@ -228,10 +250,15 @@ network than the pod subnet?
     cidr: "fd00:30::/110"
 ```
 
+For IPv4, this must be a subnet that is larger than /24. For example:
+```
+    cidr: "10.96.0.0/12"
+```
+
 ### NAT64 (nat64)
-To be able to reach external sites that only support IPv4, we use NAT64 (which
-is combined with Docker's NAT44 capabilities) to translate between external
-IPv4 addresses and internal IPv6 addresses. To do this, it needs IPv4 access
+For IPv6 mode, to be able to reach external sites that only support IPv4, we use
+NAT64 (which is combined with Docker's NAT44 capabilities) to translate between
+external IPv4 addresses and internal IPv6 addresses. To do this, it needs IPv4 access
 to the Internet, and uses NAT44 via Docker to translate from it's IPv4 address
 to the public IPv4 address for the host. Tayga (http://www.litech.org/tayga/)
 is used for this role and runs as a container on the node with **nat64** specified
@@ -251,9 +278,9 @@ ip: "fd00:10::200"
 ```
 
 ### DNS64 (dns64)
-A companion to NAT64, the DNS64 container using bind9 will provide synthesized IPv6
-addresses for external IPv4 addresses (currently, it does so for all addresses).
-The CIDR used for this translation is specified in this section.
+For IPv6 mode, a companion to NAT64, the DNS64 container using bind9 will provide
+synthesized IPv6 addresses for external IPv4 addresses (currently, it does so for all
+addresses). The CIDR used for this translation is specified in this section.
 ```
     cidr: "fd00:10:64:ff9b::/96"
 ```
@@ -341,16 +368,16 @@ For each command, there are a series of actions performed...
 * Updates the configuration YAML file (needed for `up` command on minions).
 
 ### For the `prepare` command
-* Creates support network with IPv6 and IPv4.
-* Starts DNS64 container, with config file from created volume, removes IPv4 address, and adds route to NAT64 server.
-* Starts NAT64 container.
-* Adds IPv4 route to NAT64 server on node.
+* (IPv6) Creates support network with IPv6 and IPv4.
+* (IPv6) Starts DNS64 container, with config file from created volume, removes IPv4 address, and adds route to NAT64 server.
+* (IPv6) Starts NAT64 container.
+* (IPv6) Adds IPv4 route to NAT64 server on node.
 * Adds management network IP on specified interface.
 * Places management network IP in /etc/hosts, for this hostname.
 * Adds DNS64 support network IP as first nameserver in /etc/resolv.conf.
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
 * Creates KubeAdm configuration file, saves old one with .bak suffix, in case file customized.
-* Adds route to DNS64 synthesized network via NAT64 server (based on node).
+* (IPv6) Adds route to DNS64 synthesized network via NAT64 server (based on node).
 * Adds route to support network for other nodes to access.
 
 ### For the `up` command
@@ -374,12 +401,12 @@ For each command, there are a series of actions performed...
 * Removes IP from management interface.
 * Restores /etc/hosts.
 * Restores /etc/resolv.conf.
-* Removes route to NAT64 server for DNS64 synthesized net.
-* Removes route to support network.
-* Stops and removes DNS64 container and volume used for config.
-* Stops and removes NAT64 container.
-* Removes IPv4 route to NAT64 server.
-* Removes support network on DNS64/NAT64 node.
+* (IPv6) Removes route to NAT64 server for DNS64 synthesized net.
+* (IPv6) Removes route to support network.
+* (IPv6) Stops and removes DNS64 container and volume used for config.
+* (IPv6) Stops and removes NAT64 container.
+* (IPv6) Removes IPv4 route to NAT64 server.
+* (IPv6) Removes support network on DNS64/NAT64 node.
 
 ## Customizing the cluster
 After the `prepare` command has been invoked, a kubeadm.conf file has been created
@@ -464,6 +491,12 @@ sudo ip6tables -F
 sudo ip6tables -X
 ```
 
+Alternately, I had one case where I just changed the one filter rule to
+resolve the issue:
+```
+sudo iptables -t filter -P FORWARD ACCEPT
+```
+
 I had another case where kube-dns was not coming up, and kube-proxy log was
 showing IPTABLES restore errors saying "iptables-restore v1.6.0: invalid
  mask `128' specified". This should be using the ip6tables-restore operation.
@@ -502,7 +535,6 @@ to a specific version).
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?
 * Running DNS64 and NAT64 on separate nodes. Useful? Routing?
-* Is it useful to try with with IPv4 addresses (only) as a vanilla provisioner.
 * Support hypervisors other than Docker (have separated out the code)?
 * Consider using Kubeadm's DynamicKubeletConfig, instead of drop-in file for kubelet.
 * Could skip running kubeadm commands and just display them, for debugging (how to best do that? command line arg?)
@@ -510,3 +542,8 @@ to a specific version).
 * Using separate go routine for kubeadm commands, and provide a (configurable) timeout.
 * Consider including NAT64/DNS64 containers into project to remove dependencies.
 * Bringing up cluster in containers, instead of using separate bare-metal hosts.
+* Add dual-stack support.
+* Setup to allow provisioning without a token (so init step is not needed).
+* Consider allowing any subnet size for management network on v4 and leave to user to ensure room for node ID.
+* Allow IPv4 to use existing I/F on each host (implying not adding IP address or removing it on teardown.
+
