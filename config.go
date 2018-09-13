@@ -34,7 +34,9 @@ type PodNetwork struct {
 
 // ServiceNetwork defines information for the service network.
 type ServiceNetwork struct {
-	CIDR string `yaml:"cidr"`
+	CIDR   string `yaml:"cidr"`
+	Prefix string // Internal
+	Mode   string // Internal
 }
 
 // DNS64Config defines information for the DNS64 server configuration.

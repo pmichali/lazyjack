@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,11 +16,13 @@ import (
 // CreateKubeletDropInContents constructs the contents of the kubelet
 // drop-in file to support IPv6.
 func CreateKubeletDropInContents(c *Config) *bytes.Buffer {
-	ip, _, _ := net.ParseCIDR(c.Service.CIDR) // Already validated
-
+	devicePart := "a"
+	if c.Service.Mode == "ipv4" {
+		devicePart = "10"
+	}
 	contents := bytes.NewBufferString("[Service]\n")
 	// Assumption is that kube-dns will be at address 10 (0xa) in service network
-	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%sa --cluster-domain=cluster.local\"\n", ip)
+	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%s%s --cluster-domain=cluster.local\"\n", c.Service.Prefix, devicePart)
 	return contents
 }
 
@@ -50,10 +51,10 @@ apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 api:
 `
-	trailer := `tokenTTL: 0s
+	middle := `tokenTTL: 0s
 apiServerExtraArgs:
-  insecure-bind-address: "::"
-  insecure-port: "8080"
+`
+	trailer := `  insecure-port: "8080"
   runtime-config: "admissionregistration.k8s.io/v1alpha1"
   feature-gates: AllAlpha=true
 `
@@ -63,7 +64,14 @@ apiServerExtraArgs:
 	fmt.Fprintf(contents, "  serviceSubnet: %q\n", c.Service.CIDR)
 	fmt.Fprintf(contents, "nodeName: %s\n", n.Name)
 	fmt.Fprintf(contents, "token: %q\n", c.General.Token)
+	fmt.Fprintf(contents, middle)
+	serviceNetMode := "::"
+	if c.Service.Mode == "ipv4" {
+		serviceNetMode = "127.0.0.1"
+	}
+	fmt.Fprintf(contents, "  insecure-bind-address: \"%s\"\n", serviceNetMode)
 	fmt.Fprintf(contents, trailer)
+	return contents.Bytes()
 	return contents.Bytes()
 }
 
@@ -340,14 +348,16 @@ func PrepareClusterNode(node *Node, c *Config) error {
 		}
 	}
 
-	err = CreateRouteToNAT64ServerForDNS64Subnet(node, c)
-	if err != nil {
-		return err
-	}
+	if c.General.Mode == IPv6NetMode {
+		err = CreateRouteToNAT64ServerForDNS64Subnet(node, c)
+		if err != nil {
+			return err
+		}
 
-	err = CreateRouteToSupportNetworkForOtherNodes(node, c)
-	if err != nil {
-		return err
+		err = CreateRouteToSupportNetworkForOtherNodes(node, c)
+		if err != nil {
+			return err
+		}
 	}
 	glog.Info("Prepared general settings")
 	return nil

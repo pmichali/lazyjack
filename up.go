@@ -35,7 +35,7 @@ func CreateCNIConfigFile(node *Node, c *Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create CNI config for %s plugin: %v", c.General.Plugin, err)
 	}
-	glog.V(4).Info("created CNI config file for %s plugin", c.General.Plugin)
+	glog.V(4).Infof("created CNI config file for %s plugin", c.General.Plugin)
 	return nil
 }
 

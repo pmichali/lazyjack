@@ -281,6 +281,18 @@ func MakePrefixFromNetwork(network string, netSize int) string {
 	return prefix
 }
 
+// IsIPv4 takes a known good IP address and determines if it is IPv4.
+func IsIPv4(ip string) bool {
+	return net.ParseIP(ip).To4() != nil
+}
+
+// MakeV4PrefixFromNetwork extracts a prefix from the IPv4 address.
+// It will always remove the last octet, regardless of subnet size.
+func MakeV4PrefixFromNetwork(ip string) string {
+	parts := strings.Split(ip, ".")
+	return fmt.Sprintf("%s.%s.%s.", parts[0], parts[1], parts[2])
+}
+
 // CalculateDerivedFields splits up CIDRs into prefix and size
 // for use later.
 // TODO: Validate no overlaps in CIDRs
@@ -289,6 +301,27 @@ func CalculateDerivedFields(c *Config) error {
 	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
 	if err != nil {
 		return fmt.Errorf("invalid management network CIDR: %v", err)
+	}
+	if IsIPv4(c.Mgmt.Prefix) {
+		if c.Mgmt.Size != 8 && c.Mgmt.Size != 16 {
+			return fmt.Errorf("only /8 and /16 are supported for IPv4 management network - have /%d", c.Mgmt.Size)
+		}
+		c.Mgmt.Prefix = MakeV4PrefixFromNetwork(c.Mgmt.Prefix)
+	}
+
+	var serviceSize int
+	c.Service.Prefix, serviceSize, err = GetNetAndMask(c.Service.CIDR)
+	if err != nil {
+		return fmt.Errorf("invalid service network CIDR: %v", err)
+	}
+	if IsIPv4(c.Service.Prefix) {
+		if serviceSize >= 24 {
+			return fmt.Errorf("service subnet size must be /23 or larger - have /%d", serviceSize)
+		}
+		c.Service.Prefix = MakeV4PrefixFromNetwork(c.Service.Prefix)
+		c.Service.Mode = "ipv4"
+	} else {
+		c.Service.Mode = "ipv6"
 	}
 
 	if c.General.Mode == IPv6NetMode {
@@ -304,11 +337,18 @@ func CalculateDerivedFields(c *Config) error {
 			return fmt.Errorf("invalid pod network CIDR: %v", err)
 		}
 		c.Pod.Size = netSize + 8 // Each node will get a subnet from this network
-		c.Pod.Prefix = MakePrefixFromNetwork(network, netSize)
+		if IsIPv4(network) {
+			if netSize != 8 && netSize != 16 {
+				return fmt.Errorf("only /8 and /16 are supported for IPv4 pod networks - have /%d", netSize)
+			}
+			c.Pod.Prefix = MakeV4PrefixFromNetwork(network)
+		} else {
+			c.Pod.Prefix = MakePrefixFromNetwork(network, netSize)
+		}
 	} else if c.Pod.Prefix == "" || c.Pod.Size == 0 {
 		return fmt.Errorf("missing pod network CIDR")
 	} else {
-		// Legacy mode - will just change so that prefix has colon at end
+		// Legacy mode (V6 only) - will just change so that prefix has colon at end
 		// NOTE: prefixes were always a multiple of 16
 		if !strings.HasSuffix(c.Pod.Prefix, ":") {
 			c.Pod.Prefix += ":"
