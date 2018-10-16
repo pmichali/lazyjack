@@ -52,8 +52,8 @@ The following needs to be done, prior to using this tool:
   * Make sure management interface doesn't have a conflicting IP address.
   * Internet access via IPv4 on the node being used for DNS64/NAT64 (V6).
   * Docker (17.03.2) installed.
-  * Version 1.9+ of kubeadm, kubectl (on master), and kubelet.
-  * Go 1.9+ (1.10.3+ for Kuberentes 1.11+) installed on the system and environment set up.
+  * Version 1.11+ of kubeadm, kubectl (on master), and kubelet.
+  * Go 1.10.3+ installed on the system and environment set up (may need newer with later releases of K8s).
   * CNI 0.7.1+ installed.
   * openssl installed on system (I used 1.0.2g).
   * (optional) Internet access via IPv6 for direct IPv6 access to external sites.
@@ -111,6 +111,7 @@ general:
     plugin: bridge
     work-area: "/tmp/lazyjack"
     mode: "ipv6"
+    kubernetes-version: "v1.12.0"
 topology:
   my-master:
     interface: "enp10s0"
@@ -160,6 +161,18 @@ write access to user and group.
 
 ### Mode (mode)
 The default is IPv6, but `ipv4` may be specified as of version 1.3.0.
+
+### Kuberentes Version (kubernetes-version)
+Optional setting, where you can specify the version of Kubernetes to be used. If
+specified, this can be "latest" to use the latest code on master, or a version
+number of the form "v#.#.#" or "v#.#.#-X", where X is additional version info, like
+"alpha.1" or "dirty". When a number is specified, the major and minor version must
+match that of KubeAdm.
+
+If omitted, the version of KubeAdm will be used to specify the Kubernetes version.
+
+NOTE: If you are using an un-released version, it may be beneficial to set this to
+`latest`.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -447,7 +460,7 @@ I also installed `ipset` and `ipvsadm`.
 ## Limitations/Restrictions
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
 * CNI v0.7.1+ is needed for full IPv6 support by plugins.
-* Relies on the tayga and bind6 containers (as provided by other developers).
+* Relies on the tayga and bind6 containers (as provided by other developers), for IPv6 only mode.
 * The `init` command modifies the specified configuration YAML file. As a result, `init` must be done before copying the config YAML to other nodes.
 * Because the config YAML file is modified by the root user, permissions is set to 777, so that the non-root user can still modify the file.
 
@@ -508,6 +521,22 @@ Tip: You can customize kubeadm.conf, after the prepare step, to make any
 additional changes desired for the configuration (e.g. setting kubernetesVersion
 to a specific version).
 
+I found out that with Kubernetes 1.10, the minion node fails to join, showing
+an error indicating that it cannot tell if container runtime is running. I found
+that this was fixed in 1.11, but there is no backport. As a result, I removed
+notes about using Lazyjack with versions older than 1.11.
+
+Ref: https://github.com/kubernetes/kubeadm/issues/814
+
+With 1.13.0-alpha.1 prerelease (using latest from master), beside finding that
+one has to set `kubernetes-version` to `latest` in the config file so that images
+can be downloaded, on startup, `kubeadm init` was failing, saying that port 10250
+was in use. Indeed, kubelet is already using this port, and it is preventing startup.
+
+With older versions of Kuberenetes, I see that the kubelet is constantly restarting,
+and not using a port, until `kubeadm init` runs and creates the needed files. With
+the alpha 1.13 code, I see kubelet already up and running and using the port, before
+doing `kubeadm init`. This problem is currently unresolved.
 
 ## TODOs/Futures
 
@@ -519,7 +548,7 @@ to a specific version).
   * Ensure NAT64 IP is within NAT64 subnet, and that NAT64 subnet is with support subnet.
   * Node IDs > 0. >1?
   * Docker version.
-  * Kubeadm, kubectl, kubelet version 1.9+.
+  * Kubeadm, kubectl, kubelet version 1.11+.
   * Go version.
   * CNI plugin version 0.7.1+.
   * Other tools?
@@ -531,6 +560,7 @@ to a specific version).
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 * Way to timeout on "kubeadm init", if it gets stuck (e.g. kubelet never comes up).
 * Add Continuous Integration tool and tests.
+* Issue with 1.13 alpha versions and kubelet port usage.
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?

@@ -423,6 +423,56 @@ func ValidateNAT64Fields(c *Config) error {
 	return nil
 }
 
+var versionRE = regexp.MustCompile(`v([0-9]+.[0-9]+)\.[0-9]+.*`)
+
+// ParseVersion takes a version string and extracts the major.minor part,
+// returning an error, if invalid. Examples of valid versions are "v1.11.0"
+// and "v1.13.0-alpha.0.2169+8f620950e246fa-dirty".
+func ParseVersion(version string) (string, error) {
+	results := versionRE.FindStringSubmatch(version)
+	if len(results) != 2 {
+		return "", fmt.Errorf("Unable to parse Kubeadm version from %q", version)
+	}
+	return results[1], nil
+}
+
+// ValidateSoftwareVersions checks that the software used is compatible with the
+// Lazyjack tool. As a side effect, the kubeadm version (major.minor) is stored,
+// so that the proper config file can be generated.
+//
+// If the user specifies the Kubernetes version to use, this makes sure that it is
+// the same major/minor version as KubeAdm.
+//
+// This function only checks kubeadm, but could check kubectl in the future.
+func ValidateSoftwareVersions(c *Config) error {
+	output, err := DoExecCommand("kubeadm", []string{"version", "-o", "short"})
+	if err != nil {
+		return fmt.Errorf("Unable to get version of KubeAdm: %s", err.Error())
+	}
+	version, err := ParseVersion(output)
+	if err != nil {
+		return err
+	}
+	switch version {
+	case "1.10", "1.11", "1.12", "1.13":
+		glog.V(1).Infof("KubeAdm version is %s", version)
+	default:
+		glog.Warningf("WARNING! Kubeadm version %q may not be supported", version)
+	}
+	c.General.KubeAdmVersion = version
+
+	if c.General.K8sVersion != "" && c.General.K8sVersion != "latest" {
+		k8sVersion, err := ParseVersion(c.General.K8sVersion)
+		if err != nil {
+			return fmt.Errorf("unable to parse Kubernetes version specified (%q): %s", c.General.K8sVersion, err.Error())
+		}
+		if k8sVersion != c.General.KubeAdmVersion {
+			return fmt.Errorf("specified Kubernetes verson (%q) does not match KubeAdm version (%s)", c.General.K8sVersion, c.General.KubeAdmVersion)
+		}
+	}
+	return nil
+}
+
 // SetupBaseAreas allows the configuration to hold the root for both
 // the working files (overridable), and key configuration files. This
 // will allow the user to specify a different work area in the former
@@ -509,6 +559,11 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	}
 
 	err = CalculateDerivedFields(c)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateSoftwareVersions(c)
 	if err != nil {
 		return err
 	}

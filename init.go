@@ -149,20 +149,6 @@ func CreateDigestForCA(base string) (string, error) {
 	return ExtractDigest(output)
 }
 
-// CreateCertficateHashForCA creates X.509 certificate, RSA key, and digest,
-// and returns the hash.
-func CreateCertficateHashForCA(base string) (string, error) {
-	err := CreateX509CertForCA(base)
-	if err != nil {
-		return "", err
-	}
-	err = CreateRSAForCA(base)
-	if err != nil {
-		return "", err
-	}
-	return CreateDigestForCA(base)
-}
-
 // ExtractToken extracts the access token and validates it, returning the value.
 func ExtractToken(input string) (string, error) {
 	glog.V(4).Infof("Parsing token %q", input)
@@ -270,7 +256,6 @@ func Initialize(name string, c *Config, configFile string) error {
 	if err != nil {
 		return err
 	}
-
 	err = CreateKeyForCA(base)
 	if err != nil {
 		return err
@@ -279,7 +264,15 @@ func Initialize(name string, c *Config, configFile string) error {
 	if err != nil {
 		return err
 	}
-	hash, err := CreateCertficateHashForCA(base)
+	err = CreateX509CertForCA(base)
+	if err != nil {
+		return err
+	}
+	err = CreateRSAForCA(base)
+	if err != nil {
+		return err
+	}
+	hash, err := CreateDigestForCA(base)
 	if err != nil {
 		return err
 	}

@@ -33,8 +33,7 @@ func StopKubernetes() error {
 	args := []string{"reset", "-f"}
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		glog.Warningf("unable to %s Kubernetes cluster: %v", args[0], err)
-		os.Exit(1)
+		return fmt.Errorf("unable to %s Kubernetes cluster: %v", args[0], err)
 	}
 	glog.V(1).Infof("Kubernetes %s output: %s", args[0], output)
 	glog.Infof("Kubernetes %s successful", args[0])

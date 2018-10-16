@@ -1,6 +1,7 @@
 package lazyjack_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -50,11 +51,11 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 
 	actual = lazyjack.BuildKubeAdmCommand(minionNode, masterNode, c)
 	expected = []string{"join", "--token", "<valid-token-here>",
-		//	"[fd00:100::10]:6443", "--discovery-token-unsafe-skip-ca-verification"}
-		"[fd00:100::10]:6443", "--discovery-token-ca-cert-hash", "sha256:<valid-ca-certificate-hash-here>"}
+		"--discovery-token-ca-cert-hash", "sha256:<valid-ca-certificate-hash-here>",
+		"[fd00:100::10]:6443"}
 
 	if !SlicesEqual(actual, expected) {
-		t.Errorf("KubeAdm init args incorrect for master node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
+		t.Errorf("KubeAdm init args incorrect for minion node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
 	}
 }
 
@@ -513,5 +514,204 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 	expected := "unable to add pod network route for fd00:40:0:0:20::/80 to minion1: mock failure adding route"
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected msg %q, got %q", expected, err.Error())
+	}
+}
+
+// HelperSystemctlExecCommand mosks OS command requests for systemctl
+func HelperSystemctlExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "systemctl" {
+		if len(args) == 2 && args[0] == "restart" && args[1] == "kubelet" {
+			return "Mocked systemctl restart kubelet worked", nil
+		} else if len(args) == 1 && args[0] == "daemon-reload" {
+			return "Mocked systemctl daemon-reload worked", nil
+		} else {
+			return "", fmt.Errorf("Wrong args for systemctl command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking systemctl command only")
+}
+
+func TestRestartKubeletService(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperSystemctlExecCommand)
+	err := lazyjack.RestartKubeletService()
+	if err != nil {
+		t.Fatalf("Should have been able to restart kubelet service (mocked): %s", err.Error())
+	}
+}
+
+// HelperSystemctlRestartFailureExecCommand mosks OS command requests for systemctl
+func HelperSystemctlRestartFailureExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "systemctl" {
+		if len(args) == 2 && args[0] == "restart" && args[1] == "kubelet" {
+			return "", fmt.Errorf("mock failure")
+		} else if len(args) == 1 && args[0] == "daemon-reload" {
+			return "Mocked systemctl daemon-reload worked", nil
+		} else {
+			return "", fmt.Errorf("Wrong args for systemctl command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking systemctl command only")
+}
+
+func TestFailureRestartKubeletService(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperSystemctlRestartFailureExecCommand)
+	err := lazyjack.RestartKubeletService()
+	if err == nil {
+		t.Fatalf("Expected to fail systemctl kubelet restart command, but was successful")
+	}
+	expected := "unable to restart kubelet service: mock failure"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+// HelperSystemctlReloadFailureExecCommand mosks OS command requests for systemctl
+func HelperSystemctlReloadFailureExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "systemctl" {
+		if len(args) == 2 && args[0] == "restart" && args[1] == "kubelet" {
+			return "Mocked systemctl restart kubelet worked", nil
+		} else if len(args) == 1 && args[0] == "daemon-reload" {
+			return "", fmt.Errorf("mock failure")
+		} else {
+			return "", fmt.Errorf("Wrong args for systemctl command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking systemctl command only")
+}
+
+func TestFailureReloadKubeletService(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperSystemctlReloadFailureExecCommand)
+	err := lazyjack.RestartKubeletService()
+	if err == nil {
+		t.Fatalf("Expected to fail systemctl daemon reload command, but was successful")
+	}
+	expected := "unable to reload daemons: mock failure"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+// HelperKubeAdmInitExecCommand will mock the OS command requests for kubeadm init
+func HelperKubeAdmInitExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "init" && args[1] == "--config=/tmp/kubeadm.conf" {
+			return "Mocked kubeadm init worked", nil
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestStartKubernetes(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmInitExecCommand)
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			WorkArea:      "/tmp",
+			Token:         "dummy-token",
+			TokenCertHash: "dummy-hash-here",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:     "master",
+		IsMaster: true,
+		ID:       10,
+	}
+
+	err := lazyjack.StartKubernetes(n, c)
+	if err != nil {
+		t.Fatalf("Should have been able to start kubernetes (mocked): %s", err.Error())
+	}
+}
+
+func TestFailedStartKubernetesNoMaster(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmInitExecCommand)
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion": {
+				IsMaster: false,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			WorkArea:      "/tmp",
+			Token:         "dummy-token",
+			TokenCertHash: "dummy-hash-here",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:     "minion",
+		IsMaster: false,
+		ID:       10,
+	}
+
+	err := lazyjack.StartKubernetes(n, c)
+	if err == nil {
+		t.Fatalf("Expected to fail, because no master node, but was successful")
+	}
+	expected := "unable to determine master node"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+// HelperKubeAdmInitFailExecCommand will mock the OS command requests for kubeadm init failure
+func HelperKubeAdmInitFailExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "init" && args[1] == "--config=/tmp/kubeadm.conf" {
+			return "", fmt.Errorf("unable to init Kubernetes cluster: failed running \"kubeadm\" with args \"init --config=/home/c2/bare-metal/work-area/kubeadm.conf\": exit status 2")
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestFailedStartKubernetes(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmInitFailExecCommand)
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			WorkArea:      "/tmp",
+			Token:         "dummy-token",
+			TokenCertHash: "dummy-hash-here",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name:     "master",
+		IsMaster: true,
+		ID:       10,
+	}
+
+	err := lazyjack.StartKubernetes(n, c)
+	if err == nil {
+		t.Fatalf("Expected to fail init command, but was successful")
+	}
+	expected := "unable to init Kubernetes cluster: unable to init Kubernetes cluster: failed running \"kubeadm\" with args \"init --config=/home/c2/bare-metal/work-area/kubeadm.conf\": exit status 2"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
 	}
 }

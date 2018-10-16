@@ -2,6 +2,7 @@ package lazyjack_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -175,23 +176,200 @@ func TestFailingCreateDigestForCA(t *testing.T) {
 	}
 }
 
-func TestCreatingAllCertsAndKeys(t *testing.T) {
+func CheckArguments(expected, actual []string) bool {
+	i := 0
+	for _, val := range expected {
+		if val != "" && val != actual[i] {
+			return false
+		}
+		i++
+	}
+	return true
+}
+
+// HelperOpenSSL_ExecCommand mocks OS command requests for openssl
+func HelperOpenSSL_ExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "openssl" {
+		var expected []string
+		if len(args) == 4 && args[0] == "genrsa" {
+			expected = []string{"genrsa", "-out", "", "2048"}
+		} else if len(args) == 4 && args[0] == "x509" {
+			expected = []string{"x509", "-pubkey", "-in", ""}
+		} else if len(args) == 4 && args[0] == "dgst" {
+			expected = []string{"dgst", "-sha256", "-hex", ""}
+		} else if len(args) == 8 {
+			expected = []string{"rsa", "-pubin", "-in", "", "-outform", "der", "-out", ""}
+		} else if len(args) == 12 {
+			expected = []string{"req", "-x509", "-new", "-nodes", "-key", "", "-subj", "/CN=fd00:100::2", "-days", "10000", "-out", ""}
+		} else {
+			return "", fmt.Errorf("Wrong args for openssl command: %v", args)
+		}
+		if CheckArguments(expected, args) {
+			result := fmt.Sprintf("mocked %s %s worked", cmd, args[0])
+			if args[0] == "dgst" {
+				result = "SHA256(/tmp/lazyjack/certs/ca.rsa)= 134319a0d3333de4c2dd0f23d9a7647952e301ad81c56e2b016c6d636e445249"
+			}
+			return result, nil
+		} else {
+			return "", fmt.Errorf("invalid arg for %s command: expected %v, saw %v", cmd, expected, args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking openssl command only")
+}
+
+// HelperOpenSSL_FailExecCommand mocks OS command requests for openssl that fail
+func HelperOpenSSL_FailExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "openssl" {
+		if (len(args) == 4 && args[0] == "genrsa") ||
+			(len(args) == 4 && args[0] == "x509") ||
+			(len(args) == 4 && args[0] == "dgst") ||
+			(len(args) == 8 && args[0] == "rsa") ||
+			(len(args) == 12 && args[0] == "req") {
+			return "", fmt.Errorf("mocked failure for %s %s", cmd, args[0])
+		} else {
+			return "", fmt.Errorf("Wrong # of args (%d) for openssl %s command", len(args), args[0])
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking openssl command only")
+}
+
+func TestCreatingKey(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_ExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+	err := lazyjack.CreateKeyForCA(basePath)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to create CA key: %s", err.Error())
+	}
+}
+
+func TestFailureCreatingKey(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_FailExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+	err := lazyjack.CreateKeyForCA(basePath)
+	if err == nil {
+		t.Fatalf("Expected to fail create CA key, but was successful")
+	}
+	expected := "unable to create CA key: mocked failure for openssl genrsa"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+func TestCreatingCA_Certs(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_ExecCommand)
+
 	basePath := TempFileName(os.TempDir(), "-area")
 	certArea := filepath.Join(basePath, lazyjack.CertArea)
 	HelperSetupArea(certArea, t)
 	defer HelperCleanupArea(certArea, t)
 
-	err := lazyjack.CreateKeyForCA(basePath)
-	if err != nil {
-		t.Fatalf("FAILED: Expected to be able to create CA key: %s", err.Error())
-	}
-	err = lazyjack.CreateCertificateForCA("fd00:100::", 2, basePath)
+	err := lazyjack.CreateCertificateForCA("fd00:100::", 2, basePath)
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to create CA cert: %s", err.Error())
 	}
-	_, err = lazyjack.CreateCertficateHashForCA(basePath)
+}
+
+func TestFailCreatingCA_Certs(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_FailExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+	certArea := filepath.Join(basePath, lazyjack.CertArea)
+	HelperSetupArea(certArea, t)
+	defer HelperCleanupArea(certArea, t)
+
+	err := lazyjack.CreateCertificateForCA("fd00:100::", 2, basePath)
+	if err == nil {
+		t.Fatalf("Expected to fail create CA cert, but was successful")
+	}
+	expected := "unable to create CA certificate: mocked failure for openssl req"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+func TestCreatingX509Certs(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_ExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+	certArea := filepath.Join(basePath, lazyjack.CertArea)
+	HelperSetupArea(certArea, t)
+	defer HelperCleanupArea(certArea, t)
+
+	err := lazyjack.CreateX509CertForCA(basePath)
 	if err != nil {
-		t.Fatalf("FAILED: Expected to be able to create X509 cert, RSA, digest, and hash: %s", err.Error())
+		t.Fatalf("FAILED: Expected to be able to create X509 cert: %s", err.Error())
+	}
+}
+
+func TestFailCreatingX509Certs(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_FailExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+	certArea := filepath.Join(basePath, lazyjack.CertArea)
+	HelperSetupArea(certArea, t)
+	defer HelperCleanupArea(certArea, t)
+
+	err := lazyjack.CreateX509CertForCA(basePath)
+	if err == nil {
+		t.Fatalf("Expected to fail create X509 cert, but was successful")
+	}
+	expected := "unable to create X509 cert: mocked failure for openssl x509"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+func TestCreatingRSA_Key(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_ExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+
+	err := lazyjack.CreateRSAForCA(basePath)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to create RSA key: %s", err.Error())
+	}
+}
+
+func TestFailCreatingRSA_Key(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_FailExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+
+	err := lazyjack.CreateRSAForCA(basePath)
+	if err == nil {
+		t.Fatalf("Expected to fail create RSA key, but was successful")
+	}
+	expected := "unable to create RSA key for CA: mocked failure for openssl rsa"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
+}
+
+func TestCreatingDigest(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_ExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+
+	_, err := lazyjack.CreateDigestForCA(basePath)
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to create digest: %s", err.Error())
+	}
+}
+
+func TestFailCreatingDigest(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperOpenSSL_FailExecCommand)
+
+	basePath := TempFileName(os.TempDir(), "-area")
+
+	_, err := lazyjack.CreateDigestForCA(basePath)
+	if err == nil {
+		t.Fatalf("Expected to fail create digest, but was successful")
+	}
+	expected := "unable to create CA digest: mocked failure for openssl dgst"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
 	}
 }
 
@@ -294,7 +472,30 @@ func HelperReadConfig(configFile string, t *testing.T) *lazyjack.Config {
 	return config
 }
 
+// HelperInitRelatedExecCommand will mock the OS command requests for kubeadm, but
+// will pass other commands (openssl) through to OS.
+func HelperInitRelatedExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 0 {
+			return "", fmt.Errorf("Test setup error - missing argument(s) for kubeadm command")
+		}
+		switch args[0] {
+		case "version":
+			return "v1.11.0", nil
+		case "token":
+			return "zs6do0.rlyf5fbz9abknbc4", nil
+		default:
+			return "", fmt.Errorf("Test setup error - need mock for kubeadm %q command", args[0])
+		}
+
+	}
+	out, err := lazyjack.OsExecCommand(cmd, args)
+	return out, err
+}
+
 func TestInitializeMaster(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperInitRelatedExecCommand)
+
 	basePath := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(basePath, t)
 	defer HelperCleanupArea(basePath, t)
@@ -319,6 +520,8 @@ func TestInitializeMaster(t *testing.T) {
 }
 
 func TestInitializeMinion(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperInitRelatedExecCommand)
+
 	basePath := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(basePath, t)
 	defer HelperCleanupArea(basePath, t)
@@ -344,6 +547,8 @@ func TestInitializeMinion(t *testing.T) {
 }
 
 func TestFailingInitialize(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperInitRelatedExecCommand)
+
 	basePath := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(basePath, t)
 	defer HelperCleanupArea(basePath, t)
@@ -545,4 +750,50 @@ general:
 		}
 	}
 
+}
+
+// HelperKubeAdmTokenGenExecCommand mosks OS command requests for kubeadm token
+func HelperKubeAdmTokenGenExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "token" && args[1] == "generate" {
+			return "7aee33.05f81856d78346bd", nil
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestCreateToken(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmTokenGenExecCommand)
+
+	_, err := lazyjack.CreateToken()
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to create token: %s", err.Error())
+	}
+}
+
+// HelperKubeAdmTokenGenFailExecCommand mosks OS command requests for kubeadm token
+func HelperKubeAdmTokenGenFailExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "token" && args[1] == "generate" {
+			return "", fmt.Errorf("mock failure")
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestFailCreateToken(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmTokenGenFailExecCommand)
+
+	_, err := lazyjack.CreateToken()
+	if err == nil {
+		t.Fatalf("Expected to fail create token, but was successful")
+	}
+	expected := "unable to create shared token: mock failure"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
+	}
 }

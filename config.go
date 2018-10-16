@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
+	"text/template"
 )
 
 // SupportNetwork defines information for the support network.
@@ -70,18 +71,21 @@ type Node struct {
 
 // GeneralSettings defines general settings used by the app.
 type GeneralSettings struct {
-	Mode          string     `yaml:"mode"`
-	Plugin        string     `yaml:"plugin"`
-	Token         string     `yaml:"token"`           // Internal
-	TokenCertHash string     `yaml:"token-cert-hash"` // Internal
-	WorkArea      string     `yaml:"work-area"`
-	CNIPlugin     PluginAPI  // Internal
-	SystemdArea   string     // Internal
-	EtcArea       string     // Internal
-	CNIArea       string     // Internal
-	K8sCertArea   string     // Internal
-	NetMgr        Networker  // Internal
-	Hyper         Hypervisor // Internal
+	Mode               string     `yaml:"mode"`
+	Plugin             string     `yaml:"plugin"`
+	Token              string     `yaml:"token"`           // Internal
+	TokenCertHash      string     `yaml:"token-cert-hash"` // Internal
+	WorkArea           string     `yaml:"work-area"`
+	CNIPlugin          PluginAPI  // Internal
+	SystemdArea        string     // Internal
+	EtcArea            string     // Internal
+	CNIArea            string     // Internal
+	K8sCertArea        string     // Internal
+	NetMgr             Networker  // Internal
+	Hyper              Hypervisor // Internal
+	KubeAdmVersion     string     // Internal
+	FullKubeAdmVersion string     // Internal
+	K8sVersion         string     `yaml:"kubernetes-version"`
 }
 
 // Config defines the top level configuration read from YAML file.
@@ -163,6 +167,391 @@ const (
 	// IPv4NetMode for IPv4 only network operating mode
 	IPv4NetMode = "ipv4"
 )
+
+// KubeAdmConfigInfo provides values for the templates used to populate
+// the kubeadm.conf file (contents).
+type KubeAdmConfigInfo struct {
+	AdvertiseAddress string
+	AuthToken        string
+	BindAddress      string
+	BindPort         int
+	DNS_ServiceIP    string
+	K8sVersion       string
+	KubeMasterName   string
+	PodNetworkCIDR   string
+	ServiceSubnet    string
+	UseCoreDNS       bool
+}
+
+// Template_v1_10 kubeadm.conf content template for Kubernetes V1.10
+var Template_v1_10 = template.Must(template.New("v1.10").Parse(`# V1.10 (and older) based config
+api:
+  advertiseAddress: "{{.AdvertiseAddress}}"
+apiServerExtraArgs:
+  insecure-bind-address: "{{.BindAddress}}"
+  insecure-port: "{{.BindPort}}"
+apiVersion: kubeadm.k8s.io/v1alpha1
+featureGates: {CoreDNS: {{.UseCoreDNS}}}
+kind: MasterConfiguration
+{{.K8sVersion}}
+networking:
+  # podSubnet: "{{.PodNetworkCIDR}}"
+  serviceSubnet: "{{.ServiceSubnet}}"
+token: "{{.AuthToken}}"
+tokenTTL: 0s
+nodeName: {{.KubeMasterName}}
+unifiedControlPlaneImage: ""
+`))
+
+// Template_v1_11 kubeadm.conf content template for Kubernetes V1.11
+var Template_v1_11 = template.Must(template.New("v1.11").Parse(`# V1.11 based config
+api:
+  advertiseAddress: "{{.AdvertiseAddress}}"
+  bindPort: 6443
+  controlPlaneEndpoint: ""
+apiServerExtraArgs:
+  insecure-bind-address: "{{.BindAddress}}"
+  insecure-port: "{{.BindPort}}"
+apiVersion: kubeadm.k8s.io/v1alpha2
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: {{.AuthToken}}
+  ttl: 0s
+  usages:
+  - signing
+  - authentication
+certificatesDir: /etc/kubernetes/pki
+# clusterName: kubernetes
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: {{.UseCoreDNS}}}
+kind: MasterConfiguration
+kubeProxy:
+  config:
+    bindAddress: "{{.BindAddress}}"
+    clientConnection:
+      acceptContentTypes: ""
+      burst: 10
+      contentType: application/vnd.kubernetes.protobuf
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 5
+    # clusterCIDR: ""
+    configSyncPeriod: 15m0s
+    # conntrack:
+    #   max: null
+    #   maxPerCore: 32768
+    #   min: 131072
+    #   tcpCloseWaitTimeout: 1h0m0s
+    #   tcpEstablishedTimeout: 24h0m0s
+    enableProfiling: false
+    healthzBindAddress: 0.0.0.0:10256
+    hostnameOverride: ""
+    iptables:
+      masqueradeAll: false
+      masqueradeBit: 14
+      minSyncPeriod: 0s
+      syncPeriod: 30s
+    ipvs:
+      excludeCIDRs: null
+      minSyncPeriod: 0s
+      scheduler: ""
+      syncPeriod: 30s
+    metricsBindAddress: 127.0.0.1:10249
+    mode: ""
+    nodePortAddresses: null
+    oomScoreAdj: -999
+    portRange: ""
+    resourceContainer: /kube-proxy
+    udpIdleTimeout: 250ms
+kubeletConfiguration:
+  baseConfig:
+    address: 0.0.0.0
+    authentication:
+      anonymous:
+        enabled: false
+      webhook:
+        cacheTTL: 2m0s
+        enabled: true
+      x509:
+        clientCAFile: /etc/kubernetes/pki/ca.crt
+    authorization:
+      mode: Webhook
+      webhook:
+        cacheAuthorizedTTL: 5m0s
+        cacheUnauthorizedTTL: 30s
+    cgroupDriver: cgroupfs
+    cgroupsPerQOS: true
+    clusterDNS:
+    - "{{.DNS_ServiceIP}}"
+    clusterDomain: cluster.local
+    containerLogMaxFiles: 5
+    containerLogMaxSize: 10Mi
+    contentType: application/vnd.kubernetes.protobuf
+    cpuCFSQuota: true
+    cpuManagerPolicy: none
+    cpuManagerReconcilePeriod: 10s
+    enableControllerAttachDetach: true
+    enableDebuggingHandlers: true
+    enforceNodeAllocatable:
+    - pods
+    eventBurst: 10
+    eventRecordQPS: 5
+    evictionHard:
+      imagefs.available: 15%
+      memory.available: 100Mi
+      nodefs.available: 10%
+      nodefs.inodesFree: 5%
+    evictionPressureTransitionPeriod: 5m0s
+    failSwapOn: true
+    fileCheckFrequency: 20s
+    hairpinMode: promiscuous-bridge
+    healthzBindAddress: 127.0.0.1
+    healthzPort: 10248
+    httpCheckFrequency: 20s
+    imageGCHighThresholdPercent: 85
+    imageGCLowThresholdPercent: 80
+    imageMinimumGCAge: 2m0s
+    iptablesDropBit: 15
+    iptablesMasqueradeBit: 14
+    kubeAPIBurst: 10
+    kubeAPIQPS: 5
+    makeIPTablesUtilChains: true
+    maxOpenFiles: 1000000
+    maxPods: 110
+    nodeStatusUpdateFrequency: 10s
+    oomScoreAdj: -999
+    podPidsLimit: -1
+    # port: 10250
+    registryBurst: 10
+    registryPullQPS: 5
+    resolvConf: /etc/resolv.conf
+    rotateCertificates: true
+    runtimeRequestTimeout: 2m0s
+    serializeImagePulls: true
+    staticPodPath: /etc/kubernetes/manifests
+    streamingConnectionIdleTimeout: 4h0m0s
+    syncFrequency: 1m0s
+    volumeStatsAggPeriod: 1m0s
+{{.K8sVersion}}
+networking:
+  # podSubnet: "{{.PodNetworkCIDR}}"
+  serviceSubnet: "{{.ServiceSubnet}}"
+nodeRegistration:
+  name: {{.KubeMasterName}}
+unifiedControlPlaneImage: ""
+`))
+
+// Template_v1_12 kubeadm.conf content template for Kubernetes V1.12
+var Template_v1_12 = template.Must(template.New("v1.12").Parse(`# V1.12 based config
+apiEndpoint:
+  advertiseAddress: "{{.AdvertiseAddress}}"
+  bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1alpha3
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: {{.AuthToken}}
+  ttl: 0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: {{.KubeMasterName}}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServerExtraArgs:
+  insecure-bind-address: "{{.BindAddress}}"
+  insecure-port: "{{.BindPort}}"
+apiVersion: kubeadm.k8s.io/v1alpha3
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+certificatesDir: /etc/kubernetes/pki
+controlPlaneEndpoint: ""
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: {{.UseCoreDNS}}}
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+{{.K8sVersion}}
+networking:
+  # podSubnet: "{{.PodNetworkCIDR}}"
+  serviceSubnet: "{{.ServiceSubnet}}"
+unifiedControlPlaneImage: ""
+`))
+
+// Template_v1_13 kubeadm.conf content template for Kubernetes V1.13
+var Template_v1_13 = template.Must(template.New("v1.13").Parse(`# V1.13 based config
+apiEndpoint:
+  advertiseAddress: "{{.AdvertiseAddress}}"
+  bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta1
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: {{.AuthToken}}
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: {{.KubeMasterName}}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServerExtraArgs:
+  insecure-bind-address: "{{.BindAddress}}"
+  insecure-port: "{{.BindPort}}"
+apiVersion: kubeadm.k8s.io/v1beta1
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+certificatesDir: /etc/kubernetes/pki
+# clusterName: kubernetes
+controlPlaneEndpoint: ""
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: {{.UseCoreDNS}}}
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+{{.K8sVersion}}
+networking:
+  dnsDomain: cluster.local
+  # podSubnet: "{{.PodNetworkCIDR}}"
+  serviceSubnet: "{{.ServiceSubnet}}"
+unifiedControlPlaneImage: ""
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: "{{.BindAddress}}"
+clientConnection:
+  acceptContentTypes: ""
+  burst: 10
+  contentType: application/vnd.kubernetes.protobuf
+  kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+  qps: 5
+# clusterCIDR: ""
+configSyncPeriod: 15m0s
+# conntrack:
+#   max: null
+#   maxPerCore: 32768
+#   min: 131072
+#   tcpCloseWaitTimeout: 1h0m0s
+#   tcpEstablishedTimeout: 24h0m0s
+enableProfiling: false
+healthzBindAddress: 0.0.0.0:10256
+hostnameOverride: ""
+iptables:
+  masqueradeAll: false
+  masqueradeBit: 14
+  minSyncPeriod: 0s
+  syncPeriod: 30s
+ipvs:
+  excludeCIDRs: null
+  minSyncPeriod: 0s
+  scheduler: ""
+  syncPeriod: 30s
+kind: KubeProxyConfiguration
+metricsBindAddress: 127.0.0.1:10249
+mode: ""
+nodePortAddresses: null
+oomScoreAdj: -999
+portRange: ""
+resourceContainer: /kube-proxy
+udpIdleTimeout: 250ms
+---
+address: 0.0.0.0
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupDriver: cgroupfs
+cgroupsPerQOS: true
+clusterDNS:
+- "{{.DNS_ServiceIP}}"
+clusterDomain: cluster.local
+configMapAndSecretChangeDetectionStrategy: Watch
+containerLogMaxFiles: 5
+containerLogMaxSize: 10Mi
+contentType: application/vnd.kubernetes.protobuf
+cpuCFSQuota: true
+cpuCFSQuotaPeriod: 100ms
+cpuManagerPolicy: none
+cpuManagerReconcilePeriod: 10s
+enableControllerAttachDetach: true
+enableDebuggingHandlers: true
+enforceNodeAllocatable:
+- pods
+eventBurst: 10
+eventRecordQPS: 5
+evictionHard:
+  imagefs.available: 15%
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+fileCheckFrequency: 20s
+hairpinMode: promiscuous-bridge
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 20s
+imageGCHighThresholdPercent: 85
+imageGCLowThresholdPercent: 80
+imageMinimumGCAge: 2m0s
+iptablesDropBit: 15
+iptablesMasqueradeBit: 14
+kind: KubeletConfiguration
+kubeAPIBurst: 10
+kubeAPIQPS: 5
+makeIPTablesUtilChains: true
+maxOpenFiles: 1000000
+maxPods: 110
+nodeLeaseDurationSeconds: 40
+nodeStatusUpdateFrequency: 10s
+oomScoreAdj: -999
+podPidsLimit: -1
+# port: 10250
+registryBurst: 10
+registryPullQPS: 5
+resolvConf: /etc/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 2m0s
+serializeImagePulls: true
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 4h0m0s
+syncFrequency: 1m0s
+volumeStatsAggPeriod: 1m0s
+`))
 
 // ParseConfig parses the YAML configuration provided, into the config structure.
 func ParseConfig(configReader io.Reader) (*Config, error) {

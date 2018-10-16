@@ -66,15 +66,13 @@ func SetupForPlugin(node *Node, c *Config) error {
 func RestartKubeletService() error {
 	_, err := DoExecCommand("systemctl", []string{"daemon-reload"})
 	if err != nil {
-		glog.Fatalf("unable to reload daemons: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("unable to reload daemons: %v", err)
 	}
 	glog.V(1).Info("Reloaded daemons")
 
 	_, err = DoExecCommand("systemctl", []string{"restart", "kubelet"})
 	if err != nil {
-		glog.Fatalf("unable to restart kubelet service: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("unable to restart kubelet service: %v", err)
 	}
 	glog.V(1).Info("Restarted kubelet service")
 	glog.Info("Reloaded daemons and restarted kubelet service")
@@ -90,14 +88,11 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 		file := filepath.Join(c.General.WorkArea, KubeAdmConfFile)
 		args = []string{"init", fmt.Sprintf("--config=%s", file)}
 	} else {
-		args = []string{
-			"join",
-			"--token", c.General.Token,
-			fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID),
-			// "--discovery-token-unsafe-skip-ca-verification",
-			"--discovery-token-ca-cert-hash",
-			fmt.Sprintf("sha256:%s", c.General.TokenCertHash),
-		}
+		token := c.General.Token
+		args = []string{"join", "--token", token}
+		args = append(args, "--discovery-token-ca-cert-hash",
+			fmt.Sprintf("sha256:%s", c.General.TokenCertHash))
+		args = append(args, fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID))
 	}
 	return args
 }
@@ -178,8 +173,7 @@ func StartKubernetes(n *Node, c *Config) error {
 	glog.Infof("Starting Kubernetes on %s... (please wait)", n.Name)
 	output, err := DoExecCommand("kubeadm", args)
 	if err != nil {
-		glog.Fatalf("unable to %s Kubernetes cluster: %v", args[0], err)
-		os.Exit(1)
+		return fmt.Errorf("unable to %s Kubernetes cluster: %v", args[0], err)
 	}
 	glog.Infof("Kubernetes %s output: %s", args[0], output)
 	glog.Infof("Kubernetes %s successful", args[0])

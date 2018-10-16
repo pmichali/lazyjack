@@ -2,6 +2,7 @@ package lazyjack_test
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -791,6 +792,8 @@ func TestValidateHost(t *testing.T) {
 }
 
 func TestValidateConfigContents(t *testing.T) {
+	lazyjack.RegisterExecCommand(func(string, []string) (string, error) { return "v1.11.0", nil })
+
 	cf, err := lazyjack.OpenConfigFile("sample-config.yaml")
 	if err != nil {
 		t.Fatalf("Test setup failure - unable to open sample config")
@@ -1529,6 +1532,177 @@ func TestMakePrefixFromNetwork(t *testing.T) {
 		actual := lazyjack.MakePrefixFromNetwork(tc.network, tc.size)
 		if actual != tc.expected {
 			t.Errorf("[%s] Expected: %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
+func TestValidateVersionsCommand(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		input       string
+		version     string
+		expectedStr string
+	}{
+		{
+			name:        "no version info",
+			input:       "",
+			version:     "",
+			expectedStr: "Unable to parse Kubeadm version from \"\"",
+		},
+		{
+			name:        "good version",
+			input:       "v1.10.8",
+			version:     "1.10",
+			expectedStr: "",
+		},
+		{
+			name:        "built version",
+			input:       "v1.13.0-dirty",
+			version:     "1.13",
+			expectedStr: "",
+		},
+		{
+			name:        "malformed version",
+			input:       "1.10.8",
+			version:     "",
+			expectedStr: "Unable to parse Kubeadm version from \"1.10.8\"",
+		},
+		{
+			name:        "invalid version",
+			input:       "1.10",
+			version:     "",
+			expectedStr: "Unable to parse Kubeadm version from \"1.10\"",
+		},
+	}
+	for _, tc := range testCases {
+		version, err := lazyjack.ParseVersion(tc.input)
+		if tc.expectedStr == "" {
+			if err != nil {
+				t.Errorf("[%s] Did not expect error, but see %q", tc.name, err.Error())
+			} else if tc.version != version {
+				t.Errorf("[%s] Expected version %q, but got %q", tc.name, tc.version, version)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("[%s] Expected error %q, but no error seen", tc.name, tc.expectedStr)
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("[%s] Expected error %q, but got %q", tc.name, tc.expectedStr, err.Error())
+			}
+		}
+	}
+}
+
+func TestValidateSoftwareVersions(t *testing.T) {
+	var testCases = []struct {
+		name        string
+		execCmd     lazyjack.ExecCommandFuncType
+		version     string
+		k8sVersion  string
+		expectedStr string
+	}{
+		{
+			name: "kubeadm ok",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "",
+			expectedStr: "",
+		},
+		{
+			name: "local version",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.13.0-alpha.0-dirty", nil
+			},
+			version:     "1.13",
+			k8sVersion:  "",
+			expectedStr: "",
+		},
+		{
+			name: "unabe to get version",
+			execCmd: func(string, []string) (string, error) {
+				return "", fmt.Errorf("kubeadm: command not found")
+			},
+			version:     "",
+			k8sVersion:  "",
+			expectedStr: "Unable to get version of KubeAdm: kubeadm: command not found",
+		},
+		{
+			name: "unabe to parse version",
+			execCmd: func(string, []string) (string, error) {
+				return "bad-version-output", nil
+			},
+			version:     "",
+			k8sVersion:  "",
+			expectedStr: "Unable to parse Kubeadm version from \"bad-version-output\"",
+		},
+		{
+			name: "valid k8s verison",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "v1.12.0",
+			expectedStr: "",
+		},
+		{
+			name: "latest k8s verison",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "latest",
+			expectedStr: "",
+		},
+		{
+			name: "k8s mismatch",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "v1.11.1",
+			expectedStr: "specified Kubernetes verson (\"v1.11.1\") does not match KubeAdm version (1.12)",
+		},
+		{
+			name: "k8s not full qual",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "v1.12",
+			expectedStr: "unable to parse Kubernetes version specified (\"v1.12\"): Unable to parse Kubeadm version from \"v1.12\"",
+		},
+		{
+			name: "k8s invalid",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.12.33", nil
+			},
+			version:     "1.12",
+			k8sVersion:  "1.12.0",
+			expectedStr: "unable to parse Kubernetes version specified (\"1.12.0\"): Unable to parse Kubeadm version from \"1.12.0\"",
+		},
+	}
+
+	for _, tc := range testCases {
+		lazyjack.RegisterExecCommand(tc.execCmd)
+		c := &lazyjack.Config{
+			General: lazyjack.GeneralSettings{
+				K8sVersion: tc.k8sVersion,
+			},
+		}
+		err := lazyjack.ValidateSoftwareVersions(c)
+		if tc.expectedStr == "" {
+			if err != nil {
+				t.Errorf("[%s] Did not expect error, but see %q", tc.name, err.Error())
+			} else if tc.version != c.General.KubeAdmVersion {
+				t.Errorf("[%s] Expected version %q, but got %q", tc.name, tc.version, c.General.KubeAdmVersion)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("[%s] Expected error %q, but no error seen", tc.name, tc.expectedStr)
+			} else if err.Error() != tc.expectedStr {
+				t.Errorf("[%s] Expected error %q, but got %q", tc.name, tc.expectedStr, err.Error())
+			}
 		}
 	}
 }

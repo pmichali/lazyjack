@@ -1,6 +1,7 @@
 package lazyjack_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -177,5 +178,49 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 	expected := "unable to remove CNI config file and area"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
+	}
+}
+
+// HelperKubeAdmResetExecCommand mosks OS command requests for kubeadm reset
+func HelperKubeAdmResetExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "reset" && args[1] == "-f" {
+			return "Mocked kubeadm reset worked", nil
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestStopKubernetes(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmResetExecCommand)
+	err := lazyjack.StopKubernetes()
+	if err != nil {
+		t.Fatalf("Should have been able to stop kubernetes cluster (mocked): %s", err.Error())
+	}
+}
+
+// HelperKubeAdmResetFailExecCommand mosks OS command requests for kubeadm reset
+func HelperKubeAdmResetFailExecCommand(cmd string, args []string) (string, error) {
+	if cmd == "kubeadm" {
+		if len(args) == 2 && args[0] == "reset" && args[1] == "-f" {
+			return "", fmt.Errorf("mock failure")
+		} else {
+			return "", fmt.Errorf("Wrong args for kubeadm command: %v", args)
+		}
+	}
+	return "", fmt.Errorf("Test setup error - expected to be mocking kubeadm command only")
+}
+
+func TestFailStopKubernetes(t *testing.T) {
+	lazyjack.RegisterExecCommand(HelperKubeAdmResetFailExecCommand)
+	err := lazyjack.StopKubernetes()
+	if err == nil {
+		t.Fatalf("Expected to fail kubeadm reset command, but was successful")
+	}
+	expected := "unable to reset Kubernetes cluster: mock failure"
+	if err.Error() != expected {
+		t.Fatalf("Expected failure to be %q, but got %q", expected, err.Error())
 	}
 }
