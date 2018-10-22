@@ -112,6 +112,7 @@ general:
     work-area: "/tmp/lazyjack"
     mode: "ipv6"
     kubernetes-version: "v1.12.0"
+    insecure: true
 topology:
   my-master:
     interface: "enp10s0"
@@ -173,6 +174,12 @@ If omitted, the version of KubeAdm will be used to specify the Kubernetes versio
 
 NOTE: If you are using an un-released version, it may be beneficial to set this to
 `latest`.
+
+### Insecure mode (insecure)
+This optional boolean flag can be set to allow KubeAdm to run without specifying
+an auth token. This means that the `init` step is not needed, and the config YAML
+file does not need to be copied over to the minions, after the `prepare` step, thus
+simplifying startup for a non-production environment.
 
 ### Topology (topology)
 This is where you specify each of the systems to be provisioned. Each entry is referred
@@ -328,7 +335,7 @@ as root:
 ```
 
 The commands do the following:
-* **init** - Sets up tokens and certificates needed by Kuberentes. Must be run on the master node, **before** copying the config file to minion nodes. Only needed once.
+* **init** - Sets up tokens and certificates needed by Kuberentes. Must be run on the master node, **before** copying the config file to minion nodes. Only needed once. Not needed, if running in insecure mode.
 * **prepare** - Prepares the node so that cluster can be brought up. Do on each node, before proceeded to next step.
 * **up** - Brings up Kubernetes cluster on the node. Do master first, and then minions.
 * **down** - Tears down the cluster on the node. Do minions first, and then master.
@@ -378,7 +385,7 @@ For each command, there are a series of actions performed...
 ### For the `init` command
 * Creates CA certificate and key for KubeAdm.
 * Creates token and CA certificate hash.
-* Updates the configuration YAML file (needed for `up` command on minions).
+* Updates the configuration YAML file (needed for `up` command on minions, unless running in insecure mode).
 
 ### For the `prepare` command
 * (IPv6) Creates support network with IPv6 and IPv4.
@@ -461,8 +468,8 @@ I also installed `ipset` and `ipvsadm`.
 * Some newer versions of docker break the enabling of IPv6 in the containers used for DNS64 and NAT64.
 * CNI v0.7.1+ is needed for full IPv6 support by plugins.
 * Relies on the tayga and bind6 containers (as provided by other developers), for IPv6 only mode.
-* The `init` command modifies the specified configuration YAML file. As a result, `init` must be done before copying the config YAML to other nodes.
-* Because the config YAML file is modified by the root user, permissions is set to 777, so that the non-root user can still modify the file.
+* The `init` command modifies the specified configuration YAML file. As a result, `init` must be done before copying the config YAML to other nodes, unless you are running in insecure mode where the `init` step is not needed and the config YAML is not updated.
+* In normal mode, because the config YAML file is modified by the root user, permissions is set to 777, so that the non-root user can still modify the file.
 
 
 ## Troubleshooting

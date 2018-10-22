@@ -86,6 +86,7 @@ type GeneralSettings struct {
 	KubeAdmVersion     string     // Internal
 	FullKubeAdmVersion string     // Internal
 	K8sVersion         string     `yaml:"kubernetes-version"`
+	Insecure           bool       `yaml:"insecure"`
 }
 
 // Config defines the top level configuration read from YAML file.
@@ -154,6 +155,9 @@ const (
 
 	// KubeAdmConfFile name of the configuration file used by KubeAdm
 	KubeAdmConfFile = "kubeadm.conf"
+
+	// DefaultToken used when in insecure mode
+	DefaultToken = "abcdef.abcdefghijklmnop"
 
 	// MinimumPodMTU is the smallest MTU for IPv6
 	MinimumPodMTU = 1280

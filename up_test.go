@@ -57,6 +57,16 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 	if !SlicesEqual(actual, expected) {
 		t.Errorf("KubeAdm init args incorrect for minion node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
 	}
+
+	c.General.Insecure = true
+	actual = lazyjack.BuildKubeAdmCommand(minionNode, masterNode, c)
+	expected = []string{"join", "--token", lazyjack.DefaultToken,
+		"--discovery-token-unsafe-skip-ca-verification=true",
+		"--ignore-preflight-errors=all", "[fd00:100::10]:6443"}
+
+	if !SlicesEqual(actual, expected) {
+		t.Errorf("KubeAdm init args incorrect for insecure minion node. Expected %q, got %q", strings.Join(expected, " "), strings.Join(actual, " "))
+	}
 }
 
 func TestEnsureCNIAreaExists(t *testing.T) {

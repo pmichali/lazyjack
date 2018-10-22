@@ -48,7 +48,11 @@ func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 
 	info.AdvertiseAddress = fmt.Sprintf("%s%d", c.Mgmt.Prefix, n.ID)
 
-	info.AuthToken = c.General.Token
+	if c.General.Insecure {
+		info.AuthToken = DefaultToken
+	} else {
+		info.AuthToken = c.General.Token
+	}
 
 	serviceNetMode := "::"
 	devicePart := "a"

@@ -1692,6 +1692,443 @@ volumeStatsAggPeriod: 1m0s
 	}
 }
 
+func TestKubeAdmConfigContentsForInsecureKubeAdm_1_11(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Insecure:       true,
+			Token:          "56cdce.7b18ad347f3de81c",
+			KubeAdmVersion: "1.11",
+			K8sVersion:     "v1.11.1",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR:   "fd00:30::/110",
+			Mode:   "ipv6",
+			Prefix: "fd00:30::",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+
+	expected := `# V1.11 based config
+api:
+  advertiseAddress: "fd00:100::10"
+  bindPort: 6443
+  controlPlaneEndpoint: ""
+apiServerExtraArgs:
+  insecure-bind-address: "::"
+  insecure-port: "8080"
+apiVersion: kubeadm.k8s.io/v1alpha2
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.abcdefghijklmnop
+  ttl: 0s
+  usages:
+  - signing
+  - authentication
+certificatesDir: /etc/kubernetes/pki
+# clusterName: kubernetes
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: false}
+kind: MasterConfiguration
+kubeProxy:
+  config:
+    bindAddress: "::"
+    clientConnection:
+      acceptContentTypes: ""
+      burst: 10
+      contentType: application/vnd.kubernetes.protobuf
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 5
+    # clusterCIDR: ""
+    configSyncPeriod: 15m0s
+    # conntrack:
+    #   max: null
+    #   maxPerCore: 32768
+    #   min: 131072
+    #   tcpCloseWaitTimeout: 1h0m0s
+    #   tcpEstablishedTimeout: 24h0m0s
+    enableProfiling: false
+    healthzBindAddress: 0.0.0.0:10256
+    hostnameOverride: ""
+    iptables:
+      masqueradeAll: false
+      masqueradeBit: 14
+      minSyncPeriod: 0s
+      syncPeriod: 30s
+    ipvs:
+      excludeCIDRs: null
+      minSyncPeriod: 0s
+      scheduler: ""
+      syncPeriod: 30s
+    metricsBindAddress: 127.0.0.1:10249
+    mode: ""
+    nodePortAddresses: null
+    oomScoreAdj: -999
+    portRange: ""
+    resourceContainer: /kube-proxy
+    udpIdleTimeout: 250ms
+kubeletConfiguration:
+  baseConfig:
+    address: 0.0.0.0
+    authentication:
+      anonymous:
+        enabled: false
+      webhook:
+        cacheTTL: 2m0s
+        enabled: true
+      x509:
+        clientCAFile: /etc/kubernetes/pki/ca.crt
+    authorization:
+      mode: Webhook
+      webhook:
+        cacheAuthorizedTTL: 5m0s
+        cacheUnauthorizedTTL: 30s
+    cgroupDriver: cgroupfs
+    cgroupsPerQOS: true
+    clusterDNS:
+    - "fd00:30::a"
+    clusterDomain: cluster.local
+    containerLogMaxFiles: 5
+    containerLogMaxSize: 10Mi
+    contentType: application/vnd.kubernetes.protobuf
+    cpuCFSQuota: true
+    cpuManagerPolicy: none
+    cpuManagerReconcilePeriod: 10s
+    enableControllerAttachDetach: true
+    enableDebuggingHandlers: true
+    enforceNodeAllocatable:
+    - pods
+    eventBurst: 10
+    eventRecordQPS: 5
+    evictionHard:
+      imagefs.available: 15%
+      memory.available: 100Mi
+      nodefs.available: 10%
+      nodefs.inodesFree: 5%
+    evictionPressureTransitionPeriod: 5m0s
+    failSwapOn: true
+    fileCheckFrequency: 20s
+    hairpinMode: promiscuous-bridge
+    healthzBindAddress: 127.0.0.1
+    healthzPort: 10248
+    httpCheckFrequency: 20s
+    imageGCHighThresholdPercent: 85
+    imageGCLowThresholdPercent: 80
+    imageMinimumGCAge: 2m0s
+    iptablesDropBit: 15
+    iptablesMasqueradeBit: 14
+    kubeAPIBurst: 10
+    kubeAPIQPS: 5
+    makeIPTablesUtilChains: true
+    maxOpenFiles: 1000000
+    maxPods: 110
+    nodeStatusUpdateFrequency: 10s
+    oomScoreAdj: -999
+    podPidsLimit: -1
+    # port: 10250
+    registryBurst: 10
+    registryPullQPS: 5
+    resolvConf: /etc/resolv.conf
+    rotateCertificates: true
+    runtimeRequestTimeout: 2m0s
+    serializeImagePulls: true
+    staticPodPath: /etc/kubernetes/manifests
+    streamingConnectionIdleTimeout: 4h0m0s
+    syncFrequency: 1m0s
+    volumeStatsAggPeriod: 1m0s
+kubernetesVersion: "v1.11.1"
+networking:
+  # podSubnet: "fd00:40::/72"
+  serviceSubnet: "fd00:30::/110"
+nodeRegistration:
+  name: my-master
+unifiedControlPlaneImage: ""
+`
+	actual := string(lazyjack.CreateKubeAdmConfigContents(n, c))
+	if actual != expected {
+		t.Fatalf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
+	}
+}
+
+func TestKubeAdmConfigContentsForInsecureKubeAdm_1_12(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Insecure:       true,
+			Token:          "64rxu8.yvrzfofegfmyy1no",
+			KubeAdmVersion: "1.12",
+			K8sVersion:     "v1.12.0",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR:   "fd00:30::/110",
+			Mode:   "ipv6",
+			Prefix: "fd00:30::",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+
+	expected := `# V1.12 based config
+apiEndpoint:
+  advertiseAddress: "fd00:100::10"
+  bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1alpha3
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.abcdefghijklmnop
+  ttl: 0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: my-master
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServerExtraArgs:
+  insecure-bind-address: "::"
+  insecure-port: "8080"
+apiVersion: kubeadm.k8s.io/v1alpha3
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+certificatesDir: /etc/kubernetes/pki
+controlPlaneEndpoint: ""
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: false}
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+kubernetesVersion: "v1.12.0"
+networking:
+  # podSubnet: "fd00:40::/72"
+  serviceSubnet: "fd00:30::/110"
+unifiedControlPlaneImage: ""
+`
+	actual := string(lazyjack.CreateKubeAdmConfigContents(n, c))
+	if actual != expected {
+		t.Fatalf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
+	}
+}
+
+func TestKubeAdmConfigContentsForInsecureKubeAdm_1_13(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Insecure:       true,
+			Token:          "56cdce.7b18ad347f3de81c",
+			KubeAdmVersion: "1.13",
+			K8sVersion:     "v1.13.0",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR:   "fd00:30::/110",
+			Mode:   "ipv6",
+			Prefix: "fd00:30::",
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Prefix: "fd00:100::",
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+
+	expected := `# V1.13 based config
+apiEndpoint:
+  advertiseAddress: "fd00:100::10"
+  bindPort: 6443
+apiVersion: kubeadm.k8s.io/v1beta1
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.abcdefghijklmnop
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: my-master
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServerExtraArgs:
+  insecure-bind-address: "::"
+  insecure-port: "8080"
+apiVersion: kubeadm.k8s.io/v1beta1
+auditPolicy:
+  logDir: /var/log/kubernetes/audit
+  logMaxAge: 2
+  path: ""
+certificatesDir: /etc/kubernetes/pki
+# clusterName: kubernetes
+controlPlaneEndpoint: ""
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    image: ""
+featureGates: {CoreDNS: false}
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+kubernetesVersion: "v1.13.0"
+networking:
+  dnsDomain: cluster.local
+  # podSubnet: "fd00:40::/72"
+  serviceSubnet: "fd00:30::/110"
+unifiedControlPlaneImage: ""
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: "::"
+clientConnection:
+  acceptContentTypes: ""
+  burst: 10
+  contentType: application/vnd.kubernetes.protobuf
+  kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+  qps: 5
+# clusterCIDR: ""
+configSyncPeriod: 15m0s
+# conntrack:
+#   max: null
+#   maxPerCore: 32768
+#   min: 131072
+#   tcpCloseWaitTimeout: 1h0m0s
+#   tcpEstablishedTimeout: 24h0m0s
+enableProfiling: false
+healthzBindAddress: 0.0.0.0:10256
+hostnameOverride: ""
+iptables:
+  masqueradeAll: false
+  masqueradeBit: 14
+  minSyncPeriod: 0s
+  syncPeriod: 30s
+ipvs:
+  excludeCIDRs: null
+  minSyncPeriod: 0s
+  scheduler: ""
+  syncPeriod: 30s
+kind: KubeProxyConfiguration
+metricsBindAddress: 127.0.0.1:10249
+mode: ""
+nodePortAddresses: null
+oomScoreAdj: -999
+portRange: ""
+resourceContainer: /kube-proxy
+udpIdleTimeout: 250ms
+---
+address: 0.0.0.0
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupDriver: cgroupfs
+cgroupsPerQOS: true
+clusterDNS:
+- "fd00:30::a"
+clusterDomain: cluster.local
+configMapAndSecretChangeDetectionStrategy: Watch
+containerLogMaxFiles: 5
+containerLogMaxSize: 10Mi
+contentType: application/vnd.kubernetes.protobuf
+cpuCFSQuota: true
+cpuCFSQuotaPeriod: 100ms
+cpuManagerPolicy: none
+cpuManagerReconcilePeriod: 10s
+enableControllerAttachDetach: true
+enableDebuggingHandlers: true
+enforceNodeAllocatable:
+- pods
+eventBurst: 10
+eventRecordQPS: 5
+evictionHard:
+  imagefs.available: 15%
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+fileCheckFrequency: 20s
+hairpinMode: promiscuous-bridge
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 20s
+imageGCHighThresholdPercent: 85
+imageGCLowThresholdPercent: 80
+imageMinimumGCAge: 2m0s
+iptablesDropBit: 15
+iptablesMasqueradeBit: 14
+kind: KubeletConfiguration
+kubeAPIBurst: 10
+kubeAPIQPS: 5
+makeIPTablesUtilChains: true
+maxOpenFiles: 1000000
+maxPods: 110
+nodeLeaseDurationSeconds: 40
+nodeStatusUpdateFrequency: 10s
+oomScoreAdj: -999
+podPidsLimit: -1
+# port: 10250
+registryBurst: 10
+registryPullQPS: 5
+resolvConf: /etc/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 2m0s
+serializeImagePulls: true
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 4h0m0s
+syncFrequency: 1m0s
+volumeStatsAggPeriod: 1m0s
+`
+	actual := string(lazyjack.CreateKubeAdmConfigContents(n, c))
+	if actual != expected {
+		t.Fatalf("FAILED: kubeadm.conf contents wrong\nExpected: %s\n  Actual: %s\n", expected, actual)
+	}
+}
+
 func TestCreateKubeAdmConfFile(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(basePath, t)

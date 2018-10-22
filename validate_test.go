@@ -1655,6 +1655,15 @@ func TestValidateSoftwareVersions(t *testing.T) {
 			expectedStr: "",
 		},
 		{
+			name: "unsupported verison (ok)",
+			execCmd: func(string, []string) (string, error) {
+				return "v1.9.1", nil
+			},
+			version:     "1.9",
+			k8sVersion:  "v1.9.3",
+			expectedStr: "",
+		},
+		{
 			name: "k8s mismatch",
 			execCmd: func(string, []string) (string, error) {
 				return "v1.12.33", nil

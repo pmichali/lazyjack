@@ -501,10 +501,10 @@ func SetupHandles(c *Config) error {
 
 // ValidateConfigContents checks contents of the config file.
 // Token and certificate hash validation is ignored during init
-// phase, which will generate these values. Side effect is that
-// base paths are set up based on defaults (unless overriden by
-// config file). The netlink library handle is set (allowing UTs
-// to override and mock that library).
+// phase, which will generate these values, or if running in
+// insecure mode. Side effect is that base paths are set up based on
+// defaults (unless overriden by config file). The netlink library
+// handle is set (allowing UTs to override and mock that library).
 // TODO: Validate support net v4 subnet > NAT64 subnet
 func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 	var err error
@@ -521,6 +521,9 @@ func ValidateConfigContents(c *Config, ignoreMissing bool) error {
 		return err
 	}
 
+	if c.General.Insecure {
+		ignoreMissing = true // force on
+	}
 	err = ValidateToken(c.General.Token, ignoreMissing)
 	if err != nil {
 		return err

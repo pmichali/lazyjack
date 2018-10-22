@@ -89,9 +89,17 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 		args = []string{"init", fmt.Sprintf("--config=%s", file)}
 	} else {
 		token := c.General.Token
+		if c.General.Insecure {
+			token = DefaultToken
+		}
 		args = []string{"join", "--token", token}
-		args = append(args, "--discovery-token-ca-cert-hash",
-			fmt.Sprintf("sha256:%s", c.General.TokenCertHash))
+		if c.General.Insecure {
+			args = append(args, "--discovery-token-unsafe-skip-ca-verification=true",
+				"--ignore-preflight-errors=all")
+		} else {
+			args = append(args, "--discovery-token-ca-cert-hash",
+				fmt.Sprintf("sha256:%s", c.General.TokenCertHash))
+		}
 		args = append(args, fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID))
 	}
 	return args
