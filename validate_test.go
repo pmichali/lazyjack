@@ -865,6 +865,181 @@ func TestMakeIPv4Prefix(t *testing.T) {
 	}
 }
 
+func TestCheckMgmtSize(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		size     int
+		expected string
+	}{
+		{
+			name:     "/8 prefix",
+			size:     8,
+			expected: "",
+		},
+		{
+			name:     "/16 prefix",
+			size:     16,
+			expected: "",
+		},
+		{
+			name:     "/24 prefix",
+			size:     24,
+			expected: "only /8 and /16 are supported for an IPv4 management network - have /24",
+		},
+	}
+	for _, tc := range testCases {
+		err := lazyjack.CheckMgmtSize(tc.size)
+		actual := ""
+		if err != nil {
+			actual = err.Error()
+		}
+		if actual != tc.expected {
+			t.Errorf("[%s] Expected result %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
+func TestCheckPodSize(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		size     int
+		expected string
+	}{
+		{
+			name:     "/16 prefix",
+			size:     16,
+			expected: "",
+		},
+		{
+			name:     "/24 prefix",
+			size:     24,
+			expected: "only /16 is supported for IPv4 pod networks - have /24",
+		},
+	}
+	for _, tc := range testCases {
+		err := lazyjack.CheckPodSize(tc.size)
+		actual := ""
+		if err != nil {
+			actual = err.Error()
+		}
+		if actual != tc.expected {
+			t.Errorf("[%s] Expected result %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
+func TestCheckServiceSize(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		size     int
+		expected string
+	}{
+		{
+			name:     "/8 prefix",
+			size:     8,
+			expected: "",
+		},
+		{
+			name:     "/23 prefix",
+			size:     23,
+			expected: "",
+		},
+		{
+			name:     "/24 prefix",
+			size:     24,
+			expected: "service subnet size must be /23 or larger - have /24",
+		},
+	}
+	for _, tc := range testCases {
+		err := lazyjack.CheckServiceSize(tc.size)
+		actual := ""
+		if err != nil {
+			actual = err.Error()
+		}
+		if actual != tc.expected {
+			t.Errorf("[%s] Expected result %q, got %q", tc.name, tc.expected, actual)
+		}
+	}
+}
+
+func TestCheckUnlimitedSize(t *testing.T) {
+	err := lazyjack.CheckUnlimitedSize(80)
+	if err != nil {
+		t.Errorf("Expected no error on unlimited size check: %s", err.Error())
+	}
+}
+
+func TestExtractNetInfo(t *testing.T) {
+	var testCases = []struct {
+		name           string
+		cidr           string
+		expected       string
+		expectedPrefix string
+		expectedSize   int
+		expectedMode   string
+	}{
+		{
+			name:           "valid v4",
+			cidr:           "10.0.0.0/16",
+			expected:       "",
+			expectedPrefix: "10.0.0.",
+			expectedSize:   16,
+			expectedMode:   lazyjack.IPv4NetMode,
+		},
+		{
+			name:           "valid v6",
+			cidr:           "2001:db8::/64",
+			expected:       "",
+			expectedPrefix: "2001:db8::",
+			expectedSize:   64,
+			expectedMode:   lazyjack.IPv6NetMode,
+		},
+		{
+			name:           "no cidr",
+			cidr:           "",
+			expected:       "missing CIDR",
+			expectedPrefix: "",
+			expectedSize:   0,
+			expectedMode:   lazyjack.IPv6NetMode,
+		},
+		{
+			name:           "bad cidr",
+			cidr:           "2001::db8::/64",
+			expected:       "invalid CIDR address: 2001::db8::/64",
+			expectedPrefix: "",
+			expectedSize:   0,
+			expectedMode:   lazyjack.IPv6NetMode,
+		},
+		{
+			name:           "bad size",
+			cidr:           "10.96.0.0/24",
+			expected:       "only /16 is supported for IPv4 pod networks - have /24",
+			expectedPrefix: "",
+			expectedSize:   0,
+			expectedMode:   lazyjack.IPv4NetMode,
+		},
+	}
+	for _, tc := range testCases {
+		var actual lazyjack.NetInfo
+		err := lazyjack.ExtractNetInfo(tc.cidr, &actual, lazyjack.CheckPodSize)
+		actualErr := ""
+		if err != nil {
+			actualErr = err.Error()
+		}
+		if actualErr != tc.expected {
+			t.Errorf("[%s] expected result %q, got %q", tc.name, tc.expected, actualErr)
+		} else if actualErr == "" {
+			if actual.Prefix != tc.expectedPrefix {
+				t.Errorf("[%s] expected prefix %q, got %q", tc.name, tc.expectedPrefix, actual.Prefix)
+			} else if actual.Size != tc.expectedSize {
+				t.Errorf("[%s] expected size %d, got %d", tc.name, tc.expectedSize, actual.Size)
+			} else if actual.Mode != tc.expectedMode {
+				t.Errorf("[%s] expected size %q, got %q", tc.name, tc.expectedMode, actual.Mode)
+			}
+		}
+	}
+}
+
 func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
@@ -892,170 +1067,36 @@ func TestCalculateDerivedFieldsSuccess(t *testing.T) {
 		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
 	}
 	expectedMgmtPrefix := "fd00:20::"
-	if c.Mgmt.Prefix != expectedMgmtPrefix {
-		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Prefix)
+	if c.Mgmt.Info[0].Prefix != expectedMgmtPrefix {
+		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Info[0].Prefix)
 	}
 	expectedMgmtSize := 64
-	if c.Mgmt.Size != expectedMgmtSize {
-		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Size)
+	if c.Mgmt.Info[0].Size != expectedMgmtSize {
+		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Info[0].Size)
 	}
 	expectedServicePrefix := "fd00:30::"
-	if c.Service.Prefix != expectedServicePrefix {
-		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Prefix)
+	if c.Service.Info.Prefix != expectedServicePrefix {
+		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Info.Prefix)
 	}
 	expectedSupportPrefix := "fd00:10::"
-	if c.Support.Prefix != expectedSupportPrefix {
-		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedSupportPrefix, c.Support.Prefix)
+	if c.Support.Info.Prefix != expectedSupportPrefix {
+		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedSupportPrefix, c.Support.Info.Prefix)
 	}
 	expectedSupportSize := 64
-	if c.Support.Size != expectedSupportSize {
-		t.Errorf("Derived support size is incorrect. Expected %d, got %d", expectedSupportSize, c.Support.Size)
+	if c.Support.Info.Size != expectedSupportSize {
+		t.Errorf("Derived support size is incorrect. Expected %d, got %d", expectedSupportSize, c.Support.Info.Size)
 	}
 	expectedPodPrefix := "fd00:40:0:0:"
-	if c.Pod.Prefix != expectedPodPrefix {
-		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Prefix)
+	if c.Pod.Info[0].Prefix != expectedPodPrefix {
+		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Info[0].Prefix)
 	}
 	expectedPodSize := 80
-	if c.Pod.Size != expectedPodSize {
-		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Size)
+	if c.Pod.Info[0].Size != expectedPodSize {
+		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Info[0].Size)
 	}
 	expectedDNS64Prefix := "fd00:10:64:ff9b::"
 	if c.DNS64.CIDRPrefix != expectedDNS64Prefix {
 		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedDNS64Prefix, c.DNS64.CIDRPrefix)
-	}
-}
-
-func TestCalculateDerivedFieldsForV4Success(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "10.192.0.0/16",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "10.96.0.0/12",
-		},
-		Pod: lazyjack.PodNetwork{
-			CIDR: "10.244.0.0/16",
-		},
-		General: lazyjack.GeneralSettings{
-			Mode: lazyjack.IPv4NetMode,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err != nil {
-		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
-	}
-	expectedMgmtPrefix := "10.192.0."
-	if c.Mgmt.Prefix != expectedMgmtPrefix {
-		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Prefix)
-	}
-	expectedMgmtSize := 16
-	if c.Mgmt.Size != expectedMgmtSize {
-		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Size)
-	}
-	expectedServicePrefix := "10.96.0."
-	if c.Service.Prefix != expectedServicePrefix {
-		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Prefix)
-	}
-	// No support prefix for IPv4
-	expectedSupportPrefix := ""
-	if c.Support.Prefix != expectedSupportPrefix {
-		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedSupportPrefix, c.Support.Prefix)
-	}
-	expectedSupportSize := 0
-	if c.Support.Size != expectedSupportSize {
-		t.Errorf("Derived support size is incorrect. Expected %d, got %d", expectedSupportSize, c.Support.Size)
-	}
-	expectedPodPrefix := "10.244.0."
-	if c.Pod.Prefix != expectedPodPrefix {
-		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Prefix)
-	}
-	expectedPodSize := 24
-	if c.Pod.Size != expectedPodSize {
-		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Size)
-	}
-	// Not used for IPv4
-	expectedDNS64Prefix := ""
-	if c.DNS64.CIDRPrefix != expectedDNS64Prefix {
-		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedDNS64Prefix, c.DNS64.CIDRPrefix)
-	}
-}
-
-func TestFailedBadMgmtNetCalculateDerivedFieldsForV4(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "10.192.0.0/20",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "10.96.0.0/12",
-		},
-		Pod: lazyjack.PodNetwork{
-			CIDR: "10.244.0.0/16",
-		},
-		General: lazyjack.GeneralSettings{
-			Mode: lazyjack.IPv4NetMode,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err == nil {
-		t.Fatalf("Expected derived fields parsed failure for management network")
-	}
-	expectedMsg := "only /8 and /16 are supported for IPv4 management network - have /20"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error %q, got %q", expectedMsg, err.Error())
-	}
-}
-
-func TestFailedBadServiceNetCalculateDerivedFieldsForV4(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "10.192.0.0/16",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "10.96.0.0/24",
-		},
-		Pod: lazyjack.PodNetwork{
-			CIDR: "10.244.0.0/16",
-		},
-		General: lazyjack.GeneralSettings{
-			Mode: lazyjack.IPv4NetMode,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err == nil {
-		t.Fatalf("Expected derived fields parsed failure for service network")
-	}
-	expectedMsg := "service subnet size must be /23 or larger - have /24"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error %q, got %q", expectedMsg, err.Error())
-	}
-}
-
-func TestFailedBadPodNetCalculateDerivedFieldsForV4(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "10.192.0.0/16",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "10.96.0.0/12",
-		},
-		Pod: lazyjack.PodNetwork{
-			CIDR: "10.244.0.0/24",
-		},
-		General: lazyjack.GeneralSettings{
-			Mode: lazyjack.IPv4NetMode,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err == nil {
-		t.Fatalf("Expected derived fields parsed failure for pod network")
-	}
-	expectedMsg := "only /16 is supported for IPv4 pod networks - have /24"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error %q, got %q", expectedMsg, err.Error())
 	}
 }
 
@@ -1244,45 +1285,6 @@ func TestSkipValidateNAT64ForV4(t *testing.T) {
 	}
 }
 
-func TestCalculateDerivedFieldsSuccessMigrateLegacyPodInfo(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "fd00:20::/64",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "fd00:30::/110",
-		},
-		Support: lazyjack.SupportNetwork{
-			CIDR: "fd00:10::/64",
-		},
-		DNS64: lazyjack.DNS64Config{
-			CIDR: "fd00:10:64:ff9b::/96",
-		},
-		Pod: lazyjack.PodNetwork{
-			// Legacy wll have fully expanded prefix, no trailing colon,
-			// and have a size that is a multiple of 16
-			Prefix: "fd00:40:0:0",
-			Size:   80,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err != nil {
-		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
-	}
-	expectedPodPrefix := "fd00:40:0:0:"
-	if c.Pod.Prefix != expectedPodPrefix {
-		t.Errorf("Entered pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Prefix)
-	}
-	expectedPodSize := 80
-	if c.Pod.Size != expectedPodSize {
-		t.Errorf("Entered pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Size)
-	}
-	if c.Pod.CIDR != "" {
-		t.Errorf("Using legacy mode - should not be pod CIDR, but see %q", c.Pod.CIDR)
-	}
-}
-
 func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
@@ -1306,7 +1308,7 @@ func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid management CIDR")
 	}
-	expectedMsg := "invalid management network CIDR: invalid CIDR address: fd00::20::/64"
+	expectedMsg := "invalid management network: invalid CIDR address: fd00::20::/64"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -1335,7 +1337,7 @@ func TestFailedServiceCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid service CIDR")
 	}
-	expectedMsg := "invalid service network CIDR: invalid CIDR address: fd00::30::/110"
+	expectedMsg := "invalid service network: invalid CIDR address: fd00::30::/110"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -1367,7 +1369,7 @@ func TestFailedSupportCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid support CIDR")
 	}
-	expectedMsg := "invalid support network CIDR: invalid CIDR address: fd00:10::/6a4"
+	expectedMsg := "invalid support network: invalid CIDR address: fd00:10::/6a4"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -1428,63 +1430,7 @@ func TestFailedBadPodCIDRCalculateDerivedFields(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected failure with invalid pod CIDR")
 	}
-	expectedMsg := "invalid pod network CIDR: invalid CIDR address: fd00::40::/72"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
-	}
-}
-
-func TestFailedMissingPodInfoCalculateDerivedFields(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "fd00:20::/64",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "fd00:30::/110",
-		},
-		Support: lazyjack.SupportNetwork{
-			CIDR: "fd00:10::/64",
-		},
-		DNS64: lazyjack.DNS64Config{
-			CIDR: "fd00:10:64:ff9b::/96",
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err == nil {
-		t.Fatalf("Expected failure with missing pod CIDR and legacy info")
-	}
-	expectedMsg := "missing pod network CIDR"
-	if err.Error() != expectedMsg {
-		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
-	}
-}
-
-func TestFailedBadLegacyPodInfoCalculateDerivedFields(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "fd00:20::/64",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "fd00:30::/110",
-		},
-		Support: lazyjack.SupportNetwork{
-			CIDR: "fd00:10::/64",
-		},
-		DNS64: lazyjack.DNS64Config{
-			CIDR: "fd00:10:64:ff9b::/96",
-		},
-		Pod: lazyjack.PodNetwork{
-			// Missing prefix
-			Size: 72,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err == nil {
-		t.Fatalf("Expected failure with invalid pod legacy info")
-	}
-	expectedMsg := "missing pod network CIDR"
+	expectedMsg := "invalid pod network: invalid CIDR address: fd00::40::/72"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}

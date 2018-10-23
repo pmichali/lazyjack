@@ -293,67 +293,112 @@ func MakeV4PrefixFromNetwork(ip string) string {
 	return fmt.Sprintf("%s.%s.%s.", parts[0], parts[1], parts[2])
 }
 
+// SizeCheck is a function type for validating IPv4 network sizes.
+type SizeCheck func(int) error
+
+// CheckUnlimitedSize skips checking for any limits on size for IPv4 networks.
+func CheckUnlimitedSize(size int) error {
+	return nil
+}
+
+// CheckMgmtSize ensures that management network size is valid for IPv4 mode.
+func CheckMgmtSize(size int) error {
+	if size != 8 && size != 16 {
+		return fmt.Errorf("only /8 and /16 are supported for an IPv4 management network - have /%d", size)
+	}
+	return nil
+}
+
+// CheckPodSize ensures that pod network size is valid for IPv4 mode.
+func CheckPodSize(size int) error {
+	if size != 16 {
+		return fmt.Errorf("only /16 is supported for IPv4 pod networks - have /%d", size)
+	}
+	return nil
+}
+
+// CheckServiceSize ensures that service network size is valid for IPv4 mode.
+func CheckServiceSize(size int) error {
+	if size >= 24 {
+		return fmt.Errorf("service subnet size must be /23 or larger - have /%d", size)
+	}
+	return nil
+}
+
+// ExtractNetInfo obtains the prefix, size, and IP family from the provided CIDR.
+func ExtractNetInfo(cidr string, info *NetInfo, check SizeCheck) error {
+	var err error
+	if cidr == "" {
+		return fmt.Errorf("missing CIDR")
+	}
+	info.Prefix, info.Size, err = GetNetAndMask(cidr)
+	if err != nil {
+		return err
+	}
+	if IsIPv4(info.Prefix) {
+		info.Mode = IPv4NetMode
+	} else {
+		info.Mode = IPv6NetMode
+	}
+	if info.Mode == IPv4NetMode {
+		err = check(info.Size)
+		if err != nil {
+			return err
+		}
+		info.Prefix = MakeV4PrefixFromNetwork(info.Prefix)
+	}
+	return nil
+}
+
 // CalculateDerivedFields splits up CIDRs into prefix and size
 // for use later.
 // TODO: Validate no overlaps in CIDRs
 func CalculateDerivedFields(c *Config) error {
 	var err error
-	c.Mgmt.Prefix, c.Mgmt.Size, err = GetNetAndMask(c.Mgmt.CIDR)
+	err = ExtractNetInfo(c.Mgmt.CIDR, &c.Mgmt.Info[0], CheckMgmtSize)
 	if err != nil {
-		return fmt.Errorf("invalid management network CIDR: %v", err)
+		return fmt.Errorf("invalid management network: %v", err)
 	}
-	if IsIPv4(c.Mgmt.Prefix) {
-		if c.Mgmt.Size != 8 && c.Mgmt.Size != 16 {
-			return fmt.Errorf("only /8 and /16 are supported for IPv4 management network - have /%d", c.Mgmt.Size)
-		}
-		c.Mgmt.Prefix = MakeV4PrefixFromNetwork(c.Mgmt.Prefix)
-	}
+	//    if c.General.Mode == "dual-stack" {
+	//    	otherMode := "ipv4"
+	//    	if c.Mgmt.Info[0].Mode == "ipv4" {
+	//    		otherMode = "ipv6"
+	//    	}
+	//    	if c.Mgmt.CIDR2 == "" {
+	//    		return fmt.Errorf("dual-stack mode only has %s CIDR, need %s CIDR", c.Mgmt.Info[0].Mode, otherMode)
+	//    	}
+	//		err = ExtractNetInfo(c.Mgmt.CIDR2, &c.Mgmt.Info[1], CheckMgmtSize)
+	//		if err != nil {
+	//		    return fmt.Errorf("invalid management network CIDR2: %v", err)
+	//		}
+	//		if c.Mgmt.Info[1].Mode != otherMode {
+	//		    return fmt.Errorf("for dual-stack both management networks specified are % mode - need %s info", c.Mgmt.Info[0].Mode, otherMode)
+	//		}
+	//    } else if c.Mgmt.CIDR2 != "" {
+	//    	return fmt.Errorf("see second CIDR (%s), when in %s mode", c.Mgmt.CIDR2, c.General.Mode)
+	//    }
 
-	var serviceSize int
-	c.Service.Prefix, serviceSize, err = GetNetAndMask(c.Service.CIDR)
+	err = ExtractNetInfo(c.Service.CIDR, &c.Service.Info, CheckServiceSize)
 	if err != nil {
-		return fmt.Errorf("invalid service network CIDR: %v", err)
-	}
-	if IsIPv4(c.Service.Prefix) {
-		if serviceSize >= 24 {
-			return fmt.Errorf("service subnet size must be /23 or larger - have /%d", serviceSize)
-		}
-		c.Service.Prefix = MakeV4PrefixFromNetwork(c.Service.Prefix)
-		c.Service.Mode = "ipv4"
-	} else {
-		c.Service.Mode = "ipv6"
+		return fmt.Errorf("invalid service network: %v", err)
 	}
 
 	if c.General.Mode == IPv6NetMode {
-		c.Support.Prefix, c.Support.Size, err = GetNetAndMask(c.Support.CIDR)
+		err = ExtractNetInfo(c.Support.CIDR, &c.Support.Info, CheckUnlimitedSize)
 		if err != nil {
-			return fmt.Errorf("invalid support network CIDR: %v", err)
+			return fmt.Errorf("invalid support network: %v", err)
 		}
 	}
 
-	if c.Pod.CIDR != "" {
-		network, netSize, err := GetNetAndMask(c.Pod.CIDR)
-		if err != nil {
-			return fmt.Errorf("invalid pod network CIDR: %v", err)
-		}
-		c.Pod.Size = netSize + 8 // Each node will get a subnet from this network
-		if IsIPv4(network) {
-			if netSize != 16 {
-				return fmt.Errorf("only /16 is supported for IPv4 pod networks - have /%d", netSize)
-			}
-			c.Pod.Prefix = MakeV4PrefixFromNetwork(network)
-		} else {
-			c.Pod.Prefix = MakePrefixFromNetwork(network, netSize)
-		}
-	} else if c.Pod.Prefix == "" || c.Pod.Size == 0 {
-		return fmt.Errorf("missing pod network CIDR")
-	} else {
-		// Legacy mode (V6 only) - will just change so that prefix has colon at end
-		// NOTE: prefixes were always a multiple of 16
-		if !strings.HasSuffix(c.Pod.Prefix, ":") {
-			c.Pod.Prefix += ":"
-		}
+	err = ExtractNetInfo(c.Pod.CIDR, &c.Pod.Info[0], CheckPodSize)
+	if err != nil {
+		return fmt.Errorf("invalid pod network: %v", err)
 	}
+	if c.Pod.Info[0].Mode == IPv6NetMode {
+		c.Pod.Info[0].Prefix = MakePrefixFromNetwork(c.Pod.Info[0].Prefix, c.Pod.Info[0].Size)
+	}
+	c.Pod.Info[0].Size += 8 // Each pod gets a subnet from the network
+	// TODO: Add dual stack pod net...
 
 	if c.General.Mode == IPv6NetMode {
 		c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)

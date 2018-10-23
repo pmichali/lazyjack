@@ -17,12 +17,12 @@ import (
 // drop-in file to support IPv6.
 func CreateKubeletDropInContents(c *Config) *bytes.Buffer {
 	devicePart := "a"
-	if c.Service.Mode == "ipv4" {
+	if c.Service.Info.Mode == "ipv4" {
 		devicePart = "10"
 	}
 	contents := bytes.NewBufferString("[Service]\n")
 	// Assumption is that kube-dns will be at address 10 (0xa) in service network
-	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%s%s --cluster-domain=cluster.local\"\n", c.Service.Prefix, devicePart)
+	fmt.Fprintf(contents, "Environment=\"KUBELET_DNS_ARGS=--cluster-dns=%s%s --cluster-domain=cluster.local\"\n", c.Service.Info.Prefix, devicePart)
 	return contents
 }
 
@@ -46,7 +46,7 @@ func CreateKubeletDropInFile(c *Config) error {
 func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 	info := KubeAdmConfigInfo{}
 
-	info.AdvertiseAddress = fmt.Sprintf("%s%d", c.Mgmt.Prefix, n.ID)
+	info.AdvertiseAddress = fmt.Sprintf("%s%d", c.Mgmt.Info[0].Prefix, n.ID)
 
 	if c.General.Insecure {
 		info.AuthToken = DefaultToken
@@ -56,14 +56,14 @@ func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 
 	serviceNetMode := "::"
 	devicePart := "a"
-	if c.Service.Mode == "ipv4" {
+	if c.Service.Info.Mode == "ipv4" {
 		serviceNetMode = "0.0.0.0"
 		devicePart = "10"
 	}
 	info.BindAddress = serviceNetMode
 	info.BindPort = 8080
 
-	info.DNS_ServiceIP = fmt.Sprintf("%s%s", c.Service.Prefix, devicePart)
+	info.DNS_ServiceIP = fmt.Sprintf("%s%s", c.Service.Info.Prefix, devicePart)
 
 	if c.General.K8sVersion != "" {
 		info.K8sVersion = fmt.Sprintf("kubernetesVersion: \"%s\"", c.General.K8sVersion)
@@ -127,7 +127,7 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 	n := make([]NodeInfo, len(c.Topology))
 	i := 0
 	for nodeName, node := range c.Topology {
-		ip := fmt.Sprintf("%s%d", c.Mgmt.Prefix, node.ID)
+		ip := fmt.Sprintf("%s%d", c.Mgmt.Info[0].Prefix, node.ID)
 		glog.V(4).Infof("Created node info for %s (%s)", nodeName, ip)
 		n[i] = NodeInfo{Name: nodeName, IP: ip, Seen: false}
 		i++
@@ -261,7 +261,7 @@ func AddResolvConfEntry(c *Config) error {
 func FindHostIPForNAT64(c *Config) (string, bool) {
 	for _, node := range c.Topology {
 		if node.IsNAT64Server {
-			return fmt.Sprintf("%s%x", c.Mgmt.Prefix, node.ID), true
+			return fmt.Sprintf("%s%x", c.Mgmt.Info[0].Prefix, node.ID), true
 		}
 	}
 	return "", false
@@ -322,7 +322,7 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 // the interface used for the pod and management networks.
 func ConfigureManagementInterface(node *Node, c *Config) error {
 	glog.V(1).Infof("Configuring management interface %s", node.Interface)
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0].Prefix, node.ID, c.Mgmt.Info[0].Size)
 	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		return err
@@ -421,7 +421,7 @@ func CreateSupportNetwork(c *Config) (err error) {
 		return err
 	}
 
-	err = c.General.Hyper.CreateNetwork(SupportNetName, c.Support.CIDR, c.Support.V4CIDR, c.Support.Prefix)
+	err = c.General.Hyper.CreateNetwork(SupportNetName, c.Support.CIDR, c.Support.V4CIDR, c.Support.Info.Prefix)
 	if err != nil {
 		return err
 	}

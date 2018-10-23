@@ -34,8 +34,8 @@ func (p PointToPointPlugin) ConfigContents(node *Node) *bytes.Buffer {
 	contents := bytes.NewBufferString(header)
 	fmt.Fprintf(contents, "  \"mtu\": %d,\n", p.Config.Pod.MTU)
 	fmt.Fprintf(contents, middle)
-	prefix, suffix := BuildPodSubnetPrefix(p.Config.General.Mode, p.Config.Pod.Prefix, p.Config.Pod.Size, node.ID)
-	fmt.Fprintf(contents, "    \"subnet\": \"%s%s/%d\",\n", prefix, suffix, p.Config.Pod.Size)
+	prefix, suffix := BuildPodSubnetPrefix(p.Config.General.Mode, p.Config.Pod.Info[0].Prefix, p.Config.Pod.Info[0].Size, node.ID)
+	fmt.Fprintf(contents, "    \"subnet\": \"%s%s/%d\",\n", prefix, suffix, p.Config.Pod.Info[0].Size)
 	fmt.Fprintf(contents, middle2)
 	dest := "::"
 	if p.Config.General.Mode == IPv4NetMode {

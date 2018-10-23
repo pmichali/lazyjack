@@ -17,7 +17,6 @@ topology:
 mgmt_net:
     cidr: "10.192.0.0/24"
 pod_net:
-    prefix: "10.244.0.0/16"
-    size: 24
+    cidr: "10.244.0.0/16"
 service_net:
     cidr: "10.96.0.0/12"

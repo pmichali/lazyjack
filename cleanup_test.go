@@ -301,8 +301,12 @@ func TestRemoveManagementIP(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -323,8 +327,12 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -380,7 +388,11 @@ func TestRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+				},
+			},
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
@@ -413,7 +425,11 @@ func TestFailedRemoveRouteForDNS64ForNAT64Node(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+				},
+			},
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
@@ -450,7 +466,11 @@ func TestRemoveRouteForDNS64ForNonNAT64Node(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:40::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:40::",
+				},
+			},
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:6::200"},
@@ -484,7 +504,11 @@ func TestFailedNoNatRemoveRouteForDNS64(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:40::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:40::",
+				},
+			},
 		},
 		DNS64:   lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "2001:db8:6::200"},
@@ -521,7 +545,11 @@ func TestRemoveRouteForNAT64(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+				},
+			},
 		},
 		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
 	}
@@ -551,7 +579,11 @@ func TestFailedRemoveRouteForNAT64(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+				},
+			},
 		},
 		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
 	}
@@ -586,7 +618,11 @@ func TestFailedNoNATRemoveRouteForNAT64(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+				},
+			},
 		},
 		Support: lazyjack.SupportNetwork{CIDR: "2001:db8::/64"},
 	}
@@ -648,8 +684,12 @@ func TestCleanupClusterNode(t *testing.T) {
 			SystemdArea: systemArea,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64: lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
@@ -706,8 +746,12 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 			Mode:        lazyjack.IPv6NetMode,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64: lazyjack.NAT64Config{ServerIP: "2001:db8:5::200"},
@@ -1028,8 +1072,12 @@ func TestCleanup(t *testing.T) {
 			SystemdArea: systemArea,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64: lazyjack.NAT64Config{
@@ -1101,8 +1149,12 @@ func TestFailedCleanup(t *testing.T) {
 			Mode:        lazyjack.IPv6NetMode,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "2001:db8:20::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Size:   64,
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{CIDR: "2001:db8:64:ff9b::/96"},
 		NAT64: lazyjack.NAT64Config{

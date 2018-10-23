@@ -100,7 +100,7 @@ func BuildKubeAdmCommand(n, master *Node, c *Config) []string {
 			args = append(args, "--discovery-token-ca-cert-hash",
 				fmt.Sprintf("sha256:%s", c.General.TokenCertHash))
 		}
-		args = append(args, fmt.Sprintf("[%s%d]:6443", c.Mgmt.Prefix, master.ID))
+		args = append(args, fmt.Sprintf("[%s%d]:6443", c.Mgmt.Info[0].Prefix, master.ID))
 	}
 	return args
 }

@@ -63,7 +63,7 @@ func RemoveDropInFile(c *Config) error {
 // RemoveManagementIP removes the node's management IP off of the
 // interface configured as the management port.
 func RemoveManagementIP(node *Node, c *Config) error {
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Prefix, node.ID, c.Mgmt.Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0].Prefix, node.ID, c.Mgmt.Info[0].Size)
 	err := c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
 		return fmt.Errorf("unable to remove IP from management interface: %v", err)

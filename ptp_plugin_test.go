@@ -25,11 +25,19 @@ func TestPointToPointPluginCleanup(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
@@ -66,11 +74,19 @@ func TestFailedPointToPointPluginCleanup(t *testing.T) {
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
@@ -108,14 +124,22 @@ func TestPointToPointPluginSetup(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:30:20:",
-			Size:   72,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:30:20:",
+					Size:   72,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
@@ -148,14 +172,22 @@ func TestFailedPointToPointPluginSetup(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:30:20:",
-			Size:   72,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:30:20:",
+					Size:   72,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
@@ -179,9 +211,13 @@ func TestFailedPointToPointPluginSetup(t *testing.T) {
 func TestPointToPointCNIConfigContents(t *testing.T) {
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
-			MTU:    9000,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
+			MTU: 9000,
 		},
 		General: lazyjack.GeneralSettings{
 			Mode: "ipv6",
@@ -214,9 +250,13 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
 func TestPointToPointCNIConfigContentsV4(t *testing.T) {
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "10.244.0.",
-			Size:   24,
-			MTU:    1500,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.244.0.",
+					Size:   24,
+				},
+			},
+			MTU: 1500,
 		},
 		General: lazyjack.GeneralSettings{
 			Mode: "ipv4",

@@ -49,9 +49,9 @@ func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {
 				continue
 			}
 			if n.IsMaster || n.IsMinion {
-				prefix, suffix := BuildPodSubnetPrefix(c.General.Mode, c.Pod.Prefix, c.Pod.Size, n.ID)
-				dest := fmt.Sprintf("%s%s/%d", prefix, suffix, c.Pod.Size)
-				gw := BuildGWIP(c.Mgmt.Prefix, n.ID)
+				prefix, suffix := BuildPodSubnetPrefix(c.General.Mode, c.Pod.Info[0].Prefix, c.Pod.Info[0].Size, n.ID)
+				dest := fmt.Sprintf("%s%s/%d", prefix, suffix, c.Pod.Info[0].Size)
+				gw := BuildGWIP(c.Mgmt.Info[0].Prefix, n.ID)
 				var err error
 				if op == "add" {
 					err = c.General.NetMgr.AddRouteUsingInterfaceName(dest, gw, node.Interface)

@@ -13,9 +13,13 @@ import (
 func TestBridgeCNIConfigContents(t *testing.T) {
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
-			MTU:    9000,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
+			MTU: 9000,
 		},
 		General: lazyjack.GeneralSettings{
 			Mode: "ipv6",
@@ -55,9 +59,13 @@ func TestBridgeCNIConfigContents(t *testing.T) {
 func TestBridgeCNIConfigContentsV4(t *testing.T) {
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "10.244.0.",
-			Size:   24,
-			MTU:    1500,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.244.0.",
+					Size:   24,
+				},
+			},
+			MTU: 1500,
 		},
 		General: lazyjack.GeneralSettings{
 			Mode: "ipv4",
@@ -101,8 +109,12 @@ func TestCreateBridgeCNIConfigFile(t *testing.T) {
 
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			Plugin:  "bridge",
@@ -132,8 +144,12 @@ func TestFailedSetupUnableToCreateBridgeCNIConfigFile(t *testing.T) {
 
 	c := &lazyjack.Config{
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			Plugin:  "bridge",
@@ -169,14 +185,20 @@ func TestFailedBridgePluginSetup(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{Prefix: "fd00:100::"},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
@@ -217,11 +239,17 @@ func TestFailedRemoveRoutesBridgePluginCleanup(t *testing.T) {
 			Plugin: "bridge",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{Prefix: "fd00:100::"},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
@@ -262,11 +290,17 @@ func TestFailedBridgeRemoveBridgePluginCleanup(t *testing.T) {
 			Plugin: "bridge",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{Prefix: "fd00:100::"},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}

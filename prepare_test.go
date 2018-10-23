@@ -14,9 +14,11 @@ import (
 func TestKubeletDropInContents(t *testing.T) {
 	c := &lazyjack.Config{
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "2001:db8::/110",
-			Mode:   "ipv6",
-			Prefix: "2001:db8::",
+			CIDR: "2001:db8::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "2001:db8::",
+			},
 		},
 	}
 
@@ -32,9 +34,11 @@ Environment="KUBELET_DNS_ARGS=--cluster-dns=2001:db8::a --cluster-domain=cluster
 func TestKubeletDropInContentsV4(t *testing.T) {
 	c := &lazyjack.Config{
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "10.96.0.0/12",
-			Mode:   "ipv4",
-			Prefix: "10.96.0.",
+			CIDR: "10.96.0.0/12",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv4",
+				Prefix: "10.96.0.",
+			},
 		},
 	}
 
@@ -142,7 +146,9 @@ func TestCreateSupportNetwork(t *testing.T) {
 			Hyper: &MockHypervisor{simNotExists: true},
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.20.0.0/16",
 		},
@@ -162,7 +168,9 @@ func TestFailCreateSupportNetwork(t *testing.T) {
 			},
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.20.0.0/16",
 		},
@@ -183,7 +191,9 @@ func TestSkippingCreateSupportNetwork(t *testing.T) {
 			Hyper: &MockHypervisor{},
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.20.0.0/16",
 		},
@@ -391,7 +401,11 @@ func TestBuildNodeInfo(t *testing.T) {
 			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 
@@ -431,7 +445,11 @@ func TestAddHostEntries(t *testing.T) {
 			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			EtcArea: basePath,
@@ -702,7 +720,11 @@ func TestFindHostIPForNAT64(t *testing.T) {
 			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	gw, ok := lazyjack.FindHostIPForNAT64(c)
@@ -720,7 +742,11 @@ func TestFindHostIPForNAT64(t *testing.T) {
 			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	gw, ok = lazyjack.FindHostIPForNAT64(bad)
@@ -740,12 +766,18 @@ func TestKubeAdmConfigContents_1_10_V6(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -785,15 +817,21 @@ func TestKubeAdmConfigContents_1_10_V4(t *testing.T) {
 			K8sVersion:     "v1.10.3",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "10.96.0.0/12",
-			Mode:   "ipv4",
-			Prefix: "10.96.0.",
+			CIDR: "10.96.0.0/12",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv4",
+				Prefix: "10.96.0.",
+			},
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "10.244.0.0/16",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "10.192.0.",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.192.0.",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -836,12 +874,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1009,12 +1053,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11_V4(t *testing.T) {
 			CIDR: "10.244.0.0/24",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "10.96.0.0/12",
-			Mode:   "ipv4",
-			Prefix: "10.96.0.",
+			CIDR: "10.96.0.0/12",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv4",
+				Prefix: "10.96.0.",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "10.192.0.",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.192.0.",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1182,12 +1232,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1255,12 +1311,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12_no_k8s_version(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1329,12 +1391,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1516,12 +1584,18 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13_latest_k8s(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1704,12 +1778,18 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_11(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1878,12 +1958,18 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_12(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -1953,12 +2039,18 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_13(t *testing.T) {
 			CIDR: "fd00:40::/72",
 		},
 		Service: lazyjack.ServiceNetwork{
-			CIDR:   "fd00:30::/110",
-			Mode:   "ipv6",
-			Prefix: "fd00:30::",
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   "ipv6",
+				Prefix: "fd00:30::",
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -2143,7 +2235,11 @@ func TestCreateKubeAdmConfFile(t *testing.T) {
 			CIDR: "fd00:30::/110",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -2171,7 +2267,11 @@ func TestFailingCreateKubeAdmConfFile(t *testing.T) {
 			CIDR: "fd00:30::/110",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -2227,7 +2327,11 @@ func TestCreateRouteToNAT64ServerForDNS64SubnetForNonNATServer(t *testing.T) {
 		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	minionNode := &lazyjack.Node{
@@ -2263,7 +2367,11 @@ func TestFailedNoNATServerCreateRouteToNAT64ServerForDNS64Subnet(t *testing.T) {
 		Support: lazyjack.SupportNetwork{V4CIDR: "172.20.0.0/16"},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	minionNode := &lazyjack.Node{
@@ -2363,7 +2471,11 @@ func TestCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	// Currently, we expect NAT64 node to also be DNS64 node.
@@ -2398,7 +2510,11 @@ func TestFailedRouteAddCreateRouteToSupportNetworkForOtherNodes(t *testing.T) {
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	// Currently, we expect NAT64 node to also be DNS64 node.
@@ -2437,7 +2553,11 @@ func TestFailedRouteExistsCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Support: lazyjack.SupportNetwork{CIDR: "fd00:10::/64"},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	// Currently, we expect NAT64 node to also be DNS64 node.
@@ -2474,8 +2594,12 @@ func TestFailedNoNatServerCreateRouteToSupportNetworkForOtherNodes(t *testing.T)
 		DNS64:   lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 		NAT64:   lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Size:   64,
+				},
+			},
 		},
 	}
 	// Currently, we expect NAT64 node to also be DNS64 node.
@@ -2506,8 +2630,12 @@ func TestConfigureManagementInterface(t *testing.T) {
 		},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Size:   64,
+				},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
 			MTU: 9000,
@@ -2536,8 +2664,12 @@ func TestFailedAddAddressConfigureManagementInterface(t *testing.T) {
 		},
 		General: lazyjack.GeneralSettings{NetMgr: nm},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
-			Size:   64,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Size:   64,
+				},
+			},
 		},
 		Pod: lazyjack.PodNetwork{
 			MTU: 9000,
@@ -2610,7 +2742,11 @@ func TestPrepareClusterNode(t *testing.T) {
 			V4CIDR: "172.20.0.0/16",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{CIDR: "fd00:10:64:ff9b::/96"},
 	}
@@ -3256,7 +3392,11 @@ func TestPrepare(t *testing.T) {
 			NetMgr:      nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -3269,7 +3409,9 @@ func TestPrepare(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.32.0.0/16",
 		},
@@ -3296,7 +3438,9 @@ func TestFailSupportNetCreatePrepare(t *testing.T) {
 			},
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.20.0.0/16",
 		},
@@ -3338,7 +3482,9 @@ func TestFailPrepDNS64Prepare(t *testing.T) {
 		},
 		NAT64: lazyjack.NAT64Config{ServerIP: "fd00:10::200"},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.20.0.0/16",
 		},
@@ -3385,7 +3531,9 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.32.0.0/16",
 		},
@@ -3437,7 +3585,11 @@ func TestFailClusterNodePrepare(t *testing.T) {
 			NetMgr:      nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 		DNS64: lazyjack.DNS64Config{
 			CIDR:           "fd00:10:64:ff9b::/96",
@@ -3450,7 +3602,9 @@ func TestFailClusterNodePrepare(t *testing.T) {
 			V4MappingIP:   "172.18.0.200",
 		},
 		Support: lazyjack.SupportNetwork{
-			Prefix: "2001:db8:10::",
+			Info: lazyjack.NetInfo{
+				Prefix: "2001:db8:10::",
+			},
 			CIDR:   "2001:db8:10::/64",
 			V4CIDR: "172.32.0.0/16",
 		},

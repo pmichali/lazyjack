@@ -22,14 +22,22 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -61,14 +69,22 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -104,14 +120,22 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -147,14 +171,22 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -186,14 +218,22 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -229,14 +269,22 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{

@@ -31,7 +31,11 @@ func TestBuildKubeAdmCommand(t *testing.T) {
 			WorkArea:      "/some/work/area",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	minionNode := &lazyjack.Node{
@@ -390,8 +394,12 @@ func TestSetupForPlugin(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr:  nm,
@@ -399,7 +407,11 @@ func TestSetupForPlugin(t *testing.T) {
 			Plugin:  "bridge",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
@@ -447,8 +459,12 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr:  nm,
@@ -456,7 +472,11 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 			Plugin:  "bridge",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
@@ -497,8 +517,12 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 			},
 		},
 		Pod: lazyjack.PodNetwork{
-			Prefix: "fd00:40:0:0:",
-			Size:   80,
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Size:   80,
+				},
+			},
 		},
 		General: lazyjack.GeneralSettings{
 			NetMgr:  nm,
@@ -506,7 +530,11 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 			Plugin:  "bridge",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
@@ -629,7 +657,11 @@ func TestStartKubernetes(t *testing.T) {
 			TokenCertHash: "dummy-hash-here",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -660,7 +692,11 @@ func TestFailedStartKubernetesNoMaster(t *testing.T) {
 			TokenCertHash: "dummy-hash-here",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{
@@ -707,7 +743,11 @@ func TestFailedStartKubernetes(t *testing.T) {
 			TokenCertHash: "dummy-hash-here",
 		},
 		Mgmt: lazyjack.ManagementNetwork{
-			Prefix: "fd00:100::",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+				},
+			},
 		},
 	}
 	n := &lazyjack.Node{

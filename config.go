@@ -10,34 +10,39 @@ import (
 	"text/template"
 )
 
+// NetInfo contains the prefix, size, and mode for a network.
+type NetInfo struct {
+	Prefix string
+	Size   int
+	Mode   string  // "ipv6" or "ipv4"
+}
+
 // SupportNetwork defines information for the support network.
 type SupportNetwork struct {
 	CIDR   string `yaml:"cidr"`
-	Prefix string
-	Size   int
+	Info   NetInfo // Internal
 	V4CIDR string `yaml:"v4cidr"`
 }
 
 // ManagementNetwork defines information for the management network.
 type ManagementNetwork struct {
-	CIDR   string `yaml:"cidr"`
-	Prefix string
-	Size   int
+	CIDR    string `yaml:"cidr"`
+	CIDR2   string `yaml:"cidr2"`
+	Info    [2]NetInfo  //Internal
 }
 
 // PodNetwork defines information for the the pod network.
 type PodNetwork struct {
-	CIDR   string `yaml:"cidr"`
-	Prefix string `yaml:"prefix"` // For backward compatibility
-	Size   int    `yaml:"size"`   // For backward compatibility
-	MTU    int    `yaml:"mtu"`
+	CIDR    string `yaml:"cidr"`
+	CIDR2   string `yaml:"cidr2"`
+	Info    [2]NetInfo  // Internal
+	MTU     int    `yaml:"mtu"`
 }
 
 // ServiceNetwork defines information for the service network.
 type ServiceNetwork struct {
 	CIDR   string `yaml:"cidr"`
-	Prefix string // Internal
-	Mode   string // Internal
+	Info   NetInfo // Internal
 }
 
 // DNS64Config defines information for the DNS64 server configuration.

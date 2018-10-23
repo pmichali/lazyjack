@@ -260,7 +260,7 @@ func Initialize(name string, c *Config, configFile string) error {
 	if err != nil {
 		return err
 	}
-	err = CreateCertificateForCA(c.Mgmt.Prefix, node.ID, base)
+	err = CreateCertificateForCA(c.Mgmt.Info[0].Prefix, node.ID, base)
 	if err != nil {
 		return err
 	}
