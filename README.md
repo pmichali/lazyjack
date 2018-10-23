@@ -475,7 +475,8 @@ I also installed `ipset` and `ipvsadm`.
 ## Troubleshooting
 This section has some notes on issues seen and resolutions (if any).
 
-Tip: If for some reason the `prepare` fails after updating /etc/resolv.conf
+### Tips
+If for some reason the `prepare` fails after updating /etc/resolv.conf
 or /etc/hosts, you can recover the originals from the .bak files created.
 However, the tool is designed to allow multiple invocations, so this should
 not be required.
@@ -488,6 +489,7 @@ On a related note, you want to make sure that the node does not already have
 incompatible configuration on being interfaces or for routes that will be
 defined.
 
+### Ping failures
 I had one case where I could not ping from a pod on one node, to a pod on
 another (but it worked in the reverse direction). Looks like an issue with
 some stray IPTABLES rules. Found out that I could tear everything down, do
@@ -517,6 +519,7 @@ resolve the issue:
 sudo iptables -t filter -P FORWARD ACCEPT
 ```
 
+### Kube-dns failing to startup
 I had another case where kube-dns was not coming up, and kube-proxy log was
 showing IPTABLES restore errors saying "iptables-restore v1.6.0: invalid
  mask `128' specified". This should be using the ip6tables-restore operation.
@@ -524,10 +527,12 @@ I was unable to find root cause, but did KubeAdm reset, `clean` command,
 fllush IPTABLES rules (like above), rebooted, and problem was cleared. May
 have been corruption of IPTABLES rules.
 
-Tip: You can customize kubeadm.conf, after the prepare step, to make any
+### Customizing kubeadm.conf
+You can customize kubeadm.conf, after the prepare step, to make any
 additional changes desired for the configuration (e.g. setting kubernetesVersion
 to a specific version).
 
+### Join failures in 1.10.x
 I found out that with Kubernetes 1.10, the minion node fails to join, showing
 an error indicating that it cannot tell if container runtime is running. I found
 that this was fixed in 1.11, but there is no backport. As a result, I removed
@@ -535,15 +540,58 @@ notes about using Lazyjack with versions older than 1.11.
 
 Ref: https://github.com/kubernetes/kubeadm/issues/814
 
-With 1.13.0-alpha.1 prerelease (using latest from master), beside finding that
-one has to set `kubernetes-version` to `latest` in the config file so that images
-can be downloaded, on startup, `kubeadm init` was failing, saying that port 10250
-was in use. Indeed, kubelet is already using this port, and it is preventing startup.
+### Working on "master" branch with latest
+When working with the "latest" code, built locally, instead of using apt-get (on
+Ubuntu) to install a released version, one has to make sure that kubelet gets
+installed and configured properly.
 
-With older versions of Kuberenetes, I see that the kubelet is constantly restarting,
-and not using a port, until `kubeadm init` runs and creates the needed files. With
-the alpha 1.13 code, I see kubelet already up and running and using the port, before
-doing `kubeadm init`. This problem is currently unresolved.
+For example, using 1.13.0-alpha.1 built from master locally, besides uninstalling
+any older version of kubelet (which also uninstalls kubeadm), I found that I had to
+do more than copy the executables into /usr/bin. Specifically, the `Service` section
+of the kubelet service config file in /lib/systemd/system/kubelet.service needs to
+match what was used by released versions, with definitions of environment variables
+and the ExecStart clause using them to specify the config file and settings. The lines
+look like this (although you can copy a version of the file from 1.12 an reuse without
+changes):
+```
+[Service]
+Environment="KUBELET_KUBECONFIG_ARGS=--kubeconfig=/etc/kubernetes/kubelet.conf"
+Environment="KUBELET_SYSTEM_PODS_ARGS=--pod-manifest-path=/etc/kubernetes/manifests --allow-privileged=true"
+Environment="KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin"
+Environment="KUBELET_DNS_ARGS=--cluster-dns=10.96.0.10 --cluster-domain=cluster.local"
+Environment="KUBELET_EVICTION_ARGS=--eviction-hard='memory.available<100Mi,nodefs.available<100Mi,nodefs.inodesFree<1000'"
+Environment="KUBELET_DIND_ARGS="
+Environment="KUBELET_LOG_ARGS=--v=4"
+ExecStart=
+ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_FEATURE_ARGS $KUBELET_SYSTEM_PODS_ARGS $KUBELET_NETWORK_ARGS $KUBELET_DNS_ARGS $KUBELET_EVICTION_ARGS $KUBELET_DIND_ARGS $KUBELET_LOG_ARGS $KUBELET_EXTRA_ARGS
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+```
+
+Without that info, when the kubelet service is started, it will run and tie up port 10250,
+preventing KubeAdm from starting things up.
+
+Normally, because the ExecStart line calls out a non-existent config file, the service
+would sit in a loop continuously failing, until the `kubeadm init` command would
+load in the needed config file and things would start up as expected.
+
+I also made sure that the /etc/systemd/system/kubelet.service.d/ area did not have
+any drop-in files (e.g. 10-kubeadm.conf).
+
+### Mismatched versions
+
+I had one case where I was running 1.12 on minion, but was running 1.13 on the master
+and had specified `latest` as the Kubernetes version in the config YAML. During the
+`up` command on the minion, I saw this error:
+
+```
+configmaps "kubelet-config-1.12" is forbidden: User "system:bootstrap:abcdef" cannot get resource "configmaps" in API group "" in the namespace "kube-system"
+```
+
+The solution is to make sure that all nodes have compatible versions of images and
+that the Kubernetess version is correct.
+
 
 ## TODOs/Futures
 
@@ -567,7 +615,6 @@ doing `kubeadm init`. This problem is currently unresolved.
 * Is there a way to check if management interface already has an (incompatible) IPv6 address?
 * Way to timeout on "kubeadm init", if it gets stuck (e.g. kubelet never comes up).
 * Add Continuous Integration tool and tests.
-* Issue with 1.13 alpha versions and kubelet port usage.
 
 ### Enhancements to consider
 * Do Istio startup. Useful?  Metal LB startup?
