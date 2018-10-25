@@ -632,31 +632,37 @@ func TestValidateNetworkMode(t *testing.T) {
 		{
 			name:        "Default is IPv6",
 			mode:        "",
-			expected:    "ipv6",
+			expected:    lazyjack.IPv6NetMode,
 			expectedStr: "",
 		},
 		{
 			name:        "IPv4",
 			mode:        "ipv4",
-			expected:    "ipv4",
+			expected:    lazyjack.IPv4NetMode,
 			expectedStr: "",
 		},
 		{
 			name:        "IPv6",
 			mode:        "ipv6",
-			expected:    "ipv6",
+			expected:    lazyjack.IPv6NetMode,
+			expectedStr: "",
+		},
+		{
+			name:        "dual stack",
+			mode:        "dual-stack",
+			expected:    lazyjack.DualStackNetMode,
 			expectedStr: "",
 		},
 		{
 			name:        "Forced to lowercase",
 			mode:        "IPv6",
-			expected:    "ipv6",
+			expected:    lazyjack.IPv6NetMode,
 			expectedStr: "",
 		},
 		{
 			name:        "Invalid mode",
 			mode:        "bogus",
-			expected:    "ipv6",
+			expected:    lazyjack.IPv6NetMode,
 			expectedStr: "unsupported network mode \"bogus\" entered",
 		},
 	}
@@ -1040,66 +1046,6 @@ func TestExtractNetInfo(t *testing.T) {
 	}
 }
 
-func TestCalculateDerivedFieldsSuccess(t *testing.T) {
-	c := &lazyjack.Config{
-		Mgmt: lazyjack.ManagementNetwork{
-			CIDR: "fd00:20::/64",
-		},
-		Support: lazyjack.SupportNetwork{
-			CIDR: "fd00:10::/64",
-		},
-		Service: lazyjack.ServiceNetwork{
-			CIDR: "fd00:30::/110",
-		},
-		DNS64: lazyjack.DNS64Config{
-			CIDR: "fd00:10:64:ff9b::/96",
-		},
-		Pod: lazyjack.PodNetwork{
-			CIDR: "fd00:40::/72",
-		},
-		General: lazyjack.GeneralSettings{
-			Mode: lazyjack.IPv6NetMode,
-		},
-	}
-
-	err := lazyjack.CalculateDerivedFields(c)
-	if err != nil {
-		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
-	}
-	expectedMgmtPrefix := "fd00:20::"
-	if c.Mgmt.Info[0].Prefix != expectedMgmtPrefix {
-		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Info[0].Prefix)
-	}
-	expectedMgmtSize := 64
-	if c.Mgmt.Info[0].Size != expectedMgmtSize {
-		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Info[0].Size)
-	}
-	expectedServicePrefix := "fd00:30::"
-	if c.Service.Info.Prefix != expectedServicePrefix {
-		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Info.Prefix)
-	}
-	expectedSupportPrefix := "fd00:10::"
-	if c.Support.Info.Prefix != expectedSupportPrefix {
-		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedSupportPrefix, c.Support.Info.Prefix)
-	}
-	expectedSupportSize := 64
-	if c.Support.Info.Size != expectedSupportSize {
-		t.Errorf("Derived support size is incorrect. Expected %d, got %d", expectedSupportSize, c.Support.Info.Size)
-	}
-	expectedPodPrefix := "fd00:40:0:0:"
-	if c.Pod.Info[0].Prefix != expectedPodPrefix {
-		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Info[0].Prefix)
-	}
-	expectedPodSize := 80
-	if c.Pod.Info[0].Size != expectedPodSize {
-		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Info[0].Size)
-	}
-	expectedDNS64Prefix := "fd00:10:64:ff9b::"
-	if c.DNS64.CIDRPrefix != expectedDNS64Prefix {
-		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedDNS64Prefix, c.DNS64.CIDRPrefix)
-	}
-}
-
 func TestValidatePodMTU(t *testing.T) {
 	var testCases = []struct {
 		name        string
@@ -1285,6 +1231,126 @@ func TestSkipValidateNAT64ForV4(t *testing.T) {
 	}
 }
 
+func TestCalculateDerivedFieldsSuccess(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR: "fd00:20::/64",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR: "fd00:10:64:ff9b::/96",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err != nil {
+		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
+	}
+	expectedMgmtPrefix := "fd00:20::"
+	if c.Mgmt.Info[0].Prefix != expectedMgmtPrefix {
+		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Info[0].Prefix)
+	}
+	expectedMgmtSize := 64
+	if c.Mgmt.Info[0].Size != expectedMgmtSize {
+		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Info[0].Size)
+	}
+	expectedServicePrefix := "fd00:30::"
+	if c.Service.Info.Prefix != expectedServicePrefix {
+		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Info.Prefix)
+	}
+	expectedSupportPrefix := "fd00:10::"
+	if c.Support.Info.Prefix != expectedSupportPrefix {
+		t.Errorf("Derived support prefix is incorrect. Expected %q, got %q", expectedSupportPrefix, c.Support.Info.Prefix)
+	}
+	expectedSupportSize := 64
+	if c.Support.Info.Size != expectedSupportSize {
+		t.Errorf("Derived support size is incorrect. Expected %d, got %d", expectedSupportSize, c.Support.Info.Size)
+	}
+	expectedPodPrefix := "fd00:40:0:0:"
+	if c.Pod.Info[0].Prefix != expectedPodPrefix {
+		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Info[0].Prefix)
+	}
+	expectedPodSize := 80
+	if c.Pod.Info[0].Size != expectedPodSize {
+		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Info[0].Size)
+	}
+	expectedDNS64Prefix := "fd00:10:64:ff9b::"
+	if c.DNS64.CIDRPrefix != expectedDNS64Prefix {
+		t.Errorf("Derived DNS64 prefix is incorrect. Expected %q, got %q", expectedDNS64Prefix, c.DNS64.CIDRPrefix)
+	}
+}
+
+func TestCalculateDerivedFieldsDualStackSuccess(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err != nil {
+		t.Fatalf("Expected derived fields parsed OK, but see error: %s", err.Error())
+	}
+	expectedMgmtPrefix := "fd00:20::"
+	if c.Mgmt.Info[0].Prefix != expectedMgmtPrefix {
+		t.Errorf("Derived management prefix is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Info[0].Prefix)
+	}
+	expectedMgmtSize := 64
+	if c.Mgmt.Info[0].Size != expectedMgmtSize {
+		t.Errorf("Derived management size is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Info[0].Size)
+	}
+	expectedMgmtPrefix = "10.192.0."
+	if c.Mgmt.Info[1].Prefix != expectedMgmtPrefix {
+		t.Errorf("Derived management prefix2 is incorrect. Expected %q, got %q", expectedMgmtPrefix, c.Mgmt.Info[1].Prefix)
+	}
+	expectedMgmtSize = 16
+	if c.Mgmt.Info[1].Size != expectedMgmtSize {
+		t.Errorf("Derived management size2 is incorrect. Expected %d, got %d", expectedMgmtSize, c.Mgmt.Info[1].Size)
+	}
+	expectedServicePrefix := "fd00:30::"
+	if c.Service.Info.Prefix != expectedServicePrefix {
+		t.Errorf("Derived service prefix is incorrect. Expected %q, got %q", expectedServicePrefix, c.Service.Info.Prefix)
+	}
+	expectedPodPrefix := "fd00:40:0:0:"
+	if c.Pod.Info[0].Prefix != expectedPodPrefix {
+		t.Errorf("Derived pod prefix is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Info[0].Prefix)
+	}
+	expectedPodSize := 80
+	if c.Pod.Info[0].Size != expectedPodSize {
+		t.Errorf("Derived pod size is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Info[0].Size)
+	}
+	expectedPodPrefix = "10.244.0."
+	if c.Pod.Info[1].Prefix != expectedPodPrefix {
+		t.Errorf("Derived pod prefix2 is incorrect. Expected %q, got %q", expectedPodPrefix, c.Pod.Info[1].Prefix)
+	}
+	expectedPodSize = 24
+	if c.Pod.Info[1].Size != expectedPodSize {
+		t.Errorf("Derived pod size2 is incorrect. Expected %d, got %d", expectedPodSize, c.Pod.Info[1].Size)
+	}
+}
+
 func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 	c := &lazyjack.Config{
 		Mgmt: lazyjack.ManagementNetwork{
@@ -1309,6 +1375,192 @@ func TestFailedMgmtCIDRCalculateDerivedFields(t *testing.T) {
 		t.Fatalf("Expected failure with invalid management CIDR")
 	}
 	expectedMsg := "invalid management network: invalid CIDR address: fd00::20::/64"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedV4MgmtCIDRMissingCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR: "fd00:20::/64",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second management V4 CIDR")
+	}
+	expectedMsg := "dual-stack mode management network only has ipv6 CIDR, need ipv4 CIDR"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedV6MgmtCIDRMissingCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR: "10.192.0.0/16",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second management V6 CIDR")
+	}
+	expectedMsg := "dual-stack mode management network only has ipv4 CIDR, need ipv6 CIDR"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedSecondMgmtCIDRBadCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0.0/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR: "fd00:10:64:ff9b::/96",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with invalid second management CIDR")
+	}
+	expectedMsg := "invalid management network CIDR2: invalid CIDR address: 10.192.0.0.0/64"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedMgmtCIDRBothV6CalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "fd00:50::/64",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second management V4 CIDR")
+	}
+	expectedMsg := "for dual-stack both management networks specified are ipv6 mode - need ipv4 info"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedMgmtCIDRBothV4CalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "10.192.0.0/16",
+			CIDR2: "10.193.0.0/16",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second management V6 CIDR")
+	}
+	expectedMsg := "for dual-stack both management networks specified are ipv4 mode - need ipv6 info"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedTwoCIDRSCalculateDerivedFieldsForIPv6(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "10.192.0.0/16",
+			CIDR2: "fd00:20::/64",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second management CIDR")
+	}
+	expectedMsg := "see second management network CIDR (10.192.0.0/16, fd00:20::/64), when in ipv6 mode"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}
@@ -1424,6 +1676,9 @@ func TestFailedBadPodCIDRCalculateDerivedFields(t *testing.T) {
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00::40::/72",
 		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
 	}
 
 	err := lazyjack.CalculateDerivedFields(c)
@@ -1431,6 +1686,211 @@ func TestFailedBadPodCIDRCalculateDerivedFields(t *testing.T) {
 		t.Fatalf("Expected failure with invalid pod CIDR")
 	}
 	expectedMsg := "invalid pod network: invalid CIDR address: fd00::40::/72"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedBadSecondPodCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0.0/35",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with invalid second pod CIDR")
+	}
+	expectedMsg := "invalid pod network CIDR2: invalid CIDR address: 10.244.0.0.0/35"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedMissingV4PodCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second V4 pod CIDR")
+	}
+	expectedMsg := "dual-stack mode pod network only has ipv6 CIDR, need ipv4 CIDR"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedMissingV6PodCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with missing second V6 pod CIDR")
+	}
+	expectedMsg := "dual-stack mode pod network only has ipv4 CIDR, need ipv6 CIDR"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedBothV6PodCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "fd00:50::/72",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with two IPv6 pod CIDRs")
+	}
+	expectedMsg := "for dual-stack both pod networks specified are ipv6 mode - need ipv4 info"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedBothV4PodCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "10.244.0.0/16",
+			CIDR2: "10.245.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with two IPv4 pod CIDRs")
+	}
+	expectedMsg := "for dual-stack both pod networks specified are ipv4 mode - need ipv6 info"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedSecondPodCIDRCalculateDerivedFieldsV6Mode(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR: "fd00:20::/64",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR: "fd00:10:64:ff9b::/96",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with second pod CIDR in IPv6 mode")
+	}
+	expectedMsg := "see second pod network CIDR (fd00:40::/72, 10.244.0.0/16), when in ipv6 mode"
+	if err.Error() != expectedMsg {
+		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
+	}
+}
+
+func TestFailedSupportCIDRCalculateDerivedFieldsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Mgmt: lazyjack.ManagementNetwork{
+			CIDR:  "fd00:20::/64",
+			CIDR2: "10.192.0.0/16",
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+		},
+		Support: lazyjack.SupportNetwork{
+			CIDR: "fd00:10::/64",
+		},
+		DNS64: lazyjack.DNS64Config{
+			CIDR: "fd00:10:64:ff9b::/96",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR:  "fd00:40::/72",
+			CIDR2: "10.244.0.0/16",
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+	}
+
+	err := lazyjack.CalculateDerivedFields(c)
+	if err == nil {
+		t.Fatalf("Expected failure with support CIDR in dual-stack mode")
+	}
+	expectedMsg := "support CIDR (fd00:10::/64) is unsupported in dual-stack mode"
 	if err.Error() != expectedMsg {
 		t.Fatalf("Expected error message %q, got %q", expectedMsg, err.Error())
 	}

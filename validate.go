@@ -184,14 +184,16 @@ func ValidateCIDR(which, cidr string) error {
 }
 
 // ValidateNetworkMode makes sure that only the supported network
-// modes are entered. Currently, this is ipv4 and ipv6, and the default
-// is IPv6, when not specified.
+// modes are entered. Currently, this is ipv4, ipv6, or dual-stack.
+// The default is IPv6, when not specified.
 func ValidateNetworkMode(c *Config) error {
 	if c.General.Mode == "" {
 		c.General.Mode = DefaultNetMode
 	}
 	c.General.Mode = strings.ToLower(c.General.Mode)
 	switch c.General.Mode {
+	case DualStackNetMode:
+		fallthrough
 	case IPv4NetMode:
 		fallthrough
 	case IPv6NetMode:
@@ -359,24 +361,24 @@ func CalculateDerivedFields(c *Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid management network: %v", err)
 	}
-	//    if c.General.Mode == "dual-stack" {
-	//    	otherMode := "ipv4"
-	//    	if c.Mgmt.Info[0].Mode == "ipv4" {
-	//    		otherMode = "ipv6"
-	//    	}
-	//    	if c.Mgmt.CIDR2 == "" {
-	//    		return fmt.Errorf("dual-stack mode only has %s CIDR, need %s CIDR", c.Mgmt.Info[0].Mode, otherMode)
-	//    	}
-	//		err = ExtractNetInfo(c.Mgmt.CIDR2, &c.Mgmt.Info[1], CheckMgmtSize)
-	//		if err != nil {
-	//		    return fmt.Errorf("invalid management network CIDR2: %v", err)
-	//		}
-	//		if c.Mgmt.Info[1].Mode != otherMode {
-	//		    return fmt.Errorf("for dual-stack both management networks specified are % mode - need %s info", c.Mgmt.Info[0].Mode, otherMode)
-	//		}
-	//    } else if c.Mgmt.CIDR2 != "" {
-	//    	return fmt.Errorf("see second CIDR (%s), when in %s mode", c.Mgmt.CIDR2, c.General.Mode)
-	//    }
+	if c.General.Mode == DualStackNetMode {
+		otherMode := "ipv4"
+		if c.Mgmt.Info[0].Mode == "ipv4" {
+			otherMode = "ipv6"
+		}
+		if c.Mgmt.CIDR2 == "" {
+			return fmt.Errorf("dual-stack mode management network only has %s CIDR, need %s CIDR", c.Mgmt.Info[0].Mode, otherMode)
+		}
+		err = ExtractNetInfo(c.Mgmt.CIDR2, &c.Mgmt.Info[1], CheckMgmtSize)
+		if err != nil {
+			return fmt.Errorf("invalid management network CIDR2: %v", err)
+		}
+		if c.Mgmt.Info[1].Mode != otherMode {
+			return fmt.Errorf("for dual-stack both management networks specified are %s mode - need %s info", c.Mgmt.Info[0].Mode, otherMode)
+		}
+	} else if c.Mgmt.CIDR2 != "" {
+		return fmt.Errorf("see second management network CIDR (%s, %s), when in %s mode", c.Mgmt.CIDR, c.Mgmt.CIDR2, c.General.Mode)
+	}
 
 	err = ExtractNetInfo(c.Service.CIDR, &c.Service.Info, CheckServiceSize)
 	if err != nil {
@@ -388,6 +390,8 @@ func CalculateDerivedFields(c *Config) error {
 		if err != nil {
 			return fmt.Errorf("invalid support network: %v", err)
 		}
+	} else if c.Support.CIDR != "" {
+		return fmt.Errorf("support CIDR (%s) is unsupported in %s mode", c.Support.CIDR, c.General.Mode)
 	}
 
 	err = ExtractNetInfo(c.Pod.CIDR, &c.Pod.Info[0], CheckPodSize)
@@ -398,7 +402,28 @@ func CalculateDerivedFields(c *Config) error {
 		c.Pod.Info[0].Prefix = MakePrefixFromNetwork(c.Pod.Info[0].Prefix, c.Pod.Info[0].Size)
 	}
 	c.Pod.Info[0].Size += 8 // Each pod gets a subnet from the network
-	// TODO: Add dual stack pod net...
+	if c.General.Mode == DualStackNetMode {
+		otherMode := "ipv4"
+		if c.Pod.Info[0].Mode == "ipv4" {
+			otherMode = "ipv6"
+		}
+		if c.Pod.CIDR2 == "" {
+			return fmt.Errorf("dual-stack mode pod network only has %s CIDR, need %s CIDR", c.Pod.Info[0].Mode, otherMode)
+		}
+		err = ExtractNetInfo(c.Pod.CIDR2, &c.Pod.Info[1], CheckPodSize)
+		if err != nil {
+			return fmt.Errorf("invalid pod network CIDR2: %v", err)
+		}
+		if c.Pod.Info[1].Mode == IPv6NetMode {
+			c.Pod.Info[1].Prefix = MakePrefixFromNetwork(c.Pod.Info[1].Prefix, c.Pod.Info[1].Size)
+		}
+		c.Pod.Info[1].Size += 8 // Each pod gets a subnet from the network
+		if c.Pod.Info[1].Mode != otherMode {
+			return fmt.Errorf("for dual-stack both pod networks specified are %s mode - need %s info", c.Pod.Info[0].Mode, otherMode)
+		}
+	} else if c.Pod.CIDR2 != "" {
+		return fmt.Errorf("see second pod network CIDR (%s, %s), when in %s mode", c.Pod.CIDR, c.Pod.CIDR2, c.General.Mode)
+	}
 
 	if c.General.Mode == IPv6NetMode {
 		c.DNS64.CIDRPrefix, _, err = GetNetAndMask(c.DNS64.CIDR)

@@ -175,6 +175,8 @@ const (
 	DefaultNetMode = IPv6NetMode
 	// IPv4NetMode for IPv4 only network operating mode
 	IPv4NetMode = "ipv4"
+	// DualStackNetMode for IPv4/IPv6 network operating mode
+	DualStackNetMode = "dual-stack"
 )
 
 // KubeAdmConfigInfo provides values for the templates used to populate
