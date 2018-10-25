@@ -427,6 +427,59 @@ func TestBuildNodeInfo(t *testing.T) {
 	}
 }
 
+func TestBuildNodeInfoUsingSecondMgmtNet(t *testing.T) {
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"master": {
+				ID: 10,
+			},
+			"minion": {
+				ID: 20,
+			},
+			"alpha": {
+				ID: 30,
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
+				},
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+				},
+			},
+		},
+		Support: lazyjack.SupportNetwork{
+			Info: lazyjack.NetInfo{
+				Mode: lazyjack.IPv4NetMode,
+			},
+		},
+	}
+
+	ni := lazyjack.BuildNodeInfo(c)
+	if len(ni) != 3 {
+		t.Fatalf("FAILURE: Expected three nodes")
+	}
+	expected1st := lazyjack.NodeInfo{Name: "alpha", IP: "10.192.0.30", Seen: false}
+	expected2nd := lazyjack.NodeInfo{Name: "master", IP: "10.192.0.10", Seen: false}
+	expected3rd := lazyjack.NodeInfo{Name: "minion", IP: "10.192.0.20", Seen: false}
+	if ni[0] != expected1st {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected1st, ni[0])
+	}
+	if ni[1] != expected2nd {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected2nd, ni[1])
+	}
+	if ni[2] != expected3rd {
+		t.Errorf("FAILED: First entry does not match. Expected: %+v, got %+v", expected3rd, ni[2])
+	}
+}
+
 func TestAddHostEntries(t *testing.T) {
 	basePath := TempFileName(os.TempDir(), "-area")
 	HelperSetupArea(basePath, t)
@@ -595,6 +648,91 @@ fd00:20::20 minion  #[+]
 	}
 }
 
+func TestCalcNameServerV6(t *testing.T) {
+	c := &lazyjack.Config{
+		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   4,
+	}
+
+	ns := lazyjack.CalcNameServer(n, c)
+	expected := "2001:db8::100"
+	if ns != expected {
+		t.Errorf("Expected nameserver %q, got %q", expected, ns)
+	}
+}
+
+func TestCalcNameServerNodeIP(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv4NetMode,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+				},
+			},
+		},
+		Service: lazyjack.ServiceNetwork{
+			Info: lazyjack.NetInfo{
+				Mode: lazyjack.IPv4NetMode,
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   4,
+	}
+
+	ns := lazyjack.CalcNameServer(n, c)
+	expected := "10.192.0.4"
+	if ns != expected {
+		t.Errorf("Expected nameserver %q, got %q", expected, ns)
+	}
+}
+
+func TestCalcNameServerUsingSecondNodeIP(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.DualStackNetMode,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+				},
+				{
+					Prefix: "fd00:20::",
+					Mode:   lazyjack.IPv6NetMode,
+				},
+			},
+		},
+		Service: lazyjack.ServiceNetwork{
+			Info: lazyjack.NetInfo{
+				Mode: lazyjack.IPv6NetMode,
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   5,
+	}
+
+	ns := lazyjack.CalcNameServer(n, c)
+	expected := "fd00:20::5"
+	if ns != expected {
+		t.Errorf("Expected nameserver %q, got %q", expected, ns)
+	}
+}
+
 func TestUpdateResolvConfContents(t *testing.T) {
 	var testCases = []struct {
 		name     string
@@ -686,8 +824,13 @@ func TestAddResolvConfEntry(t *testing.T) {
 	c := &lazyjack.Config{
 		DNS64: lazyjack.DNS64Config{ServerIP: "2001:db8::100"},
 		General: lazyjack.GeneralSettings{
+			Mode:    lazyjack.IPv6NetMode,
 			EtcArea: basePath,
 		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   4,
 	}
 
 	// Make a file to read
@@ -697,7 +840,7 @@ func TestAddResolvConfEntry(t *testing.T) {
 		t.Fatalf("ERROR: Unable to create resolv.conf file for test")
 	}
 
-	err = lazyjack.AddResolvConfEntry(c)
+	err = lazyjack.AddResolvConfEntry(n, c)
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to update resolv.conf file: %s", err.Error())
 	}
@@ -755,15 +898,19 @@ func TestFindHostIPForNAT64(t *testing.T) {
 	}
 }
 
-func TestKubeAdmConfigContents_1_10_V6(t *testing.T) {
+func TestCollectKubeAdmConfigInfo(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Token:          "56cdce.7b18ad347f3de81c",
-			KubeAdmVersion: "1.10",
-			K8sVersion:     "v1.10.3",
+			Token:      "64rxu8.yvrzfofegfmyy1no",
+			K8sVersion: "1.12",
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -776,6 +923,138 @@ func TestKubeAdmConfigContents_1_10_V6(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
+				},
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+	actual := lazyjack.CollectKubeAdmConfigInfo(n, c)
+	var expected string
+	expected = "fd00:100::10"
+	if actual.AdvertiseAddress != expected {
+		t.Errorf("Expected advertise address %q, got %q", expected, actual.AdvertiseAddress)
+	}
+	expected = "64rxu8.yvrzfofegfmyy1no"
+	if actual.AuthToken != expected {
+		t.Errorf("Expected auth token %q, got %q", expected, actual.AuthToken)
+	}
+	expected = "::"
+	if actual.BindAddress != expected {
+		t.Errorf("Expected bind address %q, got %q", expected, actual.BindAddress)
+	}
+	expected = "fd00:30::a"
+	if actual.DNS_ServiceIP != expected {
+		t.Errorf("Expected DNS IP %q, got %q", expected, actual.DNS_ServiceIP)
+	}
+	expected = "fd00:40::/72"
+	if actual.PodNetworkCIDR != expected {
+		t.Errorf("Expected pod CIDR %q, got %q", expected, actual.PodNetworkCIDR)
+	}
+	expected = "kubernetesVersion: \"1.12\""
+	if actual.K8sVersion != expected {
+		t.Errorf("Expected Kubernetes version %q, got %q", expected, actual.K8sVersion)
+	}
+}
+
+func TestCollectKubeAdmConfigInfo2(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Insecure: true,
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR2: "10.244.0.0/16",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+				{
+					Mode: lazyjack.IPv4NetMode,
+				},
+			},
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "10.96.0.12",
+			Info: lazyjack.NetInfo{
+				Mode:   lazyjack.IPv4NetMode,
+				Prefix: "10.96.0.",
+			},
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
+				},
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+				},
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Name: "my-master",
+		ID:   10,
+	}
+	actual := lazyjack.CollectKubeAdmConfigInfo(n, c)
+	var expected string
+	expected = "10.192.0.10"
+	if actual.AdvertiseAddress != expected {
+		t.Errorf("Expected advertise address %q, got %q", expected, actual.AdvertiseAddress)
+	}
+	expected = "abcdef.abcdefghijklmnop"
+	if actual.AuthToken != expected {
+		t.Errorf("Expected auth token %q, got %q", expected, actual.AuthToken)
+	}
+	expected = "0.0.0.0"
+	if actual.BindAddress != expected {
+		t.Errorf("Expected bind address %q, got %q", expected, actual.BindAddress)
+	}
+	expected = "10.96.0.10"
+	if actual.DNS_ServiceIP != expected {
+		t.Errorf("Expected DNS IP %q, got %q", expected, actual.DNS_ServiceIP)
+	}
+	expected = "10.244.0.0/16"
+	if actual.PodNetworkCIDR != expected {
+		t.Errorf("Expected pod CIDR %q, got %q", expected, actual.PodNetworkCIDR)
+	}
+	expected = "# kubernetesVersion:"
+	if actual.K8sVersion != expected {
+		t.Errorf("Expected Kubernetes version %q, got %q", expected, actual.K8sVersion)
+	}
+}
+
+func TestKubeAdmConfigContents_1_10_V6(t *testing.T) {
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			Token:          "56cdce.7b18ad347f3de81c",
+			KubeAdmVersion: "1.10",
+			K8sVersion:     "v1.10.3",
+		},
+		Pod: lazyjack.PodNetwork{
+			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
+		},
+		Service: lazyjack.ServiceNetwork{
+			CIDR: "fd00:30::/110",
+			Info: lazyjack.NetInfo{
+				Mode:   lazyjack.IPv6NetMode,
+				Prefix: "fd00:30::",
+			},
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -825,11 +1104,17 @@ func TestKubeAdmConfigContents_1_10_V4(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "10.244.0.0/16",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv4NetMode,
+				},
+			},
 		},
 		Mgmt: lazyjack.ManagementNetwork{
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
 				},
 			},
 		},
@@ -872,6 +1157,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -884,6 +1174,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1051,6 +1342,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11_V4(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "10.244.0.0/24",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv4NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "10.96.0.0/12",
@@ -1063,6 +1359,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_11_V4(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
 				},
 			},
 		},
@@ -1230,6 +1527,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1242,6 +1544,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1309,6 +1612,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12_no_k8s_version(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1321,6 +1629,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_12_no_k8s_version(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1389,6 +1698,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1401,6 +1715,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1582,6 +1897,11 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13_latest_k8s(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1594,6 +1914,7 @@ func TestKubeAdmConfigContentsForKubeAdm_1_13_latest_k8s(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1776,6 +2097,11 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_11(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1788,6 +2114,7 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_11(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -1956,6 +2283,11 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_12(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -1968,6 +2300,7 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_12(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -2037,6 +2370,11 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_13(t *testing.T) {
 		},
 		Pod: lazyjack.PodNetwork{
 			CIDR: "fd00:40::/72",
+			Info: [2]lazyjack.NetInfo{
+				{
+					Mode: lazyjack.IPv6NetMode,
+				},
+			},
 		},
 		Service: lazyjack.ServiceNetwork{
 			CIDR: "fd00:30::/110",
@@ -2049,6 +2387,7 @@ func TestKubeAdmConfigContentsForInsecureKubeAdm_1_13(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -2667,6 +3006,7 @@ func TestFailedAddAddressConfigureManagementInterface(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
@@ -3432,6 +3772,7 @@ func TestFailSupportNetCreatePrepare(t *testing.T) {
 			},
 		},
 		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 			Hyper: &MockHypervisor{
 				simNotExists:     true,
 				simCreateNetFail: true,
@@ -3469,6 +3810,7 @@ func TestFailPrepDNS64Prepare(t *testing.T) {
 			},
 		},
 		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 			Hyper: &MockHypervisor{
 				simNotExists: true,
 				simRunFailed: true,
@@ -3514,6 +3856,7 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 			},
 		},
 		General: lazyjack.GeneralSettings{
+			Mode: lazyjack.IPv6NetMode,
 			Hyper: &MockHypervisor{
 				simNotExists: true,
 			},

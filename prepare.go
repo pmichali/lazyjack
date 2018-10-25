@@ -46,7 +46,13 @@ func CreateKubeletDropInFile(c *Config) error {
 func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 	info := KubeAdmConfigInfo{}
 
-	info.AdvertiseAddress = fmt.Sprintf("%s%d", c.Mgmt.Info[0].Prefix, n.ID)
+	serviceMode := c.Service.Info.Mode
+
+	prefix := c.Mgmt.Info[0].Prefix
+	if c.Mgmt.Info[0].Mode != serviceMode {
+		prefix = c.Mgmt.Info[1].Prefix
+	}
+	info.AdvertiseAddress = fmt.Sprintf("%s%d", prefix, n.ID)
 
 	if c.General.Insecure {
 		info.AuthToken = DefaultToken
@@ -54,13 +60,13 @@ func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 		info.AuthToken = c.General.Token
 	}
 
-	serviceNetMode := "::"
+	listenIP := "::"
 	devicePart := "a"
-	if c.Service.Info.Mode == "ipv4" {
-		serviceNetMode = "0.0.0.0"
+	if serviceMode == IPv4NetMode {
+		listenIP = "0.0.0.0"
 		devicePart = "10"
 	}
-	info.BindAddress = serviceNetMode
+	info.BindAddress = listenIP
 	info.BindPort = 8080
 
 	info.DNS_ServiceIP = fmt.Sprintf("%s%s", c.Service.Info.Prefix, devicePart)
@@ -72,7 +78,11 @@ func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 	}
 
 	info.KubeMasterName = n.Name
-	info.PodNetworkCIDR = c.Pod.CIDR
+	cidr := c.Pod.CIDR
+	if c.Pod.Info[0].Mode != serviceMode {
+		cidr = c.Pod.CIDR2
+	}
+	info.PodNetworkCIDR = cidr
 	info.ServiceSubnet = c.Service.CIDR
 	info.UseCoreDNS = false // Hardcoded for now
 	return info
@@ -125,9 +135,15 @@ type NodeInfo struct {
 // sorted in alphabetical order.
 func BuildNodeInfo(c *Config) []NodeInfo {
 	n := make([]NodeInfo, len(c.Topology))
+	prefix := c.Mgmt.Info[0].Prefix
+	if c.General.Mode == DualStackNetMode {
+		if c.Mgmt.Info[0].Mode != c.Support.Info.Mode {
+			prefix = c.Mgmt.Info[1].Prefix
+		}
+	}
 	i := 0
 	for nodeName, node := range c.Topology {
-		ip := fmt.Sprintf("%s%d", c.Mgmt.Info[0].Prefix, node.ID)
+		ip := fmt.Sprintf("%s%d", prefix, node.ID)
 		glog.V(4).Infof("Created node info for %s (%s)", nodeName, ip)
 		n[i] = NodeInfo{Name: nodeName, IP: ip, Seen: false}
 		i++
@@ -205,10 +221,28 @@ func AddHostEntries(c *Config) error {
 	return nil
 }
 
+// CalcNameServer determines the IP to use for the name server in /etc/resolv.conf
+// based on the service network mode. For IPv6 mode, the DNS64 IP is used, otherwise
+// the node's IP is used.
+func CalcNameServer(n *Node, c *Config) string {
+	var nameserver string
+	if c.General.Mode == IPv6NetMode {
+		nameserver = c.DNS64.ServerIP
+	} else {
+		entry := 0
+		if c.General.Mode == DualStackNetMode && c.Mgmt.Info[entry].Mode != c.Service.Info.Mode {
+			entry = 1
+		}
+		nameserver = fmt.Sprintf("%s%d", c.Mgmt.Info[entry].Prefix, n.ID)
+	}
+	return nameserver
+}
+
 // UpdateResolvConfInfo updates the nameservers to use the ones
 // defined for the cluster. Old entries are commented out, and new
 // ones tagged, allowing later restoration, during cleanup.
 func UpdateResolvConfInfo(contents []byte, ns string) []byte {
+
 	glog.V(4).Infof("Updating %s", EtcResolvConfFile)
 	lines := bytes.Split(bytes.TrimRight(contents, "\n"), []byte("\n"))
 
@@ -239,7 +273,7 @@ func UpdateResolvConfInfo(contents []byte, ns string) []byte {
 
 // AddResolvConfEntry updates the /etc/resolv.conf file with nameserver
 // entry used for the cluster.
-func AddResolvConfEntry(c *Config) error {
+func AddResolvConfEntry(n *Node, c *Config) error {
 	file := filepath.Join(c.General.EtcArea, EtcResolvConfFile)
 	backup := filepath.Join(c.General.EtcArea, EtcResolvConfBackupFile)
 	glog.V(1).Infof("Preparing %s file", file)
@@ -247,7 +281,8 @@ func AddResolvConfEntry(c *Config) error {
 	if err != nil {
 		return err
 	}
-	contents = UpdateResolvConfInfo(contents, c.DNS64.ServerIP)
+	nameserver := CalcNameServer(n, c)
+	contents = UpdateResolvConfInfo(contents, nameserver)
 	err = SaveFileContents(contents, file, backup)
 	if err != nil {
 		return err
@@ -322,14 +357,25 @@ func CreateRouteToSupportNetworkForOtherNodes(node *Node, c *Config) (err error)
 // the interface used for the pod and management networks.
 func ConfigureManagementInterface(node *Node, c *Config) error {
 	glog.V(1).Infof("Configuring management interface %s", node.Interface)
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0].Prefix, node.ID, c.Mgmt.Info[0].Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0], node.ID)
 	err := c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
 	if err != nil {
 		return err
+	} else {
+		glog.V(4).Infof("Added %s to %s", mgmtIP, node.Interface)
+	}
+	if c.General.Mode == DualStackNetMode {
+		mgmtIP = BuildNodeCIDR(c.Mgmt.Info[1], node.ID)
+		err = c.General.NetMgr.AddAddressToLink(mgmtIP, node.Interface)
+		if err != nil {
+			return err
+		} else {
+			glog.V(4).Infof("Added %s to %s", mgmtIP, node.Interface)
+		}
 	}
 	err = c.General.NetMgr.SetLinkMTU(node.Interface, c.Pod.MTU)
 	if err == nil {
-		glog.V(4).Infof("Set %s IP to %s and MTU to %d", node.Interface, mgmtIP, c.Pod.MTU)
+		glog.V(4).Infof("Set MTU on %s to %d", node.Interface, c.Pod.MTU)
 	}
 	return err
 }
@@ -354,7 +400,7 @@ func PrepareClusterNode(node *Node, c *Config) error {
 		return err
 	}
 
-	err = AddResolvConfEntry(c)
+	err = AddResolvConfEntry(node, c)
 	if err != nil {
 		return err
 	}
@@ -631,23 +677,25 @@ func Prepare(name string, c *Config) error {
 
 	// TODO: Verify docker version OK (17.03, others?), else warn...
 
-	if node.IsDNS64Server || node.IsNAT64Server {
-		// TODO: Verify that node has default IPv4 route
-		err = CreateSupportNetwork(c)
-		if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
-			return err
+	if c.General.Mode == IPv6NetMode {
+		if node.IsDNS64Server || node.IsNAT64Server {
+			// TODO: Verify that node has default IPv4 route
+			err = CreateSupportNetwork(c)
+			if err != nil && !strings.HasPrefix(err.Error(), "skipping") {
+				return err
+			}
 		}
-	}
-	if node.IsDNS64Server {
-		err = PrepareDNS64Server(c)
-		if err != nil {
-			return err
+		if node.IsDNS64Server {
+			err = PrepareDNS64Server(c)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if node.IsNAT64Server {
-		err = PrepareNAT64Server(c)
-		if err != nil {
-			return err
+		if node.IsNAT64Server {
+			err = PrepareNAT64Server(c)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if node.IsMaster || node.IsMinion {

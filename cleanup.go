@@ -63,12 +63,22 @@ func RemoveDropInFile(c *Config) error {
 // RemoveManagementIP removes the node's management IP off of the
 // interface configured as the management port.
 func RemoveManagementIP(node *Node, c *Config) error {
-	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0].Prefix, node.ID, c.Mgmt.Info[0].Size)
+	mgmtIP := BuildNodeCIDR(c.Mgmt.Info[0], node.ID)
 	err := c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
 	if err != nil {
 		return fmt.Errorf("unable to remove IP from management interface: %v", err)
+	} else {
+		glog.V(4).Infof("removed %s from %s", mgmtIP, node.Interface)
 	}
-	glog.V(4).Info("Removed IP address from management interface")
+	if c.General.Mode == DualStackNetMode {
+		mgmtIP = BuildNodeCIDR(c.Mgmt.Info[1], node.ID)
+		err = c.General.NetMgr.RemoveAddressFromLink(mgmtIP, node.Interface)
+		if err != nil {
+			return fmt.Errorf("unable to remove second IP from management interface: %v", err)
+		} else {
+			glog.V(4).Infof("Removed %s from %s", mgmtIP, node.Interface)
+		}
+	}
 	return nil
 }
 
@@ -288,7 +298,7 @@ func Cleanup(name string, c *Config) error {
 			all = append(all, err.Error())
 		}
 	}
-	if c.General.Mode == "ipv6" {
+	if c.General.Mode == IPv6NetMode {
 		if node.IsDNS64Server {
 			err = CleanupDNS64Server(c)
 			if err != nil {

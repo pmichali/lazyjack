@@ -38,21 +38,29 @@ func (m mockNetLink) AddrList(link netlink.Link, family int) ([]netlink.Addr, er
 	if m.simAddrListFail {
 		return []netlink.Addr{}, fmt.Errorf("mock failure to list addresses")
 	}
+	addrList := []netlink.Addr{}
 	// Will use the link index to create dummy addresses per link
-	var first *netlink.Addr
-	var second *netlink.Addr
-	var third *netlink.Addr
-	if family == nl.FAMILY_V4 {
-		first, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.2/16", link.Attrs().Index))
-		second, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.3/16", link.Attrs().Index))
-		third, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.4/16", link.Attrs().Index))
-	} else {
-		first, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::2/64", link.Attrs().Index))
-		second, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::3/64", link.Attrs().Index))
+	var addr *netlink.Addr
+	if family == nl.FAMILY_V4 || family == nl.FAMILY_ALL {
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.2/16", link.Attrs().Index))
+		addrList = append(addrList, *addr)
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.3/16", link.Attrs().Index))
+		addrList = append(addrList, *addr)
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("172.%d.0.4/16", link.Attrs().Index))
+		addrList = append(addrList, *addr)
 		// To simulate mgmt IP address, which has node ID as last part of address
-		third, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:20::%x/64", link.Attrs().Index))
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("10.192.0.%d/16", link.Attrs().Index))
+		addrList = append(addrList, *addr)
 	}
-	addrList := []netlink.Addr{*first, *second, *third}
+	if family == nl.FAMILY_V6 || family == nl.FAMILY_ALL {
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::2/64", link.Attrs().Index))
+		addrList = append(addrList, *addr)
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:%x::3/64", link.Attrs().Index))
+		addrList = append(addrList, *addr)
+		// To simulate mgmt IP address, which has node ID as last part of address
+		addr, _ = netlink.ParseAddr(fmt.Sprintf("2001:db8:20::%x/64", link.Attrs().Index))
+		addrList = append(addrList, *addr)
+	}
 	return addrList, nil
 }
 
@@ -149,8 +157,15 @@ func TestAddAddressToLink(t *testing.T) {
 }
 
 func TestBuildNodeCIDR(t *testing.T) {
-	actual := lazyjack.BuildNodeCIDR("2001:db8:20::", 2, 64)
+	info := lazyjack.NetInfo{Prefix: "2001:db8:20::", Mode: lazyjack.IPv6NetMode, Size: 64}
+	actual := lazyjack.BuildNodeCIDR(info, 2)
 	expected := "2001:db8:20::2/64"
+	if actual != expected {
+		t.Fatalf("FAILED: Node CIDR create. Expected %q, got %q", expected, actual)
+	}
+	info = lazyjack.NetInfo{Prefix: "10.20.0.", Mode: lazyjack.IPv4NetMode, Size: 16}
+	actual = lazyjack.BuildNodeCIDR(info, 2)
+	expected = "10.20.0.2/16"
 	if actual != expected {
 		t.Fatalf("FAILED: Node CIDR create. Expected %q, got %q", expected, actual)
 	}

@@ -299,12 +299,19 @@ func TestRemoveManagementIP(t *testing.T) {
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			NetMgr: nm,
+			Mode:   lazyjack.DualStackNetMode,
 		},
 		Mgmt: lazyjack.ManagementNetwork{
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
+				},
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   16,
 				},
 			},
 		},
@@ -330,6 +337,7 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
@@ -345,6 +353,43 @@ func TestFailedRemoveManagementIP(t *testing.T) {
 		t.Fatalf("FAILED: Expected not to be able to remove management IP")
 	}
 	expected := "unable to remove IP from management interface: unable to delete ip \"2001:db8:20::10/64\" from interface \"eth1\""
+	if err.Error() != expected {
+		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
+	}
+}
+
+func TestFailedRemoveSecondManagementIP(t *testing.T) {
+	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	c := &lazyjack.Config{
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+			Mode:   lazyjack.DualStackNetMode,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   64,
+				},
+				{
+					Prefix: "10.10.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   16,
+				},
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Interface: "eth1",
+		ID:        0x10,
+	}
+
+	err := lazyjack.RemoveManagementIP(n, c)
+	if err == nil {
+		t.Fatalf("FAILED: Expected not to be able to remove second management IP")
+	}
+	expected := "unable to remove second IP from management interface: skipping - address \"10.10.0.16/16\" does not exist on interface \"eth1\""
 	if err.Error() != expected {
 		t.Fatalf("FAILED: Expected reason to be  %q, got %q", expected, err.Error())
 	}
@@ -687,6 +732,7 @@ func TestCleanupClusterNode(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
@@ -749,6 +795,7 @@ func TestFailedCleanupClusterNode(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
@@ -1075,6 +1122,7 @@ func TestCleanup(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
@@ -1152,6 +1200,7 @@ func TestFailedCleanup(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "2001:db8:20::",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   64,
 				},
 			},
