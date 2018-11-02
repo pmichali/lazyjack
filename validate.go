@@ -564,7 +564,7 @@ func SetupHandles(c *Config) error {
 	if err != nil {
 		return fmt.Errorf("internal Error - unable to access networking package: %v", err)
 	}
-	c.General.NetMgr = NetMgr{Server: NetLink{h: handle}}
+	c.General.NetMgr = NetMgr{Server: &NetLink{h: handle}}
 	c.General.Hyper = &Docker{Command: DefaultDockerCommand}
 	return nil
 }

@@ -7,7 +7,8 @@ import (
 )
 
 func TestDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nl := &mockNetLink{}
+	nm := lazyjack.NetMgr{Server: nl}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -25,6 +26,7 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -36,6 +38,70 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
+				},
+			},
+		},
+	}
+	n := &lazyjack.Node{
+		Name:      "master",
+		Interface: "eth1",
+		IsMaster:  true,
+		ID:        10,
+	}
+	nl.ResetCallCount()
+	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
+	if err != nil {
+		t.Fatalf("FAILED: Expected to be able to add route on node: %s", err.Error())
+	}
+	calls := nl.CallCount()
+	if calls != 1 {
+		t.Fatalf("FAILED: Expected to call RouteAdd exactly once, called %d times", calls)
+	}
+}
+
+func TestDoTwoRouteOpsOnNodesAdd(t *testing.T) {
+	nl := &mockNetLink{}
+	nm := lazyjack.NetMgr{Server: nl}
+	c := &lazyjack.Config{
+		Topology: map[string]lazyjack.Node{
+			"minion1": {
+				IsMinion: true,
+				Name:     "minion1",
+				ID:       20,
+			},
+			"master": {
+				IsMaster: true,
+				Name:     "master",
+				ID:       10,
+			},
+		},
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   80,
+				},
+				{
+					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   24,
+				},
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			NetMgr: nm,
+		},
+		Mgmt: lazyjack.ManagementNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.192.0.",
+					Mode:   lazyjack.IPv4NetMode,
+				},
+				{
+					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -47,14 +113,19 @@ func TestDoRouteOpsOnNodesAdd(t *testing.T) {
 		ID:        10,
 	}
 
+	nl.ResetCallCount()
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "add")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to add route on node: %s", err.Error())
 	}
+	calls := nl.CallCount()
+	if calls != 2 {
+		t.Fatalf("FAILED: Expected to call RouteAdd exactly twice, called %d times", calls)
+	}
 }
 
 func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -72,6 +143,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -83,6 +155,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -105,7 +178,7 @@ func TestFailedDoRouteOpsOnNodesAdd(t *testing.T) {
 }
 
 func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteExists: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteExists: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -123,6 +196,7 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -134,6 +208,7 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -156,7 +231,8 @@ func TestFailedExistsDoRouteOpsOnNodesAdd(t *testing.T) {
 }
 
 func TestDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nl := &mockNetLink{}
+	nm := lazyjack.NetMgr{Server: nl}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -174,6 +250,7 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -185,6 +262,7 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -196,14 +274,19 @@ func TestDoRouteOpsOnNodesDelete(t *testing.T) {
 		ID:        10,
 	}
 
+	nl.ResetCallCount()
 	err := lazyjack.DoRouteOpsOnNodes(n, c, "delete")
 	if err != nil {
 		t.Fatalf("FAILED: Expected to be able to delete route on node: %s", err.Error())
 	}
+	calls := nl.CallCount()
+	if calls != 1 {
+		t.Fatalf("FAILED: Expected to call RouteAdd exactly once, called %d times", calls)
+	}
 }
 
 func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -221,6 +304,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -232,6 +316,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -254,7 +339,7 @@ func TestFailedDoRouteOpsOnNodesDelete(t *testing.T) {
 }
 
 func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simNoRoute: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simNoRoute: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -272,6 +357,7 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -283,6 +369,7 @@ func TestFailedNoRouteDoRouteOpsOnNodesDelete(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:100::",
+					Mode:   lazyjack.IPv6NetMode,
 				},
 			},
 		},
@@ -319,7 +406,7 @@ func TestBuildPodSubnetPrefix(t *testing.T) {
 			prefix:         "fd00:40:0:0:",
 			size:           80,
 			node_id:        10,
-			mode:           "ipv6",
+			mode:           lazyjack.IPv6NetMode,
 			expectedPrefix: "fd00:40:0:0:a::",
 			expectedSuffix: "",
 		},
@@ -328,7 +415,7 @@ func TestBuildPodSubnetPrefix(t *testing.T) {
 			prefix:         "fd00:40:0:0:",
 			size:           72,
 			node_id:        10,
-			mode:           "ipv6",
+			mode:           lazyjack.IPv6NetMode,
 			expectedPrefix: "fd00:40:0:0:a00::",
 			expectedSuffix: "",
 		},
@@ -337,7 +424,7 @@ func TestBuildPodSubnetPrefix(t *testing.T) {
 			prefix:         "fd00:10:20:30:40",
 			size:           80,
 			node_id:        02,
-			mode:           "ipv6",
+			mode:           lazyjack.IPv6NetMode,
 			expectedPrefix: "fd00:10:20:30:4002::",
 			expectedSuffix: "",
 		},
@@ -346,7 +433,7 @@ func TestBuildPodSubnetPrefix(t *testing.T) {
 			prefix:         "10.244.0.",
 			size:           24,
 			node_id:        20,
-			mode:           "ipv4",
+			mode:           lazyjack.IPv4NetMode,
 			expectedPrefix: "10.244.20.",
 			expectedSuffix: "0",
 		},

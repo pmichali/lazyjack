@@ -170,7 +170,7 @@ func TestFailedSetupUnableToCreateBridgeCNIConfigFile(t *testing.T) {
 }
 
 func TestFailedBridgePluginSetup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -220,7 +220,7 @@ func TestFailedBridgePluginSetup(t *testing.T) {
 }
 
 func TestFailedRemoveRoutesBridgePluginCleanup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -271,7 +271,7 @@ func TestFailedRemoveRoutesBridgePluginCleanup(t *testing.T) {
 }
 
 func TestFailedBridgeRemoveBridgePluginCleanup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simSetDownFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simSetDownFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestPointToPointPluginCleanup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -56,7 +56,7 @@ func TestPointToPointPluginCleanup(t *testing.T) {
 }
 
 func TestFailedPointToPointPluginCleanup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -109,7 +109,7 @@ func TestFailedPointToPointPluginCleanup(t *testing.T) {
 }
 
 func TestPointToPointPluginSetup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -157,7 +157,7 @@ func TestPointToPointPluginSetup(t *testing.T) {
 }
 
 func TestFailedPointToPointPluginSetup(t *testing.T) {
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {

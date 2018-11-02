@@ -16,7 +16,7 @@ func TestCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -77,7 +77,7 @@ func TestFailedRemovingRouteCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteDelFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteDelFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -142,7 +142,7 @@ func TestFailedRemoveFileCleanupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {

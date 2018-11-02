@@ -379,7 +379,7 @@ func TestSetupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -444,7 +444,7 @@ func TestFailedNoCNIAreaSetupForPlugin(t *testing.T) {
 	}
 	defer func() { os.Chmod(basePath, 0700) }()
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
@@ -502,7 +502,7 @@ func TestFailedRouteCreateSetupForPlugin(t *testing.T) {
 	HelperSetupArea(cniArea, t)
 	defer HelperCleanupArea(cniArea, t)
 
-	nm := lazyjack.NetMgr{Server: mockNetLink{simRouteAddFail: true}}
+	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"minion1": {
