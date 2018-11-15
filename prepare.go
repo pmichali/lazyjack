@@ -137,7 +137,7 @@ func BuildNodeInfo(c *Config) []NodeInfo {
 	n := make([]NodeInfo, len(c.Topology))
 	prefix := c.Mgmt.Info[0].Prefix
 	if c.General.Mode == DualStackNetMode {
-		if c.Mgmt.Info[0].Mode != c.Support.Info.Mode {
+		if c.Mgmt.Info[0].Mode != c.Service.Info.Mode {
 			prefix = c.Mgmt.Info[1].Prefix
 		}
 	}

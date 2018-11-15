@@ -39,6 +39,69 @@ func BuildPodSubnetPrefix(mode, prefix string, netSize, nodeID int) (string, str
 	return fmt.Sprintf("%s%x::", prefix, nodeID), ""
 }
 
+// GenerateRange creates one IPAM range entry, based on the IP mode of the
+// pod network
+func GenerateRange(c *Config, node *Node, i int) string {
+	entryPrefix := `      [
+        {
+`
+	entrySuffix := `        }
+      ]%s
+`
+	contents := bytes.NewBufferString(entryPrefix)
+	prefix, suffix := BuildPodSubnetPrefix(c.Pod.Info[i].Mode, c.Pod.Info[i].Prefix, c.Pod.Info[i].Size, node.ID)
+	fmt.Fprintf(contents, "          \"subnet\": \"%s%s/%d\",\n", prefix, suffix, c.Pod.Info[i].Size)
+	fmt.Fprintf(contents, "          \"gateway\": \"%s1\"\n", prefix)
+	comma := ""
+	if i == 0 && c.General.Mode == DualStackNetMode {
+		comma = ","
+	}
+	fmt.Fprintf(contents, entrySuffix, comma)
+	return contents.String()
+}
+
+func GenerateDefaultRoute(c *Config, i int) string {
+	defaultRoute := "0.0.0.0/0"
+	if c.Pod.Info[i].Mode == IPv6NetMode {
+		defaultRoute = "::/0"
+	}
+	comma := ""
+	if i == 0 && c.General.Mode == DualStackNetMode {
+		comma = ","
+	}
+	return fmt.Sprintf("      {\"dst\": %q}%s\n", defaultRoute, comma)
+}
+
+// GenerateConfigForIPAM creates the section of the CNI configuration that
+// contains the IPAM information with subnet and gateway information for the
+// pod network(s).
+func GenerateConfigForIPAM(c *Config, node *Node) string {
+	header := `  "ipam": {
+    "type": "host-local",
+    "ranges": [
+`
+	rangeTrailer := `    ],
+    "routes": [
+`
+	trailer := `    ]
+  }
+`
+	contents := bytes.NewBufferString(header)
+
+	fmt.Fprintf(contents, GenerateRange(c, node, 0))
+	if c.General.Mode == DualStackNetMode {
+		fmt.Fprintf(contents, GenerateRange(c, node, 1))
+	}
+	fmt.Fprintf(contents, rangeTrailer)
+
+	fmt.Fprintf(contents, GenerateDefaultRoute(c, 0))
+	if c.General.Mode == DualStackNetMode {
+		fmt.Fprintf(contents, GenerateDefaultRoute(c, 1))
+	}
+	fmt.Fprintf(contents, trailer)
+	return contents.String()
+}
+
 // DoRouteOpsOnNodes builds static routes between minion and master node
 // for a CNI plugin, so that pods can communicate across nodes.
 func DoRouteOpsOnNodes(node *Node, c *Config, op string) error {

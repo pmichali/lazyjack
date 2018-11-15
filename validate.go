@@ -384,6 +384,7 @@ func CalculateDerivedFields(c *Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid service network: %v", err)
 	}
+	glog.V(4).Infof("Service network is using %s", c.Service.Info.Mode)
 
 	if c.General.Mode == IPv6NetMode {
 		err = ExtractNetInfo(c.Support.CIDR, &c.Support.Info, CheckUnlimitedSize)

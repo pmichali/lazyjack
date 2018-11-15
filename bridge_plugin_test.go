@@ -16,6 +16,7 @@ func TestBridgeCNIConfigContents(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -29,25 +30,28 @@ func TestBridgeCNIConfigContents(t *testing.T) {
 	n := &lazyjack.Node{ID: 10}
 
 	expected := `{
-    "cniVersion": "0.3.1",
-    "name": "bmbridge",
-    "type": "bridge",
-    "bridge": "br0",
-    "isDefaultGateway": true,
-    "ipMasq": true,
-    "hairpinMode": true,
-    "mtu": 9000,
-    "ipam": {
-        "type": "host-local",
-        "ranges": [
-          [
-            {
-              "subnet": "fd00:40:0:0:a::/80",
-              "gateway": "fd00:40:0:0:a::1"
-	    }
-          ]
-        ]
-    }
+  "cniVersion": "0.3.1",
+  "name": "bmbridge",
+  "type": "bridge",
+  "bridge": "br0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "mtu": 9000,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "::/0"}
+    ]
+  }
 }
 `
 	actual := c.General.CNIPlugin.ConfigContents(n)
@@ -62,6 +66,7 @@ func TestBridgeCNIConfigContentsV4(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
 					Size:   24,
 				},
 			},
@@ -75,25 +80,90 @@ func TestBridgeCNIConfigContentsV4(t *testing.T) {
 	n := &lazyjack.Node{ID: 10}
 
 	expected := `{
-    "cniVersion": "0.3.1",
-    "name": "bmbridge",
-    "type": "bridge",
-    "bridge": "br0",
-    "isDefaultGateway": true,
-    "ipMasq": true,
-    "hairpinMode": true,
-    "mtu": 1500,
-    "ipam": {
-        "type": "host-local",
-        "ranges": [
-          [
-            {
-              "subnet": "10.244.10.0/24",
-              "gateway": "10.244.10.1"
-	    }
-          ]
-        ]
-    }
+  "cniVersion": "0.3.1",
+  "name": "bmbridge",
+  "type": "bridge",
+  "bridge": "br0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "mtu": 1500,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "0.0.0.0/0"}
+    ]
+  }
+}
+`
+	actual := c.General.CNIPlugin.ConfigContents(n)
+	if actual.String() != expected {
+		t.Fatalf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
+	}
+}
+
+func TestBridgeCNIConfigContentsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   24,
+				},
+				{
+					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   80,
+				},
+			},
+			MTU: 9000,
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "dual-stack",
+		},
+	}
+	c.General.CNIPlugin = lazyjack.BridgePlugin{c}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `{
+  "cniVersion": "0.3.1",
+  "name": "bmbridge",
+  "type": "bridge",
+  "bridge": "br0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "mtu": 9000,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ],
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "0.0.0.0/0"},
+      {"dst": "::/0"}
+    ]
+  }
 }
 `
 	actual := c.General.CNIPlugin.ConfigContents(n)

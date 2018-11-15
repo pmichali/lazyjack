@@ -1,7 +1,9 @@
-# deprecated
-# plugin: bridge
+# IPv6 only sample config
 general:
-    plugin: bridge  # default value
+    plugin: bridge  # default value (can be ptp)
+#   work-area: "/path/to/area/for/work/files"
+#   kubernetes-version: latest
+#   insecure: true
 topology:
     <master-name>:
         interface: "<intf-name>"
@@ -22,6 +24,7 @@ mgmt_net:
     cidr: "fd00:20::/64"
 pod_net:
     cidr: "fd00:40::/72"
+#   mtu: 9000
 service_net:
     cidr: "fd00:30::/110"
 nat64:

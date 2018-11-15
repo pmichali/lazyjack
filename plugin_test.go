@@ -448,3 +448,130 @@ func TestBuildPodSubnetPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestIPAM_ContentsForIPv6(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   80,
+				},
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "ipv6",
+		},
+	}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "::/0"}
+    ]
+  }
+`
+	actual := lazyjack.GenerateConfigForIPAM(c, n)
+	if actual != expected {
+		t.Fatalf("FAILED: CNI config contents for IPv6 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	}
+}
+
+func TestIPAM_ContentsForIPv4(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   24,
+				},
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "ipv4",
+		},
+	}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "0.0.0.0/0"}
+    ]
+  }
+`
+	actual := lazyjack.GenerateConfigForIPAM(c, n)
+	if actual != expected {
+		t.Fatalf("FAILED: CNI config contents for IPv4 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	}
+}
+
+func TestIPAM_ContentsForDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   24,
+				},
+				{
+					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   80,
+				},
+			},
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "dual-stack",
+		},
+	}
+	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ],
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "0.0.0.0/0"},
+      {"dst": "::/0"}
+    ]
+  }
+`
+	actual := lazyjack.GenerateConfigForIPAM(c, n)
+	if actual != expected {
+		t.Fatalf("FAILED: CNI config contents for dual-stack IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	}
+}

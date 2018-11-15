@@ -17,32 +17,20 @@ type BridgePlugin struct {
 // network size.
 func (b BridgePlugin) ConfigContents(node *Node) *bytes.Buffer {
 	header := `{
-    "cniVersion": "0.3.1",
-    "name": "bmbridge",
-    "type": "bridge",
-    "bridge": "br0",
-    "isDefaultGateway": true,
-    "ipMasq": true,
-    "hairpinMode": true,
+  "cniVersion": "0.3.1",
+  "name": "bmbridge",
+  "type": "bridge",
+  "bridge": "br0",
+  "isDefaultGateway": true,
+  "ipMasq": true,
+  "hairpinMode": true,
 `
-	middle := `    "ipam": {
-        "type": "host-local",
-        "ranges": [
-          [
-            {
-`
-	trailer := `	    }
-          ]
-        ]
-    }
-}
+	trailer := `}
 `
 	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "    \"mtu\": %d,\n", b.Config.Pod.MTU)
-	fmt.Fprintf(contents, middle)
-	prefix, suffix := BuildPodSubnetPrefix(b.Config.General.Mode, b.Config.Pod.Info[0].Prefix, b.Config.Pod.Info[0].Size, node.ID)
-	fmt.Fprintf(contents, "              \"subnet\": \"%s%s/%d\",\n", prefix, suffix, b.Config.Pod.Info[0].Size)
-	fmt.Fprintf(contents, "              \"gateway\": \"%s1\"\n", prefix)
+	fmt.Fprintf(contents, "  \"mtu\": %d,\n", b.Config.Pod.MTU)
+
+	fmt.Fprintf(contents, GenerateConfigForIPAM(b.Config, node))
 	fmt.Fprintf(contents, trailer)
 	return contents
 }

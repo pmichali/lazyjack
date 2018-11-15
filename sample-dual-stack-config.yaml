@@ -1,6 +1,6 @@
-# IPv4 only sample config
+# Dual-stack sample config
 general:
-    mode: ipv4
+    mode: dual-stack
     plugin: bridge  # default value (can be ptp)
 topology:
     <master-name>:
@@ -17,7 +17,9 @@ topology:
         id: 4
 mgmt_net:
     cidr: "10.192.0.0/24"
+    cidr2: "fd00:20::/64"
 pod_net:
     cidr: "10.244.0.0/16"
+    cidr2: "fd00:40::/72"
 service_net:
-    cidr: "10.96.0.0/12"
+    cidr: "10.96.0.0/12"  # when support for IPv6 service network can use "fd00:30::/110"

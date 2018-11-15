@@ -214,6 +214,7 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
 					Size:   80,
 				},
 			},
@@ -234,7 +235,14 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
   "mtu": 9000,
   "ipam": {
     "type": "host-local",
-    "subnet": "fd00:40:0:0:a::/80",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ]
+    ],
     "routes": [
       {"dst": "::/0"}
     ]
@@ -253,6 +261,7 @@ func TestPointToPointCNIConfigContentsV4(t *testing.T) {
 			Info: [2]lazyjack.NetInfo{
 				{
 					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
 					Size:   24,
 				},
 			},
@@ -273,8 +282,74 @@ func TestPointToPointCNIConfigContentsV4(t *testing.T) {
   "mtu": 1500,
   "ipam": {
     "type": "host-local",
-    "subnet": "10.244.10.0/24",
+    "ranges": [
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ]
+    ],
     "routes": [
+      {"dst": "0.0.0.0/0"}
+    ]
+  }
+}
+`
+	actual := c.General.CNIPlugin.ConfigContents(n)
+	if actual.String() != expected {
+		t.Fatalf("FAILED: PTP CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
+	}
+}
+
+func TestPointToPointCNIConfigContentsDualStack(t *testing.T) {
+	c := &lazyjack.Config{
+		Pod: lazyjack.PodNetwork{
+			Info: [2]lazyjack.NetInfo{
+				{
+					Prefix: "fd00:40:0:0:",
+					Mode:   lazyjack.IPv6NetMode,
+					Size:   80,
+				},
+				{
+					Prefix: "10.244.0.",
+					Mode:   lazyjack.IPv4NetMode,
+					Size:   24,
+				},
+			},
+			MTU: 9000,
+		},
+		General: lazyjack.GeneralSettings{
+			Mode: "dual-stack",
+		},
+	}
+	c.General.CNIPlugin = lazyjack.PointToPointPlugin{c}
+	n := &lazyjack.Node{ID: 10}
+
+	expected := `{
+  "cniVersion": "0.3.1",
+  "name": "dindnet",
+  "type": "ptp",
+  "ipMasq": true,
+  "mtu": 9000,
+  "ipam": {
+    "type": "host-local",
+    "ranges": [
+      [
+        {
+          "subnet": "fd00:40:0:0:a::/80",
+          "gateway": "fd00:40:0:0:a::1"
+        }
+      ],
+      [
+        {
+          "subnet": "10.244.10.0/24",
+          "gateway": "10.244.10.1"
+        }
+      ]
+    ],
+    "routes": [
+      {"dst": "::/0"},
       {"dst": "0.0.0.0/0"}
     ]
   }
