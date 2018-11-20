@@ -3480,9 +3480,16 @@ func TestPrepareDNS64Server(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
-			Hyper:    &MockHypervisor{simNotExists: true},
+			Hyper: &MockHypervisor{
+				simNotExists: true,
+				mountPoint:   volumeMountPoint,
+			},
 			WorkArea: workArea,
 		},
 		DNS64: lazyjack.DNS64Config{
@@ -3503,11 +3510,16 @@ func TestFailRunPrepareDNS64Server(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
 				simNotExists: true,
 				simRunFailed: true,
+				mountPoint:   volumeMountPoint,
 			},
 			WorkArea: workArea,
 		},
@@ -3533,11 +3545,16 @@ func TestFailedIPDeletePrepareDNS64Server(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
 				simNotExists:           true,
 				simDeleteInterfaceFail: true,
+				mountPoint:             volumeMountPoint,
 			},
 			WorkArea: workArea,
 		},
@@ -3563,11 +3580,16 @@ func TestFailedRouteAddPrepareDNS64Server(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	c := &lazyjack.Config{
 		General: lazyjack.GeneralSettings{
 			Hyper: &MockHypervisor{
 				simNotExists:    true,
 				simAddRouteFail: true,
+				mountPoint:      volumeMountPoint,
 			},
 			WorkArea: workArea,
 		},
@@ -3903,6 +3925,10 @@ func TestFailPrepDNS64Prepare(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
 			"master": {
@@ -3916,6 +3942,7 @@ func TestFailPrepDNS64Prepare(t *testing.T) {
 			Hyper: &MockHypervisor{
 				simNotExists: true,
 				simRunFailed: true,
+				mountPoint:   volumeMountPoint,
 			},
 			WorkArea: workArea,
 		},
@@ -3948,6 +3975,10 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 	HelperSetupArea(workArea, t)
 	defer HelperCleanupArea(workArea, t)
 
+	volumeMountPoint := TempFileName(os.TempDir(), "-dns64")
+	HelperSetupArea(volumeMountPoint, t)
+	defer HelperCleanupArea(volumeMountPoint, t)
+
 	nm := lazyjack.NetMgr{Server: &mockNetLink{simRouteAddFail: true}}
 	c := &lazyjack.Config{
 		Topology: map[string]lazyjack.Node{
@@ -3961,6 +3992,7 @@ func TestFailPrepNAT64Prepare(t *testing.T) {
 			Mode: lazyjack.IPv6NetMode,
 			Hyper: &MockHypervisor{
 				simNotExists: true,
+				mountPoint:   volumeMountPoint,
 			},
 			WorkArea: workArea,
 			NetMgr:   nm,
