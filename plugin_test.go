@@ -1,6 +1,7 @@
 package lazyjack_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
@@ -481,9 +482,13 @@ func TestIPAM_ContentsForIPv6(t *testing.T) {
     ]
   }
 `
-	actual := lazyjack.GenerateConfigForIPAM(c, n)
-	if actual != expected {
-		t.Fatalf("FAILED: CNI config contents for IPv6 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	actual := new(bytes.Buffer)
+	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
+	}
+	if actual.String() != expected {
+		t.Fatalf("FAILED: CNI config contents for IPv6 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
 }
 
@@ -519,9 +524,13 @@ func TestIPAM_ContentsForIPv4(t *testing.T) {
     ]
   }
 `
-	actual := lazyjack.GenerateConfigForIPAM(c, n)
-	if actual != expected {
-		t.Fatalf("FAILED: CNI config contents for IPv4 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	actual := new(bytes.Buffer)
+	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
+	}
+	if actual.String() != expected {
+		t.Fatalf("FAILED: CNI config contents for IPv4 IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
 }
 
@@ -570,8 +579,12 @@ func TestIPAM_ContentsForDualStack(t *testing.T) {
     ]
   }
 `
-	actual := lazyjack.GenerateConfigForIPAM(c, n)
-	if actual != expected {
-		t.Fatalf("FAILED: CNI config contents for dual-stack IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual)
+	actual := new(bytes.Buffer)
+	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
+	}
+	if actual.String() != expected {
+		t.Fatalf("FAILED: CNI config contents for dual-stack IPAM wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
 }

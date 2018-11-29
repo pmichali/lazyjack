@@ -3,7 +3,6 @@ package lazyjack
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,13 +28,21 @@ func EnsureCNIAreaExists(area string) error {
 // CreateCNIConfigFile creates the config file based on the plugin selected.
 // Default location for file is /etc/cni/net.d/.
 func CreateCNIConfigFile(node *Node, c *Config) error {
-	contents := c.General.CNIPlugin.ConfigContents(node)
 	filename := filepath.Join(c.General.CNIArea, CNIConfFile)
-	err := ioutil.WriteFile(filename, contents.Bytes(), 0755)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
+		return fmt.Errorf("unable to open CNI config file %q for %s plugin: %v", filename, c.General.Plugin, err)
+	}
+	err = c.General.CNIPlugin.WriteConfigContents(node, f)
+	if err != nil {
+		f.Close()
 		return fmt.Errorf("unable to create CNI config for %s plugin: %v", c.General.Plugin, err)
 	}
-	glog.V(4).Infof("created CNI config file for %s plugin", c.General.Plugin)
+	err = f.Close()
+	if err != nil {
+		return fmt.Errorf("error closing CNI config file %q for %s plugin: %v", filename, c.General.Plugin, err)
+	}
+	glog.V(4).Infof("created CNI config file at %q for %s plugin", filename, c.General.Plugin)
 	return nil
 }
 

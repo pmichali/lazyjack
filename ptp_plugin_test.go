@@ -1,6 +1,7 @@
 package lazyjack_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/pmichali/lazyjack"
@@ -249,7 +250,11 @@ func TestPointToPointCNIConfigContents(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
 	if actual.String() != expected {
 		t.Fatalf("FAILED: PTP CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
@@ -296,7 +301,11 @@ func TestPointToPointCNIConfigContentsV4(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
 	if actual.String() != expected {
 		t.Fatalf("FAILED: PTP CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
@@ -355,7 +364,11 @@ func TestPointToPointCNIConfigContentsDualStack(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
 	if actual.String() != expected {
 		t.Fatalf("FAILED: PTP CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}

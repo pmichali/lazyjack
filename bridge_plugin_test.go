@@ -1,6 +1,7 @@
 package lazyjack_test
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -54,7 +55,13 @@ func TestBridgeCNIConfigContents(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
+
+	// actual := c.General.CNIPlugin.ConfigContents(n)
 	if actual.String() != expected {
 		t.Fatalf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
@@ -104,7 +111,11 @@ func TestBridgeCNIConfigContentsV4(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
 	if actual.String() != expected {
 		t.Fatalf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
@@ -166,7 +177,11 @@ func TestBridgeCNIConfigContentsDualStack(t *testing.T) {
   }
 }
 `
-	actual := c.General.CNIPlugin.ConfigContents(n)
+	actual := new(bytes.Buffer)
+	err := c.General.CNIPlugin.WriteConfigContents(n, actual)
+	if err != nil {
+		t.Fatalf("FAILED! Expected to be able to write CNI configuration %s", err.Error())
+	}
 	if actual.String() != expected {
 		t.Fatalf("FAILED: Bridge CNI config contents wrong\nExpected:\n%s\n  Actual:\n%s\n", expected, actual.String())
 	}
@@ -233,7 +248,7 @@ func TestFailedSetupUnableToCreateBridgeCNIConfigFile(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected to not be able to create CNI config file")
 	}
-	expected := "unable to create CNI config for bridge plugin"
+	expected := "unable to open CNI config file"
 	if !strings.HasPrefix(err.Error(), expected) {
 		t.Fatalf("FAILED: Expected msg to start with %q, got %q", expected, err.Error())
 	}

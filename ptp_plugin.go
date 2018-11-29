@@ -1,8 +1,8 @@
 package lazyjack
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 )
@@ -12,23 +12,29 @@ type PointToPointPlugin struct {
 	Config *Config
 }
 
-// ConfigContents builds the CNI PTP plugin's config file
+// WriteConfigContents builds the CNI PTP plugin's config file
 // contents.
-func (p PointToPointPlugin) ConfigContents(node *Node) *bytes.Buffer {
-	// TODO
+func (p PointToPointPlugin) WriteConfigContents(node *Node, w io.Writer) (err error) {
 	header := `{
   "cniVersion": "0.3.1",
   "name": "dindnet",
   "type": "ptp",
   "ipMasq": true,
 `
-	trailer := `}
-`
-	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "  \"mtu\": %d,\n", p.Config.Pod.MTU)
-	fmt.Fprintf(contents, GenerateConfigForIPAM(p.Config, node))
-	fmt.Fprintf(contents, trailer)
-	return contents
+	_, err = fmt.Fprintf(w, header)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "  \"mtu\": %d,\n", p.Config.Pod.MTU)
+	if err != nil {
+		return err
+	}
+	err = WriteConfigForIPAM(p.Config, node, w)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "}\n")
+	return err
 }
 
 // Setup will take PTP plugin specific actions to setup a node.

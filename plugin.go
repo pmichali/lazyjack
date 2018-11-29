@@ -1,8 +1,8 @@
 package lazyjack
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/golang/glog"
@@ -10,7 +10,7 @@ import (
 
 // PluginAPI interface defines the actions for CNI plugins to implement.
 type PluginAPI interface {
-	ConfigContents(node *Node) *bytes.Buffer
+	WriteConfigContents(node *Node, w io.Writer) error
 	Setup(n *Node) error
 	Cleanup(n *Node) error
 }
@@ -39,27 +39,38 @@ func BuildPodSubnetPrefix(mode, prefix string, netSize, nodeID int) (string, str
 	return fmt.Sprintf("%s%x::", prefix, nodeID), ""
 }
 
-// GenerateRange creates one IPAM range entry, based on the IP mode of the
+// WriteRange creates one IPAM range entry, based on the IP mode of the
 // pod network
-func GenerateRange(c *Config, node *Node, i int) string {
+func WriteRange(c *Config, node *Node, i int, w io.Writer) (err error) {
 	entryPrefix := `      [
         {
 `
 	entrySuffix := `        }
       ]%s
 `
-	contents := bytes.NewBufferString(entryPrefix)
+	_, err = fmt.Fprintf(w, entryPrefix)
+	if err != nil {
+		return err
+	}
 	prefix, suffix := BuildPodSubnetPrefix(c.Pod.Info[i].Mode, c.Pod.Info[i].Prefix, c.Pod.Info[i].Size, node.ID)
-	fmt.Fprintf(contents, "          \"subnet\": \"%s%s/%d\",\n", prefix, suffix, c.Pod.Info[i].Size)
-	fmt.Fprintf(contents, "          \"gateway\": \"%s1\"\n", prefix)
+	_, err = fmt.Fprintf(w, "          \"subnet\": \"%s%s/%d\",\n", prefix, suffix, c.Pod.Info[i].Size)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "          \"gateway\": \"%s1\"\n", prefix)
+	if err != nil {
+		return err
+	}
 	comma := ""
 	if i == 0 && c.General.Mode == DualStackNetMode {
 		comma = ","
 	}
-	fmt.Fprintf(contents, entrySuffix, comma)
-	return contents.String()
+	_, err = fmt.Fprintf(w, entrySuffix, comma)
+	return err
 }
 
+// GenerateDefaultRoute creates the default route entry based on the
+// IP mode. This will be called twice, if dual-stack mode.
 func GenerateDefaultRoute(c *Config, i int) string {
 	defaultRoute := "0.0.0.0/0"
 	if c.Pod.Info[i].Mode == IPv6NetMode {
@@ -72,10 +83,10 @@ func GenerateDefaultRoute(c *Config, i int) string {
 	return fmt.Sprintf("      {\"dst\": %q}%s\n", defaultRoute, comma)
 }
 
-// GenerateConfigForIPAM creates the section of the CNI configuration that
+// WriteConfigForIPAM creates the section of the CNI configuration that
 // contains the IPAM information with subnet and gateway information for the
 // pod network(s).
-func GenerateConfigForIPAM(c *Config, node *Node) string {
+func WriteConfigForIPAM(c *Config, node *Node, w io.Writer) (err error) {
 	header := `  "ipam": {
     "type": "host-local",
     "ranges": [
@@ -86,20 +97,37 @@ func GenerateConfigForIPAM(c *Config, node *Node) string {
 	trailer := `    ]
   }
 `
-	contents := bytes.NewBufferString(header)
-
-	fmt.Fprintf(contents, GenerateRange(c, node, 0))
-	if c.General.Mode == DualStackNetMode {
-		fmt.Fprintf(contents, GenerateRange(c, node, 1))
+	_, err = fmt.Fprintf(w, header)
+	if err != nil {
+		return err
 	}
-	fmt.Fprintf(contents, rangeTrailer)
-
-	fmt.Fprintf(contents, GenerateDefaultRoute(c, 0))
-	if c.General.Mode == DualStackNetMode {
-		fmt.Fprintf(contents, GenerateDefaultRoute(c, 1))
+	err = WriteRange(c, node, 0, w)
+	if err != nil {
+		return err
 	}
-	fmt.Fprintf(contents, trailer)
-	return contents.String()
+	if c.General.Mode == DualStackNetMode {
+		err = WriteRange(c, node, 1, w)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = fmt.Fprintf(w, rangeTrailer)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(w, GenerateDefaultRoute(c, 0))
+	if err != nil {
+		return err
+	}
+	if c.General.Mode == DualStackNetMode {
+		_, err = fmt.Fprintf(w, GenerateDefaultRoute(c, 1))
+		if err != nil {
+			return err
+		}
+	}
+	_, err = fmt.Fprintf(w, trailer)
+	return err
 }
 
 // DoRouteOpsOnNodes builds static routes between minion and master node

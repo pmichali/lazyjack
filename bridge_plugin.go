@@ -1,8 +1,8 @@
 package lazyjack
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 )
@@ -12,10 +12,10 @@ type BridgePlugin struct {
 	Config *Config
 }
 
-// ConfigContents builds the CNI bridge plugin's config file
+// WriteConfigContents builds the CNI bridge plugin's config file
 // contents. The subnet will be eight bits smaller than the pod cluster
 // network size.
-func (b BridgePlugin) ConfigContents(node *Node) *bytes.Buffer {
+func (b BridgePlugin) WriteConfigContents(node *Node, w io.Writer) (err error) {
 	header := `{
   "cniVersion": "0.3.1",
   "name": "bmbridge",
@@ -25,14 +25,20 @@ func (b BridgePlugin) ConfigContents(node *Node) *bytes.Buffer {
   "ipMasq": true,
   "hairpinMode": true,
 `
-	trailer := `}
-`
-	contents := bytes.NewBufferString(header)
-	fmt.Fprintf(contents, "  \"mtu\": %d,\n", b.Config.Pod.MTU)
-
-	fmt.Fprintf(contents, GenerateConfigForIPAM(b.Config, node))
-	fmt.Fprintf(contents, trailer)
-	return contents
+	_, err = fmt.Fprintf(w, header)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "  \"mtu\": %d,\n", b.Config.Pod.MTU)
+	if err != nil {
+		return err
+	}
+	err = WriteConfigForIPAM(b.Config, node, w)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "}\n")
+	return err
 }
 
 // Setup will take Bridge plugin specific actions to setup a node.

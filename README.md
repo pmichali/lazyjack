@@ -126,9 +126,11 @@ support_net:
     cidr: "fd00:10::/64"
     v4cidr: "172.18.0.0/16"
 mgmt_net:
-    cidr: "fd00:20::/64"
+    cidr: "10.192.0.0/16"
+    cidr2: "fd00:20::/64"
 pod_net:
-    cidr: "fd00:40::/72"
+    cidr: "10.244.0.0/16"
+    cidr2: "fd00:40::/72"
     mtu: 9000
 service_net:
     cidr: "fd00:30::/110"
@@ -161,7 +163,8 @@ each `init` run, the area is deleted and recreated, with permissions restricting
 write access to user and group.
 
 ### Mode (mode)
-The default is IPv6, but `ipv4` may be specified as of version 1.3.0.
+The default is IPv6, but `ipv4` may be specified as of version 1.3.0, and dual-stack
+may be used as of 1.3.5.
 
 ### Kuberentes Version (kubernetes-version)
 Optional setting, where you can specify the version of Kubernetes to be used. If
@@ -233,7 +236,10 @@ third octet for the cluster ID. For example:
     cidr: "10.192.0.0/16"
 ```
 
-NOTE: An IP is added to the specified interface on `prepare` and removed on `down`,
+For dual-stack, you specify both IPv4 and IPv6 CIDRs and use `cidr2` for the
+second entry.
+
+NOTE: An IP(s) is(are) added to the specified interface on `prepare` and removed on `down`,
 so it is advised to not use the main interface used to access the node, as may
 loose connectivity.
 
@@ -257,6 +263,9 @@ the node "ID" as the third octet of the address. For example:
     cidr: "10.244.0.0/16"
 ```
 
+For dual-stack, you specify both IPv4 and IPv6 CIDRs and use `cidr2` for the
+second entry.
+
 Optionally, you can set the MTU used on the interface for the pod and management
 networks, on each node. Use the following, under the pod_net section.
 ```
@@ -274,6 +283,14 @@ For IPv4, this must be a subnet that is larger than /24. For example:
 ```
     cidr: "10.96.0.0/12"
 ```
+
+For dual-stack, you must specify either an IPv4 or IPv6 CIDR, which will be used
+for the service network.
+
+NOTE: As of Kubernetes 1.13, the KEP for dual-stack support was under development
+and implementation of support was being started. As a result, some functionality,
+like seeing both IPs for a pod, are not operational (although the pods have both
+IP addresses).
 
 ### NAT64 (nat64)
 For IPv6 mode, to be able to reach external sites that only support IPv4, we use
@@ -296,6 +313,8 @@ Also, specify the IPv6 address of Tayga on the **support_net** IPv6 subnet.
 ```
 ip: "fd00:10::200"
 ```
+
+For dual-stack, this section is not specified.
 
 ### DNS64 (dns64)
 For IPv6 mode, a companion to NAT64, the DNS64 container using bind9 will provide
@@ -325,6 +344,8 @@ be used in all lookups.
 ```
     allow_aaaa_use: true
 ```
+
+For dual-stack, this section is not specified.
 
 ## Usage
 As mentioned above, you should have Lazyjack and the YAML file on each system to be
@@ -398,12 +419,12 @@ For each command, there are a series of actions performed...
 * Creates a drop-in file for kubelet to specify IPv6 DNS64 server IP.
 * Creates KubeAdm configuration file, saves old one with .bak suffix, in case file customized.
 * (IPv6) Adds route to DNS64 synthesized network via NAT64 server (based on node).
-* Adds route to support network for other nodes to access.
+* (IPv6) Adds route to support network for other nodes to access.
 
 ### For the `up` command
 * For Bridge and PTP plugins
   * Creates CNI config file
-  * Create routes for each of the pod networks on other nodes.
+  * Create routes for each of the pod networks on other nodes. For dual-stack, does for each IP family.
 * Reloaded daemons for services.
 * Restarted kubelet service.
 * On master: Place CA certificate and Key files into Kubernetes area.
@@ -626,7 +647,6 @@ that the Kubernetess version is correct.
 * Using separate go routine for kubeadm commands, and provide a (configurable) timeout.
 * Consider including NAT64/DNS64 containers into project to remove dependencies.
 * Bringing up cluster in containers, instead of using separate bare-metal hosts.
-* Add dual-stack support.
 * Setup to allow provisioning without a token (so init step is not needed).
 * Consider allowing any subnet size for management network on v4 and leave to user to ensure room for node ID.
 * Allow IPv4 to use existing I/F on each host (implying not adding IP address or removing it on teardown.
