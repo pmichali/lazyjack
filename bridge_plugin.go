@@ -68,3 +68,8 @@ func (b BridgePlugin) Cleanup(n *Node) error {
 	}
 	return nil
 }
+
+// Start is a no-op for the Bridge CNI plugin
+func (b BridgePlugin) Start() error {
+	return nil
+}

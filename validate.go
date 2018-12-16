@@ -224,6 +224,8 @@ func ValidatePlugin(c *Config) error {
 		c.General.CNIPlugin = BridgePlugin{c}
 	case "ptp":
 		c.General.CNIPlugin = PointToPointPlugin{c}
+	case "calico":
+		c.General.CNIPlugin = CalicoPlugin{c}
 	default:
 		return fmt.Errorf("plugin %q not supported", plugin)
 	}

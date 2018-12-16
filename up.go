@@ -164,6 +164,13 @@ func PlaceCertificateAndKeyForCA(workBase, dst string) error {
 	return err
 }
 
+func StartPlugin(c *Config) error {
+	glog.V(1).Infof("Starting %s plugin", c.General.Plugin)
+	err := c.General.CNIPlugin.Start()
+	glog.Infof("Started %s plugin", c.General.Plugin)
+	return err
+}
+
 // DetermineMasterNode identifies which node configuration entry is
 // for the master node.
 func DetermineMasterNode(c *Config) *Node {
@@ -241,6 +248,10 @@ func BringUp(name string, c *Config) {
 	if err != nil {
 		glog.Fatalf(err.Error())
 		os.Exit(1) // TODO: Rollback?
+	}
+
+	if node.IsMaster {
+		err = StartPlugin(c)
 	}
 
 	// FUTURE: update ~/.kube/config (how to know user?)

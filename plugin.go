@@ -13,6 +13,7 @@ type PluginAPI interface {
 	WriteConfigContents(node *Node, w io.Writer) error
 	Setup(n *Node) error
 	Cleanup(n *Node) error
+	Start() error
 }
 
 // BuildPodSubnetPrefixSuffix will create a pod network prefix, using the cluster

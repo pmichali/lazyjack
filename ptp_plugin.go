@@ -59,3 +59,8 @@ func (p PointToPointPlugin) Cleanup(n *Node) error {
 	glog.V(4).Infof("removed routes for CNI PTP plugin")
 	return nil
 }
+
+// Start is a no-op for the PTP CNI Plugin
+func (p PointToPointPlugin) Start() error {
+	return nil
+}
