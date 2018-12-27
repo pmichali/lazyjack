@@ -1,48 +1,50 @@
 package lazyjack
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 
+	"text/template"
+
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
-	"text/template"
 )
 
 // NetInfo contains the prefix, size, and mode for a network.
 type NetInfo struct {
 	Prefix string
 	Size   int
-	Mode   string  // "ipv6" or "ipv4"
+	Mode   string // "ipv6" or "ipv4"
 }
 
 // SupportNetwork defines information for the support network.
 type SupportNetwork struct {
-	CIDR   string `yaml:"cidr"`
+	CIDR   string  `yaml:"cidr"`
 	Info   NetInfo // Internal
-	V4CIDR string `yaml:"v4cidr"`
+	V4CIDR string  `yaml:"v4cidr"`
 }
 
 // ManagementNetwork defines information for the management network.
 type ManagementNetwork struct {
-	CIDR    string `yaml:"cidr"`
-	CIDR2   string `yaml:"cidr2"`
-	Info    [2]NetInfo  //Internal
+	CIDR  string     `yaml:"cidr"`
+	CIDR2 string     `yaml:"cidr2"`
+	Info  [2]NetInfo //Internal
 }
 
 // PodNetwork defines information for the the pod network.
 type PodNetwork struct {
-	CIDR    string `yaml:"cidr"`
-	CIDR2   string `yaml:"cidr2"`
-	Info    [2]NetInfo  // Internal
-	MTU     int    `yaml:"mtu"`
+	CIDR  string     `yaml:"cidr"`
+	CIDR2 string     `yaml:"cidr2"`
+	Info  [2]NetInfo // Internal
+	MTU   int        `yaml:"mtu"`
 }
 
 // ServiceNetwork defines information for the service network.
 type ServiceNetwork struct {
-	CIDR   string `yaml:"cidr"`
-	Info   NetInfo // Internal
+	CIDR string  `yaml:"cidr"`
+	Info NetInfo // Internal
 }
 
 // DNS64Config defines information for the DNS64 server configuration.
@@ -578,4 +580,24 @@ func ParseConfig(configReader io.Reader) (*Config, error) {
 	}
 	glog.V(4).Infof("Configuration read %+v", config)
 	return &config, nil
+}
+
+type configWriter struct {
+	w   io.Writer
+	buf bytes.Buffer
+	err error
+}
+
+func (w *configWriter) Write(format string, a ...interface{}) {
+	if w.err != nil {
+		return
+	}
+	_, w.err = fmt.Fprintf(&w.buf, format, a...)
+}
+
+func (w *configWriter) Flush() error {
+	if w.err == nil {
+		_, w.err = w.buf.WriteTo(w.w)
+	}
+	return w.err
 }

@@ -25,20 +25,13 @@ func (b BridgePlugin) WriteConfigContents(node *Node, w io.Writer) (err error) {
   "ipMasq": true,
   "hairpinMode": true,
 `
-	_, err = fmt.Fprintf(w, header)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(w, "  \"mtu\": %d,\n", b.Config.Pod.MTU)
-	if err != nil {
-		return err
-	}
-	err = WriteConfigForIPAM(b.Config, node, w)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(w, "}\n")
-	return err
+
+	cw := &configWriter{w: w}
+	cw.Write(header)
+	cw.Write("  \"mtu\": %d,\n", b.Config.Pod.MTU)
+	WriteConfigForIPAM(b.Config, node, cw)
+	cw.Write("}\n")
+	return cw.Flush()
 }
 
 // Setup will take Bridge plugin specific actions to setup a node.

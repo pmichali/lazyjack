@@ -41,32 +41,22 @@ func BuildPodSubnetPrefix(mode, prefix string, netSize, nodeID int) (string, str
 
 // WriteRange creates one IPAM range entry, based on the IP mode of the
 // pod network
-func WriteRange(c *Config, node *Node, i int, w io.Writer) (err error) {
+func WriteRange(c *Config, node *Node, i int, cw *configWriter) {
 	entryPrefix := `      [
         {
 `
 	entrySuffix := `        }
       ]%s
 `
-	_, err = fmt.Fprintf(w, entryPrefix)
-	if err != nil {
-		return err
-	}
+	cw.Write(entryPrefix)
 	prefix, suffix := BuildPodSubnetPrefix(c.Pod.Info[i].Mode, c.Pod.Info[i].Prefix, c.Pod.Info[i].Size, node.ID)
-	_, err = fmt.Fprintf(w, "          \"subnet\": \"%s%s/%d\",\n", prefix, suffix, c.Pod.Info[i].Size)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(w, "          \"gateway\": \"%s1\"\n", prefix)
-	if err != nil {
-		return err
-	}
+	cw.Write("          \"subnet\": \"%s%s/%d\",\n", prefix, suffix, c.Pod.Info[i].Size)
+	cw.Write("          \"gateway\": \"%s1\"\n", prefix)
 	comma := ""
 	if i == 0 && c.General.Mode == DualStackNetMode {
 		comma = ","
 	}
-	_, err = fmt.Fprintf(w, entrySuffix, comma)
-	return err
+	cw.Write(entrySuffix, comma)
 }
 
 // GenerateDefaultRoute creates the default route entry based on the
@@ -86,7 +76,7 @@ func GenerateDefaultRoute(c *Config, i int) string {
 // WriteConfigForIPAM creates the section of the CNI configuration that
 // contains the IPAM information with subnet and gateway information for the
 // pod network(s).
-func WriteConfigForIPAM(c *Config, node *Node, w io.Writer) (err error) {
+func WriteConfigForIPAM(c *Config, node *Node, cw *configWriter) {
 	header := `  "ipam": {
     "type": "host-local",
     "ranges": [
@@ -97,37 +87,21 @@ func WriteConfigForIPAM(c *Config, node *Node, w io.Writer) (err error) {
 	trailer := `    ]
   }
 `
-	_, err = fmt.Fprintf(w, header)
-	if err != nil {
-		return err
-	}
-	err = WriteRange(c, node, 0, w)
-	if err != nil {
-		return err
-	}
+
+	cw.Write(header)
+
+	WriteRange(c, node, 0, cw)
 	if c.General.Mode == DualStackNetMode {
-		err = WriteRange(c, node, 1, w)
-		if err != nil {
-			return err
-		}
-	}
-	_, err = fmt.Fprintf(w, rangeTrailer)
-	if err != nil {
-		return err
+		WriteRange(c, node, 1, cw)
 	}
 
-	_, err = fmt.Fprintf(w, GenerateDefaultRoute(c, 0))
-	if err != nil {
-		return err
-	}
+	cw.Write(rangeTrailer)
+	cw.Write(GenerateDefaultRoute(c, 0))
+
 	if c.General.Mode == DualStackNetMode {
-		_, err = fmt.Fprintf(w, GenerateDefaultRoute(c, 1))
-		if err != nil {
-			return err
-		}
+		cw.Write(GenerateDefaultRoute(c, 1))
 	}
-	_, err = fmt.Fprintf(w, trailer)
-	return err
+	cw.Write(trailer)
 }
 
 // DoRouteOpsOnNodes builds static routes between minion and master node

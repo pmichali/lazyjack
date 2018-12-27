@@ -21,20 +21,13 @@ func (p PointToPointPlugin) WriteConfigContents(node *Node, w io.Writer) (err er
   "type": "ptp",
   "ipMasq": true,
 `
-	_, err = fmt.Fprintf(w, header)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(w, "  \"mtu\": %d,\n", p.Config.Pod.MTU)
-	if err != nil {
-		return err
-	}
-	err = WriteConfigForIPAM(p.Config, node, w)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(w, "}\n")
-	return err
+
+	cw := &configWriter{w: w}
+	cw.Write(header)
+	cw.Write("  \"mtu\": %d,\n", p.Config.Pod.MTU)
+	WriteConfigForIPAM(p.Config, node, cw)
+	cw.Write("}\n")
+	return cw.Flush()
 }
 
 // Setup will take PTP plugin specific actions to setup a node.
