@@ -41,7 +41,7 @@ func BuildPodSubnetPrefix(mode, prefix string, netSize, nodeID int) (string, str
 
 // WriteRange creates one IPAM range entry, based on the IP mode of the
 // pod network
-func WriteRange(c *Config, node *Node, i int, cw *configWriter) {
+func WriteRange(c *Config, node *Node, i int, cw *ConfigWriter) {
 	entryPrefix := `      [
         {
 `
@@ -76,7 +76,7 @@ func GenerateDefaultRoute(c *Config, i int) string {
 // WriteConfigForIPAM creates the section of the CNI configuration that
 // contains the IPAM information with subnet and gateway information for the
 // pod network(s).
-func WriteConfigForIPAM(c *Config, node *Node, cw *configWriter) {
+func WriteConfigForIPAM(c *Config, node *Node, cw *ConfigWriter) {
 	header := `  "ipam": {
     "type": "host-local",
     "ranges": [

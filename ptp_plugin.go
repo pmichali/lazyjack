@@ -22,7 +22,7 @@ func (p PointToPointPlugin) WriteConfigContents(node *Node, w io.Writer) (err er
   "ipMasq": true,
 `
 
-	cw := &configWriter{w: w}
+	cw := NewConfigWriter(w)
 	cw.Write(header)
 	cw.Write("  \"mtu\": %d,\n", p.Config.Pod.MTU)
 	WriteConfigForIPAM(p.Config, node, cw)

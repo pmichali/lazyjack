@@ -582,22 +582,30 @@ func ParseConfig(configReader io.Reader) (*Config, error) {
 	return &config, nil
 }
 
-type configWriter struct {
+// ConfigWriter structure to hold configurations that are created and will be written to files.
+type ConfigWriter struct {
 	w   io.Writer
 	buf bytes.Buffer
 	err error
 }
 
-func (w *configWriter) Write(format string, a ...interface{}) {
+// Write adds configuration line(s) to buffer, only if there are no errors.
+func (w *ConfigWriter) Write(format string, a ...interface{}) {
 	if w.err != nil {
 		return
 	}
 	_, w.err = fmt.Fprintf(&w.buf, format, a...)
 }
 
-func (w *configWriter) Flush() error {
+// Flush outputs the buffer of configuration lines to the IOWriter, if there were no errors
+// creating the buffer.
+func (w *ConfigWriter) Flush() error {
 	if w.err == nil {
 		_, w.err = w.buf.WriteTo(w.w)
 	}
 	return w.err
+}
+
+func NewConfigWriter(w io.Writer) *ConfigWriter {
+     return &ConfigWriter{w: w}
 }

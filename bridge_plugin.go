@@ -26,7 +26,7 @@ func (b BridgePlugin) WriteConfigContents(node *Node, w io.Writer) (err error) {
   "hairpinMode": true,
 `
 
-	cw := &configWriter{w: w}
+	cw := NewConfigWriter(w)
 	cw.Write(header)
 	cw.Write("  \"mtu\": %d,\n", b.Config.Pod.MTU)
 	WriteConfigForIPAM(b.Config, node, cw)

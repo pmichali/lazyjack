@@ -483,7 +483,9 @@ func TestIPAM_ContentsForIPv6(t *testing.T) {
   }
 `
 	actual := new(bytes.Buffer)
-	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	cw := lazyjack.NewConfigWriter(actual)
+	lazyjack.WriteConfigForIPAM(c, n, cw)
+	err := cw.Flush()
 	if err != nil {
 		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
 	}
@@ -525,7 +527,9 @@ func TestIPAM_ContentsForIPv4(t *testing.T) {
   }
 `
 	actual := new(bytes.Buffer)
-	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	cw := lazyjack.NewConfigWriter(actual)
+	lazyjack.WriteConfigForIPAM(c, n, cw)
+	err := cw.Flush()
 	if err != nil {
 		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
 	}
@@ -580,7 +584,9 @@ func TestIPAM_ContentsForDualStack(t *testing.T) {
   }
 `
 	actual := new(bytes.Buffer)
-	err := lazyjack.WriteConfigForIPAM(c, n, actual)
+	cw := lazyjack.NewConfigWriter(actual)
+	lazyjack.WriteConfigForIPAM(c, n, cw)
+	err := cw.Flush()
 	if err != nil {
 		t.Fatalf("FAILED! Expected to be able to write IPAM info: %s", err.Error())
 	}
