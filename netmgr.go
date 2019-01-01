@@ -19,7 +19,7 @@ type NetMgr struct {
 func (n NetMgr) AddAddressToLink(ip, intf string) error {
 	link, err := n.Server.LinkByName(intf)
 	if err != nil {
-		return fmt.Errorf("unable to find interface %q", intf)
+		return fmt.Errorf("unable to find interface %q by name: %s", intf, err.Error())
 	}
 	addr, err := n.Server.ParseAddr(ip)
 	if err != nil {

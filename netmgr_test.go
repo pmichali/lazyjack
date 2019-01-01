@@ -197,7 +197,7 @@ func TestFailedLookupForAddAddressToLink(t *testing.T) {
 	if err == nil {
 		t.Fatalf("FAILED: Expected address add to fail")
 	}
-	expectedErr := "unable to find interface \"eth1\""
+	expectedErr := "unable to find interface \"eth1\" by name: mock failure to find link"
 	if err.Error() != expectedErr {
 		t.Fatalf("FAILED: Expected failure message %q, got %q", expectedErr, err.Error())
 	}

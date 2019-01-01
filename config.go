@@ -194,6 +194,7 @@ type KubeAdmConfigInfo struct {
 	PodNetworkCIDR   string
 	ServiceSubnet    string
 	UseCoreDNS       bool
+	TypeDNS          string
 }
 
 // Template_v1_10 kubeadm.conf content template for Kubernetes V1.10
@@ -444,7 +445,8 @@ etcd:
   local:
     dataDir: /var/lib/etcd
     image: ""
-featureGates: {CoreDNS: {{.UseCoreDNS}}}
+dns:
+  type: {{.TypeDNS}}
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
 {{.K8sVersion}}

@@ -84,7 +84,8 @@ func CollectKubeAdmConfigInfo(n *Node, c *Config) KubeAdmConfigInfo {
 	}
 	info.PodNetworkCIDR = cidr
 	info.ServiceSubnet = c.Service.CIDR
-	info.UseCoreDNS = false // Hardcoded for now
+	info.UseCoreDNS = false // hard-coded default
+	info.TypeDNS = "CoreDNS"  // for 1.13
 	return info
 }
 

@@ -50,8 +50,9 @@ The following needs to be done, prior to using this tool:
 * One or more bare-metal systems running Linux (tested with Ubuntu 16.04), each with:
   * Two interfaces, one for access to box, one for management network for cluster.
   * Make sure management interface doesn't have a conflicting IP address.
+  * Make sure swap is off (swappoff -a) for Kubernetes.
   * Internet access via IPv4 on the node being used for DNS64/NAT64 (V6).
-  * Docker (17.03.2) installed.
+  * Docker (17.03.2) installed and enabled (sudo systemctl enable docker.service).
   * Version 1.11+ of kubeadm, kubectl (on master), and kubelet.
   * Go 1.10.3+ installed on the system and environment set up (may need newer with later releases of K8s).
   * CNI 0.7.1+ installed.

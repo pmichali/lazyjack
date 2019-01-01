@@ -1761,7 +1761,8 @@ etcd:
   local:
     dataDir: /var/lib/etcd
     image: ""
-featureGates: {CoreDNS: false}
+dns:
+  type: CoreDNS
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
 kubernetesVersion: "v1.13.0"
@@ -1960,7 +1961,8 @@ etcd:
   local:
     dataDir: /var/lib/etcd
     image: ""
-featureGates: {CoreDNS: false}
+dns:
+  type: CoreDNS
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
 kubernetesVersion: "latest"
@@ -2433,7 +2435,8 @@ etcd:
   local:
     dataDir: /var/lib/etcd
     image: ""
-featureGates: {CoreDNS: false}
+dns:
+  type: CoreDNS
 imageRepository: k8s.gcr.io
 kind: ClusterConfiguration
 kubernetesVersion: "v1.13.0"
